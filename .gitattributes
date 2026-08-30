@@ -1,0 +1,2 @@
+assets/python/*.wasm filter=lfs diff=lfs merge=lfs -text
+assets/python/*.zip filter=lfs diff=lfs merge=lfs -text

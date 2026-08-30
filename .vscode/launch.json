@@ -1,0 +1,101 @@
+{
+    // The app is web-only, so there are no mobile or desktop configurations.
+    //
+    // Every configuration serves the two cross-origin isolation headers. They
+    // are what make `SharedArrayBuffer` (and so WebAssembly threads and atomics)
+    // available: without them `crossOriginIsolated` is false and the constructor
+    // is simply absent. `flutter run` has no built-in switch for this, so they
+    // go through `--web-header`, which the dev server adds to every response.
+    //
+    // Two consequences worth knowing before adding anything to the page:
+    //
+    //  * `Cross-Origin-Embedder-Policy: require-corp` makes the browser refuse
+    //    every cross-origin subresource that does not opt in with its own CORP
+    //    or CORS header. Everything this app loads is bundled — the fonts under
+    //    assets/fonts/ included, which is exactly why they were bundled — so
+    //    nothing is currently at risk. Pull in a CDN script or a remote font and
+    //    it will fail to load *only* under these configurations.
+    //  * `flutter build web` does not serve anything, so a deployed build needs
+    //    the same two headers set by whatever hosts it. Cross-origin isolation
+    //    is a property of the response, not of the bundle.
+    //
+    // Use "no isolation" when you need to rule the headers out as the cause of
+    // a loading failure. Python still runs there; see web/python/wasi.js, which
+    // spins rather than blocking when SharedArrayBuffer is unavailable.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "I Can Code (web, debug)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "args": [
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, public :8080, debug)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-hostname=0.0.0.0",
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, public :8080, profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "args": [
+                "--web-hostname=0.0.0.0",
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, public :8080, release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--web-hostname=0.0.0.0",
+                "--web-port=8080",
+                "--web-header=Cross-Origin-Opener-Policy=same-origin",
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+            ]
+        },
+        {
+            "name": "I Can Code (web, no isolation, debug)",
+            "request": "launch",
+            "type": "dart",
+            "args": ["--web-port=8080"]
+        }
+    ]
+}

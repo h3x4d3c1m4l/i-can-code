@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="I Can Code — learn to program, in your browser.">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="I Can Code">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <style>
+    /*
+      Covers the seconds before Flutter exists, so it cannot reach the app's
+      theme. These colours restate AppColorPreset.neutral by hand and MUST be
+      changed alongside it.
+    */
+    :root {
+      --foreground: #0A0A0A;
+      --primary: #171717;
+      --primary-foreground: #FAFAFA;
+      --page: #FAFAFA;
+      --border: rgba(10, 10, 10, 0.15);
+      --error: #E7000B;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--foreground);
+    }
+
+    #loading-container,
+    #error-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 20px;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #error-container {
+      display: none;
+    }
+
+    /* The app's mark, matching the initialization screen it hands over to:
+       40px radius on a 118px tile. */
+    .mark {
+      width: 118px;
+      height: 118px;
+      border-radius: 40px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+      font-size: 50px;
+    }
+
+    #loading-message,
+    #error-message {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    #error-message {
+      color: var(--error);
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* A pulse says as much as a spin, without the vestibular trigger. */
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; opacity: 0.5; }
+    }
+
+    #retry-button {
+      padding: 14px 30px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      border: 0;
+      border-radius: 21px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+
+    #retry-button:hover {
+      opacity: 0.85;
+    }
+  </style>
+
+  <title>I Can Code</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="loading-container">
+    <div class="mark">&lt;/&gt;</div>
+    <div class="spinner" role="progressbar" aria-label="Loading"></div>
+    <p id="loading-message">Loading…</p>
+  </div>
+  <div id="error-container">
+    <div class="mark">&lt;/&gt;</div>
+    <p id="error-message">I Can Code could not be loaded.</p>
+    <button id="retry-button" onclick="window.location.reload()">Try again</button>
+  </div>
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
+    // Adapted from https://docs.flutter.dev/platform-integration/web/initialization
+    const loadingContainer = document.getElementById('loading-container');
+    const loadingMessage = document.getElementById('loading-message');
+    const errorContainer = document.getElementById('error-container');
+
+    function showError() {
+      loadingContainer.remove();
+      errorContainer.style.display = 'flex';
+    }
+
+    _flutter.loader.load({
+      onEntrypointLoaded: async function (engineInitializer) {
+        try {
+          loadingMessage.textContent = 'Starting the engine…';
+          const appRunner = await engineInitializer.initializeEngine();
+
+          loadingMessage.textContent = 'Starting the app…';
+          await appRunner.runApp();
+
+          loadingContainer.remove();
+        } catch (e) {
+          showError();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

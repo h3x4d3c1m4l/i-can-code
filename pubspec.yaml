@@ -1,0 +1,89 @@
+name: i_can_code
+description: "I Can Code - learn to code, in the browser."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  # The package's *language version*, which is what the compiler allows generated
+  # code to use. freezed and theme_tailor both floor at 3.13.0.
+  sdk: ^3.13.0
+
+dependencies:
+  flutter: { sdk: flutter }
+  flutter_localizations: { sdk: flutter }
+  intl: any
+
+  forui: 0.26.0
+  mobx: 2.6.1
+  flutter_mobx: 2.3.0
+  auto_route: 11.1.0
+  get_it: 9.2.1
+  google_fonts: 8.2.1
+  flutter_markdown_plus: 1.0.12
+  re_editor: 0.10.0
+  re_highlight: 0.0.3
+  markdown: 7.3.1
+  shared_preferences: 2.5.5
+  yaml: 3.1.4
+  freezed_annotation: 3.1.0
+  meta: 1.19.0
+  web: 1.1.1
+  material_ui: 1.1.0
+  theme_tailor_annotation: 4.0.0
+
+dev_dependencies:
+  shared_preferences_platform_interface: 2.4.2
+  flutter_test: { sdk: flutter }
+
+  flutter_lints: ^6.0.0
+  build_runner: 2.16.0
+  mobx_codegen: 2.7.8
+  auto_route_generator: 10.6.0
+  freezed: 4.0.1
+  json_serializable: 6.14.1
+  theme_tailor: 4.0.1
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    # CPython 3.14 built for wasm32-wasi plus its stdlib; see docs/python-wasm-build.md.
+    - assets/python/python.wasm
+    - assets/python/python314.zip
+    # Flutter's asset globbing is NOT recursive: every directory must be listed.
+    - assets/lessons/
+    - assets/lessons/python/
+
+  fonts:
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree-400.ttf
+          weight: 400
+        - asset: assets/fonts/Figtree-500.ttf
+          weight: 500
+        - asset: assets/fonts/Figtree-600.ttf
+          weight: 600
+        - asset: assets/fonts/Figtree-700.ttf
+          weight: 700
+        - asset: assets/fonts/Figtree-800.ttf
+          weight: 800
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-400.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-500.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-600.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-700.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-800.ttf
+          weight: 800
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-400.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-500.ttf
+          weight: 500
