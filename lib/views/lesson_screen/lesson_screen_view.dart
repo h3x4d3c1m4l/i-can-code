@@ -8,6 +8,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
@@ -18,20 +19,33 @@ import 'package:re_editor/re_editor.dart';
 
 class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScreenController> {
 
+  /// The width the prose reserves on its left for a subheading's chevron.
+  ///
+  /// [LessonProse] indents by it and [CollapsibleProseGroup] fills it, so that
+  /// the chevron falls inside the box that is pressed. The page pays for it out
+  /// of its own left padding and gets it back on the measure, which is what
+  /// keeps the text itself where the design put it — on any width, since a
+  /// narrow viewport falls back on the padding and a wide one on the measure.
+  static const double _gutter = CollapsibleProseGroup.gutter;
+
   /// The measure a single column of prose is set to — the design's reading-step
   /// number, roughly 60–70 characters at [_readingProseSize].
-  static const double _readingWidth = 660;
+  static const double _readingWidth = 660 + _gutter;
 
   /// The design's reading-step padding.
-  static const EdgeInsets _readingPadding = EdgeInsets.fromLTRB(32, 72, 32, 110);
+  static const EdgeInsets _readingPadding = EdgeInsets.fromLTRB(32 - _gutter, 72, 32, 110);
 
   /// Prose in a single column.
   static const double _readingProseSize = 21;
 
   /// The design's two-column task step, wider overall than a single column.
-  static const double _taskWidth = 1120;
+  static const double _taskWidth = 1120 + _gutter;
 
-  static const EdgeInsets _taskPadding = EdgeInsets.fromLTRB(32, 44, 32, 90);
+  static const EdgeInsets _taskPadding = EdgeInsets.fromLTRB(32 - _gutter, 44, 32, 90);
+
+  /// Puts a widget that is not prose back on the prose's own left edge.
+  static Widget _pastGutter(Widget child) =>
+      Padding(padding: const EdgeInsets.only(left: _gutter), child: child);
 
   /// Prose in the narrower of the two columns.
   static const double _taskProseSize = 19;
@@ -100,11 +114,11 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeading(section: section),
+          _pastGutter(SectionHeading(section: section)),
           const SizedBox(height: 30),
-          LessonProse(markdown: section.prose, fontSize: _readingProseSize),
+          LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 10),
-          _buildContinue(context, lesson),
+          _pastGutter(_buildContinue(context, lesson)),
         ],
       ),
     );
@@ -119,9 +133,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeading(section: section),
+          _pastGutter(SectionHeading(section: section)),
           const SizedBox(height: 30),
-          LessonProse(markdown: section.prose, fontSize: _readingProseSize),
+          LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 20),
           // A short assignment's answer is one line, so the editor is sized to
           // exactly that. Longer code scrolls inside it.
@@ -131,7 +145,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             section,
             editorHeight: CodeEditorCard.heightForLines(1),
             singleLine: true,
-          ),
+          ).map(_pastGutter),
         ],
       ),
     );
@@ -146,9 +160,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     final prose = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeading(section: section),
+        _pastGutter(SectionHeading(section: section)),
         const SizedBox(height: 20),
-        LessonProse(markdown: section.prose, fontSize: _taskProseSize),
+        LessonProse(markdown: section.prose, fontSize: _taskProseSize, hangingGutter: true),
       ],
     );
     final workspace = Column(
@@ -164,9 +178,12 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       maxWidth: _taskWidth,
       padding: _taskPadding,
       child: stacked
+          // Stacked, the workspace sits under the prose and has to line up with
+          // it. Side by side it starts its own column, where the gutter would
+          // only push it away from the divide.
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [prose, const SizedBox(height: 30), workspace],
+              children: [prose, const SizedBox(height: 30), _pastGutter(workspace)],
             )
           // Even halves. `Expanded.flex` is an integer ratio against a default
           // of 1, so `flex: 11` would be an 11:1 split, not 1:1.1.

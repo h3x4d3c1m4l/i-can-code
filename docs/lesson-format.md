@@ -115,6 +115,37 @@ An `info` section must not carry an assignment or validator block; the other two
 must carry both. `Lesson.parse` throws a `FormatException` naming the section
 when either rule is broken.
 
+## `###` inside a section — foldable subheadings
+
+Within a section's prose, every `###` heading becomes a block the student can
+fold away by pressing it. The prose before the first `###` stays put, and a
+section with no `###` renders exactly as it always did.
+
+End a heading with **`{collapsed}`** to have that one arrive folded:
+
+```markdown
+### Sorted by paradigm
+
+Always open, because it is the point of the section.
+
+### The full list of languages {collapsed}
+
+Folded on arrival — reference material, not something to read straight through.
+```
+
+The marker is stripped from the title and only counts at the very end of the
+line, so a heading may still mention `{collapsed}` in its own text.
+
+Three things to know:
+
+- **Folding is not remembered.** Leave the step and come back and every group is
+  back in the state its heading asked for. It is a reading convenience, not
+  progress — see the note on `ProgressStore` in `CLAUDE.md`.
+- **A `###` inside a fenced block is code**, not a heading, so a Python sample
+  containing one will not cut the prose in half.
+- **`####` and deeper are left alone.** They render as ordinary headings inside
+  whichever group they fall in.
+
 ## Why the role rides in the fence language
 
 ` ```python-assignment ` parses with the stock `markdown` package —

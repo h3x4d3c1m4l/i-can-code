@@ -12,6 +12,7 @@ import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
@@ -46,6 +47,65 @@ void main() {
 
   setUpAll(() {
     lesson = Lesson.parse(File('assets/lessons/python/01-input-and-output.nl.md').readAsStringSync());
+  });
+
+  group('splitProseOnSubheadings', () {
+    test('returns one headless group when there is no subheading', () {
+      final groups = splitProseOnSubheadings('Alleen tekst.\n\nEn nog een alinea.');
+
+      expect(groups, hasLength(1));
+      expect(groups.single.heading, isNull);
+      expect(groups.single.body, 'Alleen tekst.\n\nEn nog een alinea.');
+    });
+
+    test('keeps the prose before the first subheading as a headless group', () {
+      final groups = splitProseOnSubheadings('Intro.\n\n### Een\n\nInhoud.');
+
+      expect(groups.map((g) => g.heading), [null, 'Een']);
+      expect(groups.first.body, 'Intro.');
+      expect(groups.last.body, 'Inhoud.');
+    });
+
+    test('drops an empty preamble rather than rendering nothing', () {
+      final groups = splitProseOnSubheadings('### Een\n\nInhoud.');
+
+      expect(groups.map((g) => g.heading), ['Een']);
+    });
+
+    test('a `###` line inside a fence is code, not a heading', () {
+      final groups = splitProseOnSubheadings('### Kop\n\n```python\n### niet een kop\n```\n\nNa.');
+
+      expect(groups, hasLength(1));
+      expect(groups.single.heading, 'Kop');
+      expect(groups.single.body, contains('### niet een kop'));
+    });
+
+    test('a heading ending in {collapsed} asks to start folded', () {
+      final groups = splitProseOnSubheadings('### Een {collapsed}\n\nInhoud.');
+
+      expect(groups.single.heading, 'Een');
+      expect(groups.single.collapsed, isTrue);
+    });
+
+    test('a heading without the marker starts open', () {
+      final groups = splitProseOnSubheadings('### Een\n\nInhoud.');
+
+      expect(groups.single.collapsed, isFalse);
+    });
+
+    test('the marker only counts at the end of the heading', () {
+      final groups = splitProseOnSubheadings('### Over {collapsed} als markering\n\nInhoud.');
+
+      expect(groups.single.heading, 'Over {collapsed} als markering');
+      expect(groups.single.collapsed, isFalse);
+    });
+
+    test('a deeper heading is left to the renderer', () {
+      final groups = splitProseOnSubheadings('#### Vier\n\nInhoud.');
+
+      expect(groups, hasLength(1));
+      expect(groups.single.heading, isNull);
+    });
   });
 
   group('LessonProse', () {
@@ -85,7 +145,7 @@ void main() {
       final below = tester.getRect(find.textContaining('Na.'));
       final inside = tester.getRect(code);
 
-      // 18 paragraph spacing + 8 sheet blockSpacing + 8 of the block's own.
+      // 6 paragraph spacing + 20 sheet blockSpacing + 8 of the block's own.
       // A paragraph carries its spacing below itself, so without the builder's
       // trailing space the gap under a block would be 8px against 26 above.
       expect(card.top - above.bottom, 34);
@@ -93,6 +153,97 @@ void main() {
       // The card's own padding. Its top gap is larger because the language
       // label sits above the code inside the card.
       expect(card.bottom - inside.bottom, CodeEditorCard.codePadding.bottom);
+    });
+
+    testWidgets('a subheading becomes a group that starts open', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: 'Intro.\n\n### Kop\n\nInhoud.')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CollapsibleProseGroup), findsOneWidget);
+      expect(find.textContaining('Inhoud.'), findsOneWidget);
+      // The prose before the first `###` stays outside the group.
+      expect(find.textContaining('Intro.'), findsOneWidget);
+    });
+
+    testWidgets('pressing a subheading folds its prose away, and again unfolds it', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: '### Kop\n\nInhoud.')));
+      await tester.pumpAndSettle();
+
+      final group = find.byType(CollapsibleProseGroup);
+      final open = tester.getSize(group).height;
+      final heading = tester.getSize(find.text('Kop')).height;
+
+      await tester.tap(find.text('Kop'));
+      await tester.pumpAndSettle();
+
+      final folded = tester.getSize(group).height;
+      expect(folded, lessThan(open));
+      // Nothing of the prose is left standing: only the heading remains.
+      expect(folded, lessThanOrEqualTo(heading + 8));
+
+      await tester.tap(find.text('Kop'));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(group).height, open);
+    });
+
+    testWidgets('with a hanging gutter every line of prose shares one left edge', (tester) async {
+      await tester.pumpWidget(
+        _host(const LessonProse(markdown: 'Intro.\n\n### Kop\n\nInhoud.', hangingGutter: true)),
+      );
+      await tester.pumpAndSettle();
+
+      final intro = tester.getRect(find.textContaining('Intro.'));
+      final heading = tester.getRect(find.text('Kop'));
+      final content = tester.getRect(find.textContaining('Inhoud.'));
+      final chevron = tester.getRect(find.byIcon(FLucideIcons.chevronDown));
+
+      expect(heading.left, intro.left);
+      expect(content.left, intro.left);
+      // The chevron sits in the gutter the prose is indented by, not outside it.
+      expect(chevron.right, lessThanOrEqualTo(heading.left));
+      expect(heading.left - CollapsibleProseGroup.gutter, lessThanOrEqualTo(chevron.left));
+    });
+
+    testWidgets('the chevron itself is pressable, not just the heading', (tester) async {
+      await tester.pumpWidget(
+        _host(const LessonProse(markdown: '### Kop\n\nInhoud.', hangingGutter: true)),
+      );
+      await tester.pumpAndSettle();
+
+      final group = find.byType(CollapsibleProseGroup);
+      final open = tester.getSize(group).height;
+
+      await tester.tapAt(tester.getCenter(find.byIcon(FLucideIcons.chevronDown)));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(group).height, lessThan(open));
+    });
+
+    testWidgets('a heading marked {collapsed} arrives folded, without animating open', (tester) async {
+      await tester.pumpWidget(
+        _host(const LessonProse(markdown: '### Kop {collapsed}\n\nInhoud.', hangingGutter: true)),
+      );
+      await tester.pump();
+
+      final group = find.byType(CollapsibleProseGroup);
+      final folded = tester.getSize(group).height;
+      // The marker is a directive, not part of the title.
+      expect(find.text('Kop'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(tester.getSize(group).height, folded);
+
+      await tester.tap(find.text('Kop'));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(group).height, greaterThan(folded));
+    });
+
+    testWidgets('a step without subheadings builds no group at all', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: 'Alleen tekst.')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CollapsibleProseGroup), findsNothing);
     });
 
     testWidgets('a code block names its language in the corner', (tester) async {
