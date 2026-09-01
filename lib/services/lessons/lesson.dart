@@ -6,20 +6,20 @@ enum SectionKind {
   /// Prose only. Nothing to write, nothing to run.
   info,
 
-  /// A short assignment. Prose and editor stack in a single column.
-  shortAssignment,
+  /// A short exercise. Prose and editor stack in a single column.
+  quickExercise,
 
-  /// A full assignment, in the design's two-column layout: prose on the left,
+  /// A full exercise, in the design's two-column layout: prose on the left,
   /// editor and output on the right.
-  longAssignment;
+  exercise;
 
   /// Whether the student writes and runs code here.
   bool get isAssignment => this != SectionKind.info;
 
   static SectionKind parse(String value) => switch (value) {
     'info' => SectionKind.info,
-    'short-assignment' => SectionKind.shortAssignment,
-    'long-assignment' => SectionKind.longAssignment,
+    'quick-exercise' => SectionKind.quickExercise,
+    'exercise' => SectionKind.exercise,
     _ => throw FormatException('Unknown section type "$value".'),
   };
 
@@ -34,6 +34,11 @@ class LessonSection {
 
   final String title;
   final SectionKind kind;
+
+  /// A "Verdieping": worth reading, but not required. The step carries a badge
+  /// and a way past it, and skipping it stores nothing — see
+  /// `docs/lesson-format.md`.
+  final bool optional;
 
   /// The section's prose, as markdown source, with the `metadata`,
   /// `<lang>-assignment` and `<lang>-validator` blocks removed. Plain fenced
@@ -52,6 +57,7 @@ class LessonSection {
     required this.title,
     required this.kind,
     required this.prose,
+    this.optional = false,
     this.starter,
     this.validator,
   });
@@ -102,6 +108,7 @@ class Lesson {
     String? sectionTitle;
     String? sectionId;
     SectionKind? sectionKind;
+    var sectionOptional = false;
     var prose = <String>[];
     String? starter;
     String? validator;
@@ -125,6 +132,7 @@ class Lesson {
           id: sectionId!,
           title: sectionTitle,
           kind: sectionKind!,
+          optional: sectionOptional,
           prose: prose.join('\n').trim(),
           starter: starter,
           validator: validator,
@@ -132,6 +140,7 @@ class Lesson {
       );
       sectionKind = null;
       sectionId = null;
+      sectionOptional = false;
       prose = <String>[];
       starter = null;
       validator = null;
@@ -165,6 +174,11 @@ class Lesson {
               if (type == null) throw FormatException('Section "$sectionTitle" declares no `type`.');
               sectionKind = SectionKind.parse(type);
               sectionId = meta['id'] as String?;
+              final optional = meta['optional'];
+              if (optional != null && optional is! bool) {
+                throw FormatException('Section "$sectionTitle" declares an `optional` that is not true or false.');
+              }
+              sectionOptional = optional as bool? ?? false;
             }
           case _BlockRole.assignment:
             starter = body.join('\n');

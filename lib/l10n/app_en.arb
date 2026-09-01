@@ -44,18 +44,28 @@
   "@lessonScreen_passed": {},
   "lessonScreen_next": "Next",
   "@lessonScreen_next": {},
-  "lessonScreen_finish": "Back to overview",
-  "@lessonScreen_finish": {},
+  "lessonScreen_optional": "Deep dive",
+  "@lessonScreen_optional": {
+    "description": "Badge above the title of a step the student may skip."
+  },
+  "lessonScreen_skip": "Skip",
+  "@lessonScreen_skip": {
+    "description": "The link beside the deep-dive badge that moves past the step."
+  },
+  "lessonScreen_finish": "Back to {language}",
+  "@lessonScreen_finish": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
   "lessonScreen_truncated": "The output was too long and has been cut short.",
   "@lessonScreen_truncated": {},
   "lessonScreen_crashed": "Python could not (fully) run your code:",
   "@lessonScreen_crashed": {},
-  "lessonScreen_catalog": "Overview",
-  "@lessonScreen_catalog": {},
   "appHeader_settings": "Settings",
   "@appHeader_settings": {},
-  "appHeader_language": "Language",
-  "@appHeader_language": {},
   "languagesScreen_title": "What do you want to learn?",
   "@languagesScreen_title": {},
   "languagesScreen_lessons": "{count, plural, =1{1 lesson} other{{count} lessons}}",
@@ -88,6 +98,14 @@
       }
     }
   },
+  "appHeader_languageSystem": "Device language",
+  "@appHeader_languageSystem": {},
+  "appHeader_themeSystem": "System",
+  "@appHeader_themeSystem": {},
+  "appHeader_themeLight": "Light",
+  "@appHeader_themeLight": {},
+  "appHeader_themeDark": "Dark",
+  "@appHeader_themeDark": {},
   "appHeader_resetProgress": "Reset progress",
   "@appHeader_resetProgress": {},
   "resetProgress_title": "Reset progress?",

@@ -108,9 +108,48 @@ void main() {
       );
     });
 
-    test('rejects an assignment with no starter block', () {
+    test('rejects an exercise with no starter block', () {
       expect(
-        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: short-assignment\n```\n'),
+        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: quick-exercise\n```\n'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a type the app no longer knows', () {
+      // The old names, so a lesson left behind by the rename fails the test run
+      // rather than the initialization screen.
+      for (final type in ['short-assignment', 'long-assignment']) {
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: $type\nid: s\n```\n'),
+          throwsA(isA<FormatException>()),
+          reason: type,
+        );
+      }
+    });
+
+    test('a section is required unless it says otherwise', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+
+      expect(lesson.sections.single.optional, isFalse);
+    });
+
+    test('reads `optional: true` off a section', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n'
+        '## A\n\n```metadata\ntype: info\nid: a\noptional: true\n```\n\nprose\n\n'
+        '## B\n\n```metadata\ntype: info\nid: b\n```\n\nprose\n',
+      );
+
+      expect(lesson.sections.map((section) => section.optional), [true, false]);
+    });
+
+    test('rejects an `optional` that is not a boolean', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\noptional: yes please\n```\n',
+        ),
         throwsA(isA<FormatException>()),
       );
     });

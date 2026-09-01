@@ -63,7 +63,7 @@ print("Hello, world")
 ## Zelf "printen"
 
 ```metadata
-type: short-assignment
+type: quick-exercise
 id: print-yourself
 ```
 
@@ -108,12 +108,31 @@ a position survives none of that.
 | `type` | Layout |
 | --- | --- |
 | `info` | Prose only. No editor, nothing to run. |
-| `short-assignment` | Prose and editor stacked in **one column** — the question is a sentence or two. |
-| `long-assignment` | The design's **two columns**: prose left, editor and output right. |
+| `quick-exercise` | Prose and editor stacked in **one column** — the question is a sentence or two. |
+| `exercise` | The design's **two columns**: prose left, editor and output right. |
 
 An `info` section must not carry an assignment or validator block; the other two
 must carry both. `Lesson.parse` throws a `FormatException` naming the section
 when either rule is broken.
+
+### `optional: true` — a "Verdieping"
+
+Any of the three types may add `optional: true`. The step then carries a
+**Verdieping** badge above its title and an **Overslaan** link beside it.
+
+```metadata
+type: info
+id: how-print-got-its-name
+optional: true
+```
+
+Skipping stores **nothing**. The step's progress segment stays grey and the step
+is offered again on the next visit — it is skipped for this reading, not marked
+done and not marked refused. A student who does the work still earns the tick the
+normal way, so the badge changes what is *asked*, never what is *recorded*.
+
+`optional` MUST be `true` or `false`; anything else is a `FormatException`.
+Omitted, it is `false`.
 
 ## `###` inside a section — foldable subheadings
 

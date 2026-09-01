@@ -7,6 +7,7 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_logo.dart';
@@ -46,6 +47,8 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     GetIt.I
       ..registerSingleton<LocaleController>(LocaleController())
+      // The cog's light/dark group reads it.
+      ..registerSingleton<ThemeModeController>(ThemeModeController())
       // The cog reads it to decide whether to offer "reset progress".
       ..registerSingleton<ProgressStore>(ProgressStore());
   });
@@ -190,5 +193,31 @@ void main() {
 
     expect(GetIt.I<LocaleController>().locale, const Locale('en'));
     expect(find.text('Nederlands'), findsNothing);
+  });
+
+  testWidgets('following the device is offered alongside the languages', (tester) async {
+    await tester.pumpWidget(_host(const AppHeader()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(SettingsMenu));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Apparaattaal'), findsOneWidget);
+
+    // Off the device first, or the tap below would be a no-op — following the
+    // device is where the app already starts.
+    await tester.tap(find.text('Nederlands'));
+    await tester.pumpAndSettle();
+    expect(GetIt.I<LocaleController>().followsDevice, isFalse);
+
+    await tester.tap(find.byType(SettingsMenu));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apparaattaal'));
+    await tester.pumpAndSettle();
+
+    // Null, not a locale: `WidgetsApp` is what resolves the device's languages
+    // against the supported ones.
+    expect(GetIt.I<LocaleController>().locale, isNull);
+    expect(GetIt.I<LocaleController>().followsDevice, isTrue);
   });
 }

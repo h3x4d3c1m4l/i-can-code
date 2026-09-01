@@ -14,16 +14,27 @@
   "lessonScreen_output": "Uitvoer",
   "lessonScreen_passed": "Goed!",
   "lessonScreen_next": "Volgende",
-  "lessonScreen_finish": "Terug naar overzicht",
+  "lessonScreen_optional": "Verdieping",
+  "lessonScreen_skip": "Overslaan",
+  "lessonScreen_finish": "Terug naar {language}",
+  "@lessonScreen_finish": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
   "lessonScreen_truncated": "De uitvoer was te lang en is afgekapt.",
   "lessonScreen_crashed": "Python kon je code niet (geheel) uitvoeren:",
-  "lessonScreen_catalog": "Overzicht",
   "appHeader_settings": "Instellingen",
-  "appHeader_language": "Taal",
   "languagesScreen_title": "Wat wil je leren?",
   "languagesScreen_lessons": "{count, plural, =1{1 les} other{{count} lessen}}",
   "catalogScreen_progress": "{done} / {total}",
   "languagesScreen_progress": "{done} / {total} lessen",
+  "appHeader_languageSystem": "Apparaattaal",
+  "appHeader_themeSystem": "Systeem",
+  "appHeader_themeLight": "Licht",
+  "appHeader_themeDark": "Donker",
   "appHeader_resetProgress": "Voortgang wissen",
   "resetProgress_title": "Voortgang wissen?",
   "resetProgress_body": "Je vinkjes verdwijnen en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",

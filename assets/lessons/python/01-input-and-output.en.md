@@ -30,7 +30,7 @@ This calls Python's `print` function and tells it what to 'print'. The term prin
 ## Printing yourself
 
 ```metadata
-type: short-assignment
+type: quick-exercise
 id: print-yourself
 ```
 
@@ -49,7 +49,7 @@ if not output:
 ## Printing different things
 
 ```metadata
-type: long-assignment
+type: exercise
 id: printing-values
 ```
 

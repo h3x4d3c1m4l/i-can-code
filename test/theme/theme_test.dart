@@ -12,49 +12,71 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   for (final preset in AppColorPreset.values) {
-    group(preset.name, () {
-      final resolved = preset.resolve();
-      final colors = resolved.colors;
-      final semantic = resolved.semantic;
+    for (final brightness in Brightness.values) {
+      group('${preset.name} ${brightness.name}', () {
+        final resolved = preset.resolve(brightness: brightness);
+        final colors = resolved.colors;
+        final semantic = resolved.semantic;
 
-      test('builds a theme', () => expect(buildAppTheme(preset: preset).colors.primary, colors.primary));
+        test('builds a theme', () {
+          expect(buildAppTheme(preset: preset, brightness: brightness).colors.primary, colors.primary);
+        });
 
-      test('carries its own tokens on the theme', () {
-        expect(buildAppTheme(preset: preset).extensions, isNotEmpty);
+        test('is the brightness it was asked for', () {
+          expect(buildAppTheme(preset: preset, brightness: brightness).colors.brightness, brightness);
+        });
+
+        test('carries its own tokens on the theme', () {
+          expect(buildAppTheme(preset: preset, brightness: brightness).extensions, isNotEmpty);
+        });
+
+        // Every pair a widget could plausibly get backwards. The THUAS corporate
+        // green looks bright enough to take white text, and does not.
+        final pairs = <String, (Color, Color)>{
+          'primary on its foreground': (colors.primary, colors.primaryForeground),
+          'destructive on its foreground': (colors.destructive, colors.destructiveForeground),
+          'error on its foreground': (colors.error, colors.errorForeground),
+          'body text on the page': (colors.background, colors.foreground),
+          'body text on a card': (colors.card, colors.foreground),
+          'muted text on the page': (colors.background, colors.mutedForeground),
+          'success on its foreground': (semantic.success, semantic.successForeground),
+          'warning on its foreground': (semantic.warning, semantic.warningForeground),
+          'text on the success surface': (semantic.successSurface, colors.foreground),
+          'text on the warning surface': (semantic.warningSurface, colors.foreground),
+          'text on the error surface': (semantic.errorSurface, colors.foreground),
+          // The "Verdieping" badge is filled with `secondary` and labelled in
+          // `secondaryForeground`.
+          'the optional-step badge on its foreground': (colors.secondary, colors.secondaryForeground),
+          'code on the editor': (semantic.codeBackground, semantic.codeForeground),
+          'editor chrome on the editor': (semantic.codeBackground, semantic.codeMuted),
+          // A prose link is text, so it has to clear both surfaces it is drawn
+          // on. This is the pair `primary` cannot satisfy, and the reason `link`
+          // is a role of its own.
+          'a link on the page': (colors.background, semantic.link),
+          'a link on a card': (colors.card, semantic.link),
+        };
+
+        for (final MapEntry(key: name, value: pair) in pairs.entries) {
+          test('$name clears WCAG AA', () => expect(_contrast(pair.$1, pair.$2), greaterThanOrEqualTo(4.5)));
+        }
       });
-
-      // Every pair a widget could plausibly get backwards. The THUAS corporate
-      // green looks bright enough to take white text, and does not.
-      final pairs = <String, (Color, Color)>{
-        'primary on its foreground': (colors.primary, colors.primaryForeground),
-        'destructive on its foreground': (colors.destructive, colors.destructiveForeground),
-        'error on its foreground': (colors.error, colors.errorForeground),
-        'body text on the page': (colors.background, colors.foreground),
-        'body text on a card': (colors.card, colors.foreground),
-        'muted text on the page': (colors.background, colors.mutedForeground),
-        'success on its foreground': (semantic.success, semantic.successForeground),
-        'warning on its foreground': (semantic.warning, semantic.warningForeground),
-        'text on the success surface': (semantic.successSurface, colors.foreground),
-        'text on the warning surface': (semantic.warningSurface, colors.foreground),
-        'text on the error surface': (semantic.errorSurface, colors.foreground),
-        'code on the editor': (semantic.codeBackground, semantic.codeForeground),
-        'editor chrome on the editor': (semantic.codeBackground, semantic.codeMuted),
-      };
-
-      for (final MapEntry(key: name, value: pair) in pairs.entries) {
-        test('$name clears WCAG AA', () => expect(_contrast(pair.$1, pair.$2), greaterThanOrEqualTo(4.5)));
-      }
-    });
+    }
   }
 
-  test('every tappable shows a click cursor, but not when disabled', () {
-    // forui defaults this to `MouseCursor.defer`, which leaves the ordinary
-    // arrow over buttons on the web.
-    final cursor = buildAppTheme().style.tappableStyle.cursor;
-
-    expect(cursor.resolve(const {}), SystemMouseCursors.click);
-    expect(cursor.resolve({FTappableVariant.disabled}), SystemMouseCursors.basic);
-  });
+  // Both fields, because they are different objects and only one of them is
+  // what a bare `FTappable` reads. Asserting the style alone passed for a
+  // release in which every cursor on the site was still forui's arrow.
+  for (final (name, style) in [
+    ('a bare FTappable reads', buildAppTheme().tappableStyle),
+    ('a widget built from FStyle reads', buildAppTheme().style.tappableStyle),
+  ]) {
+    test('the cursor $name is a pointer, and an arrow when disabled', () {
+      // forui defaults both to `MouseCursor.defer`, which on the web leaves the
+      // ordinary arrow over buttons, crumbs, the cog and the progress bar.
+      expect(style.cursor.resolve(const {}), SystemMouseCursors.click);
+      expect(style.cursor.resolve({FTappableVariant.disabled}), SystemMouseCursors.basic);
+    });
+  }
 
   test('the THUAS corporate green cannot take white text', () {
     // Guards the trap, not the fix: if this passes, the palette has drifted off

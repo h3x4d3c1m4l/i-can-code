@@ -14,6 +14,27 @@
 
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <script>
+    /*
+      Picks the splash's mode before the first paint.
+
+      Reads the same key ThemeModeController writes: SharedPreferencesAsync
+      stores it in localStorage verbatim — no "flutter." prefix — JSON-encoded,
+      so the value is a quoted string. The literal "theme.mode" below MUST be
+      changed alongside ThemeModeControllerBase.storageKey.
+
+      Without this the splash would follow the OS, and a student who forced
+      light on a dark machine would watch it flash. Storage being refused is not
+      an error here: the media query in the stylesheet still applies.
+    */
+    try {
+      var mode = JSON.parse(localStorage.getItem('theme.mode') || '"system"');
+      if (mode === 'light' || mode === 'dark') document.documentElement.dataset.theme = mode;
+    } catch (e) {
+      /* Private mode, or storage disabled. The media query decides. */
+    }
+  </script>
+
   <style>
     /*
       Covers the seconds before Flutter exists, so it cannot reach the app's
@@ -22,11 +43,37 @@
     */
     :root {
       --foreground: #0A0A0A;
-      --primary: #171717;
-      --primary-foreground: #FAFAFA;
-      --page: #FAFAFA;
+      --primary: #FFDC58;
+      --primary-foreground: #0A0A0A;
+      --page: #FFF4E0;
       --border: rgba(10, 10, 10, 0.15);
-      --error: #E7000B;
+      --error: #E11D48;
+    }
+
+    /*
+      Dark, in the two states that mean it: the OS asks for it and nothing
+      overrode it, or the script above stamped it. Both blocks restate the same
+      values rather than one @media wrapping the other, because a forced *light*
+      on a dark OS has to win.
+    */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --foreground: #EEEFE9;
+        --primary: #FFDC58;
+        --primary-foreground: #0A0A0A;
+        --page: #232332;
+        --border: rgba(238, 239, 233, 0.2);
+        --error: #FF7A8F;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --foreground: #EEEFE9;
+      --primary: #FFDC58;
+      --primary-foreground: #0A0A0A;
+      --page: #232332;
+      --border: rgba(238, 239, 233, 0.2);
+      --error: #FF7A8F;
     }
 
     body {

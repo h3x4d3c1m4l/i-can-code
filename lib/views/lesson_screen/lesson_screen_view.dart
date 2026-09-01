@@ -95,8 +95,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               return SingleChildScrollView(
                 child: switch (section.kind) {
                   SectionKind.info => _buildInfo(context, lesson, section),
-                  SectionKind.shortAssignment => _buildShortAssignment(context, lesson, section),
-                  SectionKind.longAssignment => _buildLongAssignment(context, lesson, section),
+                  SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
+                  SectionKind.exercise => _buildExercise(context, lesson, section),
                 },
               );
             },
@@ -114,7 +114,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _pastGutter(SectionHeading(section: section)),
+          _pastGutter(_buildHeading(lesson, section)),
           const SizedBox(height: 30),
           LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 10),
@@ -124,20 +124,20 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     );
   }
 
-  /// A short assignment: a reading step that ends in an editor — the same
+  /// A quick exercise: a reading step that ends in an editor — the same
   /// measure, prose size and padding.
-  Widget _buildShortAssignment(BuildContext context, Lesson lesson, LessonSection section) {
+  Widget _buildQuickExercise(BuildContext context, Lesson lesson, LessonSection section) {
     return _Page(
       maxWidth: _readingWidth,
       padding: _readingPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _pastGutter(SectionHeading(section: section)),
+          _pastGutter(_buildHeading(lesson, section)),
           const SizedBox(height: 30),
           LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 20),
-          // A short assignment's answer is one line, so the editor is sized to
+          // A quick exercise's answer is one line, so the editor is sized to
           // exactly that. Longer code scrolls inside it.
           ..._buildWorkspace(
             context,
@@ -156,11 +156,11 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// MUST NOT be wrapped in a [LayoutBuilder]: its builder runs at layout time,
   /// so MobX cannot see the observables read inside it and the [Observer] above
   /// would never re-run. [MediaQuery.sizeOf] answers during build instead.
-  Widget _buildLongAssignment(BuildContext context, Lesson lesson, LessonSection section) {
+  Widget _buildExercise(BuildContext context, Lesson lesson, LessonSection section) {
     final prose = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _pastGutter(SectionHeading(section: section)),
+        _pastGutter(_buildHeading(lesson, section)),
         const SizedBox(height: 20),
         LessonProse(markdown: section.prose, fontSize: _taskProseSize, hangingGutter: true),
       ],
@@ -220,6 +220,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       Row(
         children: [
           AppButton(
+            tone: AppButtonTone.neutral,
             busy: viewModel.running,
             onPress: viewModel.running ? null : () => controller.run(section, editor.text),
             child: Text(context.localizations.lessonScreen_run),
@@ -227,7 +228,6 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           if (viewModel.passed.contains(viewModel.step)) ...[
             const SizedBox(width: 16),
             AppButton(
-              tone: AppButtonTone.neutral,
               onPress: () => controller.next(lesson.stepCount),
               child: Text(_nextLabel(context, lesson)),
             ),
@@ -241,6 +241,13 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     ];
   }
 
+  /// The step's title, with the "Verdieping" banner above it when the section
+  /// may be skipped.
+  Widget _buildHeading(Lesson lesson, LessonSection section) => SectionHeading(
+    section: section,
+    onSkip: section.optional ? () => controller.skip(lesson.stepCount) : null,
+  );
+
   Widget _buildContinue(BuildContext context, Lesson lesson) {
     return Row(
       children: [
@@ -252,9 +259,11 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     );
   }
 
+  /// The last step names where it lands rather than saying "overzicht", which
+  /// reads as the language picker — the screen above the one it actually opens.
   String _nextLabel(BuildContext context, Lesson lesson) => viewModel.step + 1 < lesson.stepCount
       ? context.localizations.lessonScreen_next
-      : context.localizations.lessonScreen_finish;
+      : context.localizations.lessonScreen_finish(languageLabel(viewModel.lesson.entry.language));
 
   String _statusLabel(BuildContext context) =>
       viewModel.running ? context.localizations.lessonScreen_running : 'python';

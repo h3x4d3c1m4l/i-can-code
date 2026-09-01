@@ -67,7 +67,8 @@ void _listSections(Lesson lesson) {
     ..writeln();
   for (final (index, section) in lesson.sections.indexed) {
     final runnable = section.kind.isAssignment ? '' : '   (nothing to run)';
-    stdout.writeln('  $index  ${section.kind.name.padRight(16)} ${section.title}$runnable');
+    final optional = section.optional ? '  [verdieping]' : '';
+    stdout.writeln('  $index  ${section.kind.name.padRight(16)} ${section.title}$optional$runnable');
   }
   stdout
     ..writeln()

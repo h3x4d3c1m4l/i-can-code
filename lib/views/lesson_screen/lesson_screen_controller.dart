@@ -56,11 +56,19 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
       await _remember(_currentSection);
     }
 
+    await _advance(stepCount);
+  }
+
+  /// Leaves an optional step without completing it.
+  Future<void> skip(int stepCount) => _advance(stepCount);
+
+  /// Moves one step on, or back to the catalog after the last one.
+  Future<void> _advance(int stepCount) async {
     if (viewModel.step + 1 < stepCount) {
       await goTo(viewModel.step + 1);
       return;
     }
-    await leave();
+    await openLanguage(viewModel.lesson.entry.language);
   }
 
   /// Moves to [step] and names it in the address, so a reload lands back here.

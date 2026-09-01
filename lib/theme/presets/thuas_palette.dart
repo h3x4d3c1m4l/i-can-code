@@ -50,6 +50,20 @@ abstract final class ThuasPalette {
   /// programmes. Unused so far.
   static const Color cyan = Color(0xFF00B2CD);
 
+  /// [red] at the handbook's 50% tint — the destructive colour of the dark
+  /// scheme. Takes [corporateGrey] text at 6.10:1.
+  ///
+  /// [red] itself reaches only 2.70:1 on a [corporateGrey] page and cannot be
+  /// used there. 50% rather than a darker tint because the message also lands
+  /// on a [greyDark] card, where 60% would fall to 3.84:1.
+  static const Color redTint50 = Color(0xFFE4A19E);
+
+  /// [corporateGreen] at the handbook's 60% tint — prose links on a dark page,
+  /// at 7.40:1 (5.51:1 on a [greyDark] card).
+  ///
+  /// The green itself is a fill and cannot be text; see [corporateGreen].
+  static const Color greenTint60 = Color(0xFFC5CA66);
+
   // --------------------------------------------------------------- grey tints
 
   /// [corporateGrey] at 5% — the page behind the cards.
@@ -73,6 +87,17 @@ abstract final class ThuasPalette {
   /// *on* the corporate grey, at 5.07:1.
   static const Color greyOn55 = Color(0xFF9CA3AA);
 
+  /// White at 65% over [corporateGrey] — the muted text of the dark scheme.
+  ///
+  /// [greyOn55] cannot serve there: the dark scheme's card is [greyDark], not
+  /// [corporateGrey], and 55% reaches only 3.77:1 on it. This one is 4.81:1 on
+  /// the card and 6.46:1 on the page.
+  static const Color greyOn65 = Color(0xFFB2B8BD);
+
+  /// [corporateGrey] darkened one step — the code surface of the dark scheme,
+  /// so the editor still reads as a card against a [corporateGrey] page.
+  static const Color greyDeep = Color(0xFF1A2833);
+
   // ------------------------------------------------------- secondary surfaces
 
   /// [corporateGreen] at 20%. Takes [corporateGrey] text at 10.82:1.
@@ -83,5 +108,21 @@ abstract final class ThuasPalette {
 
   /// [yellow] at 15%.
   static const Color yellowSurface = Color(0xFFFFF5D9);
+
+  // -------------------------------------------- secondary surfaces, dark mode
+
+  /// A white tint cannot make a dark surface, so the dark scheme's quiet fills
+  /// are derived the other way: the brand colour at **30% over
+  /// [corporateGrey]**, the page it sits on. Same discipline as the tints above
+  /// — a blend at a stated percentage, never a colour picked by eye.
+  ///
+  /// [corporateGreen] over the page. Takes [grey08] text at 6.90:1.
+  static const Color greenSurfaceDark = Color(0xFF47562F);
+
+  /// [red] over the page. Takes [grey08] text at 9.02:1.
+  static const Color redSurfaceDark = Color(0xFF543841);
+
+  /// [yellow] over the page. Takes [grey08] text at 5.85:1.
+  static const Color yellowSurfaceDark = Color(0xFF645C2F);
 
 }

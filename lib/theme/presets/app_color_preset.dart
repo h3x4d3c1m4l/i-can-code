@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/presets/neobrutalism_palette.dart';
 import 'package:i_can_code/theme/presets/thuas_palette.dart';
 
 /// White, named because a preset asks for it in several slots.
@@ -23,47 +24,111 @@ class AppColorPresetData {
 /// the app's own and are shared. Adding one means adding a case to [resolve].
 enum AppColorPreset {
 
-  /// Unbranded. forui's own neutral tokens, with the page tinted off white so
-  /// that white cards read against it.
+  /// Unbranded, and the default. Neobrutalism **as a palette**: see
+  /// [NeobrutalismPalette] for what that does and does not mean.
   neutral,
 
   /// De Haagse Hogeschool's house style. A skin; see [ThuasPalette].
   thuas;
 
-  /// This preset's tokens.
-  AppColorPresetData resolve() => switch (this) {
-    AppColorPreset.neutral => _neutral(),
-    AppColorPreset.thuas => _thuas(),
+  /// This preset's tokens in [brightness].
+  ///
+  /// The default keeps every caller that predates dark mode working; the app
+  /// shell always passes one explicitly.
+  AppColorPresetData resolve({Brightness brightness = Brightness.light}) => switch ((this, brightness)) {
+    (AppColorPreset.neutral, Brightness.light) => _neutralLight(),
+    (AppColorPreset.neutral, Brightness.dark) => _neutralDark(),
+    (AppColorPreset.thuas, Brightness.light) => _thuasLight(),
+    (AppColorPreset.thuas, Brightness.dark) => _thuasDark(),
   };
 
 }
 
-AppColorPresetData _neutral() {
-  const Color foreground = Color(0xFF0A0A0A);
-
+AppColorPresetData _neutralLight() {
   return AppColorPresetData(
-    // forui's neutral scheme paints the page white, which leaves a white card
-    // invisible on it.
-    colors: FColors.neutralLight.copyWith(background: const Color(0xFFFAFAFA)),
+    colors: FColors(
+      brightness: Brightness.light,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      barrier: const Color(0x66000000),
+      background: NeobrutalismPalette.pageLight,
+      foreground: NeobrutalismPalette.inkLight,
+      primary: NeobrutalismPalette.accent,
+      // The accent is a fill and cannot carry light text; see its own doc.
+      primaryForeground: NeobrutalismPalette.inkLight,
+      secondary: NeobrutalismPalette.secondaryLight,
+      secondaryForeground: NeobrutalismPalette.inkLight,
+      muted: NeobrutalismPalette.mutedLight,
+      mutedForeground: NeobrutalismPalette.inkMutedLight,
+      destructive: NeobrutalismPalette.dangerLight,
+      destructiveForeground: _white,
+      error: NeobrutalismPalette.dangerLight,
+      errorForeground: _white,
+      card: NeobrutalismPalette.cardLight,
+      border: NeobrutalismPalette.borderLight,
+    ),
     semantic: const AppSemanticColors(
-      success: Color(0xFF166534),
-      successForeground: _white,
-      successSurface: Color(0xFFDCFCE7),
-      warning: Color(0xFFB45309),
-      warningForeground: _white,
-      warningSurface: Color(0xFFFEF3C7),
-      errorSurface: Color(0xFFFEE2E2),
-      codeBackground: Color(0xFF171717),
-      codeForeground: Color(0xFFF5F5F5),
-      codeMuted: Color(0xFFA3A3A3),
-      progressTrack: Color(0xFFE5E5E5),
-      progressComplete: Color(0xFF166534),
-      progressCurrent: foreground,
+      success: NeobrutalismPalette.successLight,
+      successForeground: NeobrutalismPalette.inkLight,
+      successSurface: NeobrutalismPalette.successSurfaceLight,
+      warning: NeobrutalismPalette.warningLight,
+      warningForeground: NeobrutalismPalette.inkLight,
+      warningSurface: NeobrutalismPalette.warningSurfaceLight,
+      errorSurface: NeobrutalismPalette.errorSurfaceLight,
+      link: NeobrutalismPalette.linkLight,
+      codeBackground: NeobrutalismPalette.codeSurface,
+      codeForeground: NeobrutalismPalette.codeInk,
+      codeMuted: NeobrutalismPalette.codeInkMuted,
+      progressTrack: NeobrutalismPalette.borderLight,
+      progressComplete: NeobrutalismPalette.successLight,
+      progressCurrent: NeobrutalismPalette.inkLight,
     ),
   );
 }
 
-AppColorPresetData _thuas() {
+AppColorPresetData _neutralDark() {
+  return AppColorPresetData(
+    colors: FColors(
+      brightness: Brightness.dark,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      barrier: const Color(0x99000000),
+      background: NeobrutalismPalette.pageDark,
+      foreground: NeobrutalismPalette.inkDark,
+      // The accent does not change with the mode: it is the app's one loud
+      // colour, and dimming it for dark would be the point of it lost.
+      primary: NeobrutalismPalette.accent,
+      primaryForeground: NeobrutalismPalette.inkLight,
+      secondary: NeobrutalismPalette.secondaryDark,
+      secondaryForeground: NeobrutalismPalette.inkDark,
+      muted: NeobrutalismPalette.mutedDark,
+      mutedForeground: NeobrutalismPalette.inkMutedDark,
+      destructive: NeobrutalismPalette.dangerDark,
+      // 7.95:1. White would be 1.6:1 and fail.
+      destructiveForeground: NeobrutalismPalette.inkLight,
+      error: NeobrutalismPalette.dangerDark,
+      errorForeground: NeobrutalismPalette.inkLight,
+      card: NeobrutalismPalette.cardDark,
+      border: NeobrutalismPalette.borderDark,
+    ),
+    semantic: const AppSemanticColors(
+      success: NeobrutalismPalette.successDark,
+      successForeground: NeobrutalismPalette.inkLight,
+      successSurface: NeobrutalismPalette.successSurfaceDark,
+      warning: NeobrutalismPalette.warningLight,
+      warningForeground: NeobrutalismPalette.inkLight,
+      warningSurface: NeobrutalismPalette.warningSurfaceDark,
+      errorSurface: NeobrutalismPalette.errorSurfaceDark,
+      link: NeobrutalismPalette.linkDark,
+      codeBackground: NeobrutalismPalette.codeSurface,
+      codeForeground: NeobrutalismPalette.codeInk,
+      codeMuted: NeobrutalismPalette.codeInkMuted,
+      progressTrack: NeobrutalismPalette.borderDark,
+      progressComplete: NeobrutalismPalette.successDark,
+      progressCurrent: NeobrutalismPalette.inkDark,
+    ),
+  );
+}
+
+AppColorPresetData _thuasLight() {
   return AppColorPresetData(
     colors: FColors(
       brightness: Brightness.light,
@@ -96,12 +161,64 @@ AppColorPresetData _thuas() {
       warningForeground: ThuasPalette.corporateGrey,
       warningSurface: ThuasPalette.yellowSurface,
       errorSurface: ThuasPalette.redSurface,
+      // The house style has no colour that works as link text on white: the
+      // green reaches 2.88:1 even at its darkest handbook variant, the cyan
+      // 2.55:1, and the red means "error". So a link is the mid grey (6.27:1),
+      // set apart from the body text by weight of colour and by the underline
+      // the prose sheet gives every link.
+      link: ThuasPalette.greyMid,
       codeBackground: ThuasPalette.corporateGrey,
       codeForeground: ThuasPalette.grey08,
       codeMuted: ThuasPalette.greyOn55,
       progressTrack: ThuasPalette.grey15,
       progressComplete: ThuasPalette.corporateGreen,
       progressCurrent: ThuasPalette.corporateGrey,
+    ),
+  );
+}
+
+AppColorPresetData _thuasDark() {
+  return AppColorPresetData(
+    colors: FColors(
+      brightness: Brightness.dark,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      barrier: const Color(0x99000000),
+      // The house style's own dark surface becomes the page, and the handbook's
+      // darker grey the card above it.
+      background: ThuasPalette.corporateGrey,
+      foreground: ThuasPalette.grey08,
+      primary: ThuasPalette.corporateGreen,
+      // Unchanged from light: 4.92:1, and the green cannot take a light
+      // foreground in either mode.
+      primaryForeground: ThuasPalette.corporateGrey,
+      secondary: ThuasPalette.greyMid,
+      secondaryForeground: ThuasPalette.grey08,
+      muted: ThuasPalette.greyDark,
+      // 4.81:1 on the card, which is the tighter of the two surfaces.
+      mutedForeground: ThuasPalette.greyOn65,
+      destructive: ThuasPalette.redTint50,
+      // 6.10:1. The dark scheme's red is a light tint, so its foreground flips.
+      destructiveForeground: ThuasPalette.corporateGrey,
+      error: ThuasPalette.redTint50,
+      errorForeground: ThuasPalette.corporateGrey,
+      card: ThuasPalette.greyDark,
+      border: ThuasPalette.greyMid,
+    ),
+    semantic: const AppSemanticColors(
+      success: ThuasPalette.corporateGreen,
+      successForeground: ThuasPalette.corporateGrey,
+      successSurface: ThuasPalette.greenSurfaceDark,
+      warning: ThuasPalette.yellow,
+      warningForeground: ThuasPalette.corporateGrey,
+      warningSurface: ThuasPalette.yellowSurfaceDark,
+      errorSurface: ThuasPalette.redSurfaceDark,
+      link: ThuasPalette.greenTint60,
+      codeBackground: ThuasPalette.greyDeep,
+      codeForeground: ThuasPalette.grey08,
+      codeMuted: ThuasPalette.greyOn55,
+      progressTrack: ThuasPalette.greyMid,
+      progressComplete: ThuasPalette.corporateGreen,
+      progressCurrent: ThuasPalette.grey08,
     ),
   );
 }

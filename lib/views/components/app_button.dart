@@ -6,10 +6,18 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 /// What a button means, which decides how it is filled.
 enum AppButtonTone {
 
-  /// The step's main action: Run, Verder, Volgende. The brand fill.
+  /// Moving on: Verder, Volgende, "Terug naar Python". The brand fill.
+  ///
+  /// **Every button that carries the reader forward is this tone**, on every
+  /// kind of step, so the same word never changes colour between one step and
+  /// the next.
   primary,
 
-  /// The quieter one beside it — "Terug naar overzicht". Foreground-filled.
+  /// The quieter one beside it — "Draai code & controleer", "Annuleren".
+  ///
+  /// Filled with the page's *foreground*, so it inverts with the mode: near
+  /// black on the light page, off white on the dark one. Quiet next to the
+  /// brand fill either way, but never quiet in the sense of low contrast.
   neutral,
 }
 

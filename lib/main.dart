@@ -8,10 +8,22 @@ import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/theme_mode_controller.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServices();
+
+  // The only I/O that cannot wait for the initialization screen: that screen is
+  // itself themed and localized, so reading these there would paint it in the
+  // wrong mode and the wrong language and then flip. Both swallow their own
+  // failure and fall back to a default, so there is nothing here for a retry to
+  // do.
+  await Future.wait([
+    GetIt.I<ThemeModeController>().load(),
+    GetIt.I<LocaleController>().load(),
+  ]);
+
   runApp(const ICanCodeApp());
 }
 
@@ -30,6 +42,7 @@ void setupServices() {
     ..registerSingleton<BootstrapStatus>(BootstrapStatus())
     ..registerSingleton<PendingNavigationService>(PendingNavigationService())
     ..registerSingleton<LocaleController>(LocaleController())
+    ..registerSingleton<ThemeModeController>(ThemeModeController())
     ..registerSingleton<ProgressStore>(ProgressStore())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));

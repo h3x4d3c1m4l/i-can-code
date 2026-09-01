@@ -31,7 +31,11 @@ extension AppThemeContext on BuildContext {
   AppTheme get appTheme {
     final theme = this.theme;
     final extensions = theme.extensions.whereType<AppTheme>();
-    return extensions.isEmpty ? (_fallbackCache[theme] ??= AppTheme.of(AppColorPreset.neutral)) : extensions.first;
+    if (extensions.isNotEmpty) return extensions.first;
+
+    // The theme still knows its own brightness, so the fallback can at least
+    // match it rather than forcing a light scheme onto a dark one.
+    return _fallbackCache[theme] ??= AppTheme.of(AppColorPreset.neutral, theme.colors.brightness);
   }
 
 }
@@ -47,9 +51,8 @@ class AppTheme extends ThemeExtension<AppTheme> with _$AppThemeTailorMixin {
 
   const AppTheme({required this.colors, required this.text});
 
-  /// The app's tokens for [preset].
-  factory AppTheme.of(AppColorPreset preset) {
-    final resolved = preset.resolve();
+  factory AppTheme.of(AppColorPreset preset, [Brightness brightness = Brightness.light]) {
+    final resolved = preset.resolve(brightness: brightness);
     return AppTheme(colors: resolved.semantic, text: AppTextStyles.of(resolved.colors.foreground));
   }
 
@@ -77,6 +80,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
     required this.warningForeground,
     required this.warningSurface,
     required this.errorSurface,
+    required this.link,
     required this.codeBackground,
     required this.codeForeground,
     required this.codeMuted,
@@ -115,6 +119,15 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
   /// `errorForeground`; only the surface is missing there.
   @override
   final Color errorSurface;
+
+  /// A link in a lesson's prose.
+  ///
+  /// **Not `primary`**, which is a fill: a preset is free to make it a colour
+  /// that cannot carry text, and the neutral preset's accent is exactly that at
+  /// 1.2:1 on the page. A link MUST clear AA on both the page and a card, so it
+  /// is a role of its own.
+  @override
+  final Color link;
 
   /// The dark card the code editor and the sample snippets are drawn on.
   @override

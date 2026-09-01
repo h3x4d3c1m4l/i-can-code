@@ -30,7 +30,7 @@ Hiermee roep je de `print`-functie in Python aan en vertel je deze functie wat h
 ## Zelf "printen"
 
 ```metadata
-type: short-assignment
+type: quick-exercise
 id: print-yourself
 ```
 
@@ -49,7 +49,7 @@ if not output:
 ## Verschillende dingen printen
 
 ```metadata
-type: long-assignment
+type: exercise
 id: printing-values
 ```
 

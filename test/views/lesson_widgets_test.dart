@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +16,7 @@ import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
@@ -638,6 +641,42 @@ void main() {
         );
       });
     }
+
+    testWidgets('a required step carries no badge and no way past it', (tester) async {
+      await tester.pumpWidget(_host(SectionHeading(section: lesson.sections.first)));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OptionalStepBanner), findsNothing);
+    });
+
+    testWidgets('an optional step is badged and can be skipped', (tester) async {
+      var skipped = 0;
+      final section = lesson.sections.first;
+
+      await tester.pumpWidget(_host(SectionHeading(section: section, onSkip: () => skipped++)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('VERDIEPING'), findsOneWidget);
+      expect(find.text(section.title), findsOneWidget);
+
+      await tester.tap(find.text('Overslaan'));
+      await tester.pumpAndSettle();
+
+      expect(skipped, 1);
+    });
+
+    testWidgets('the skip link is legible and underlined', (tester) async {
+      // `link` rather than `primary`: the neutral accent is 1.2:1 on the page,
+      // so it cannot carry text. The underline is what marks it as a link.
+      await tester.pumpWidget(_host(SectionHeading(section: lesson.sections.first, onSkip: () {})));
+      await tester.pumpAndSettle();
+
+      final tokens = buildAppTheme().extensions.whereType<AppTheme>().first;
+      final style = tester.widget<Text>(find.text('Overslaan')).style;
+
+      expect(style?.color, tokens.colors.link);
+      expect(style?.decoration, TextDecoration.underline);
+    });
   });
 
   group('CatalogCard', () {
@@ -683,4 +722,80 @@ void main() {
       expect(find.byType(FCircularProgress), findsOneWidget);
     });
   });
+
+  group('a read-only code block', () {
+    /// The page, the card, and nothing else down the middle of the block.
+    ///
+    /// `MarkdownBody` merges the app's style sheet onto a **Material** one, and
+    /// merge keeps the fallback wherever the app leaves a null. That fallback is
+    /// built from a default light `ThemeData` — there is no Material ancestor —
+    /// so an unset slot paints a fixed light colour that never follows the app's
+    /// theme. On the dark page it read as a white halo around the code card.
+    Future<Set<int>> colours(WidgetTester tester, Brightness brightness) async {
+      final key = GlobalKey();
+      final theme = buildAppTheme(brightness: brightness);
+
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: key,
+          child: FTheme(
+            data: theme,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: MediaQuery(
+                data: const MediaQueryData(size: Size(700, 400)),
+                child: ColoredBox(
+                  color: theme.colors.background,
+                  child: const Padding(
+                    padding: EdgeInsets.all(30),
+                    child: LessonProse(markdown: 'Tekst.\n\n```python\nprint("hoi")\n```\n\nNa.'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      late final ui.Image image;
+      await tester.runAsync(() async => image = await boundary.toImage());
+      final data = (await tester.runAsync(() => image.toByteData()))!;
+
+      // A column down the middle, which crosses the page, the gap above the
+      // card, the card itself and the gap below it.
+      final seen = <int>{};
+      for (var y = 0; y < image.height; y++) {
+        final i = (y * image.width + (image.width ~/ 2)) * 4;
+        seen.add((data.getUint8(i) << 16) | (data.getUint8(i + 1) << 8) | data.getUint8(i + 2));
+      }
+      return seen;
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('sits straight on the ${brightness.name} page, with no Material surface behind it', (tester) async {
+        final theme = buildAppTheme(brightness: brightness);
+        final seen = await colours(tester, brightness);
+
+        expect(seen, contains(_rgb(theme.colors.background)), reason: 'the page should reach the block');
+        expect(seen, contains(_rgb(theme.appTheme.colors.codeBackground)), reason: 'the card should be drawn');
+        // Material 3's default light surface. Nothing in this app may paint it.
+        expect(seen, isNot(contains(0xFEF7FF)));
+
+        final hex = seen.map((c) => c.toRadixString(16).padLeft(6, '0')).toList();
+        expect(seen.length, 2, reason: 'only the page and the card should be painted here, found $hex');
+      });
+    }
+  });
+}
+
+int _rgb(Color color) =>
+    ((color.r * 255).round() << 16) | ((color.g * 255).round() << 8) | (color.b * 255).round();
+
+extension on FThemeData {
+
+  /// The app's own tokens, without needing a `BuildContext`.
+  AppTheme get appTheme => extensions.whereType<AppTheme>().first;
+
 }

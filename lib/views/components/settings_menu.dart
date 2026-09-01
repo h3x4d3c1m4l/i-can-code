@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
@@ -38,6 +39,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final locales = GetIt.I<LocaleController>();
+    final themes = GetIt.I<ThemeModeController>();
     final progress = GetIt.I<ProgressStore>();
 
     return Observer(
@@ -49,12 +51,35 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
         menu: [
           FItemGroup(
             children: [
+              FItem(
+                title: Text(context.localizations.appHeader_languageSystem),
+                prefix: const Icon(FLucideIcons.languages),
+                suffix: locales.followsDevice ? const Icon(FLucideIcons.check) : null,
+                onPress: () {
+                  unawaited(locales.setLocale(null));
+                  _controller.hide();
+                },
+              ),
               for (final locale in LocaleControllerBase.supported)
                 FItem(
                   title: Text(_languageName(locale)),
                   suffix: locales.locale == locale ? const Icon(FLucideIcons.check) : null,
                   onPress: () {
-                    locales.setLocale(locale);
+                    unawaited(locales.setLocale(locale));
+                    _controller.hide();
+                  },
+                ),
+            ],
+          ),
+          FItemGroup(
+            children: [
+              for (final mode in AppThemeMode.values)
+                FItem(
+                  title: Text(_themeName(context, mode)),
+                  prefix: Icon(_themeIcon(mode)),
+                  suffix: themes.mode == mode ? const Icon(FLucideIcons.check) : null,
+                  onPress: () {
+                    unawaited(themes.setMode(mode));
                     _controller.hide();
                   },
                 ),
@@ -133,6 +158,18 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     'nl' => 'Nederlands',
     'en' => 'English',
     _ => locale.languageCode.toUpperCase(),
+  };
+
+  String _themeName(BuildContext context, AppThemeMode mode) => switch (mode) {
+    AppThemeMode.system => context.localizations.appHeader_themeSystem,
+    AppThemeMode.light => context.localizations.appHeader_themeLight,
+    AppThemeMode.dark => context.localizations.appHeader_themeDark,
+  };
+
+  IconData _themeIcon(AppThemeMode mode) => switch (mode) {
+    AppThemeMode.system => FLucideIcons.monitor,
+    AppThemeMode.light => FLucideIcons.sun,
+    AppThemeMode.dark => FLucideIcons.moon,
   };
 
 }

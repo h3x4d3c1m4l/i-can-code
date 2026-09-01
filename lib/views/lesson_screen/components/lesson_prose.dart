@@ -158,13 +158,31 @@ class LessonProse extends StatelessWidget {
         listBullet: body,
         strong: body.copyWith(fontWeight: FontWeight.w700),
         em: body.copyWith(fontStyle: FontStyle.italic),
-        a: body.copyWith(color: theme.colors.primary),
+        // `link`, not `primary`: a preset's accent is a fill and may be
+        // unreadable as text. Underlined as well as coloured, because the
+        // THUAS scheme has no link colour distinct enough on its own.
+        a: body.copyWith(color: tokens.colors.link, decoration: TextDecoration.underline),
         // A touch smaller than the prose around it, or the line height jumps.
         code: tokens.text.code.copyWith(fontSize: fontSize - 4, color: theme.colors.foreground),
         // The card is drawn by [_CodeBlockBuilder], not here: a decoration set
         // on the sheet lands *inside* the package's own container, leaving no
         // way to put space beneath it.
         codeblockPadding: EdgeInsets.zero,
+        // Transparent, and it MUST stay set.
+        //
+        // `MarkdownBody` merges this sheet onto a **Material** one built from
+        // the ambient `ThemeData` (`fallbackStyleSheet.merge(styleSheet)`), and
+        // merge keeps the fallback wherever this sheet leaves a null. There is
+        // no Material ancestor, so that fallback is a default light `ThemeData`
+        // and this slot came back as `cardColor` — a fixed `#FEF7FF` that never
+        // follows the app's theme. It paints behind the whole `pre`, padding
+        // included, which on the dark page read as a white halo around the
+        // code card.
+        codeblockDecoration: const BoxDecoration(),
+        // Same trap: the fallback's is Material's `dividerColor`.
+        horizontalRuleDecoration: BoxDecoration(
+          border: Border(top: BorderSide(color: theme.colors.border, width: 2)),
+        ),
         blockquoteDecoration: ShapeDecoration(
           color: theme.colors.secondary,
           shape: squircle(kChipCornerRadius),

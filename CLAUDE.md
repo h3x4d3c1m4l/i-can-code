@@ -100,6 +100,8 @@ MobX for all reactive state. `@readonly` generates a private field plus a public
 
 App-wide state is a plain MobX store registered in GetIt from `setupServices()` in `main.dart` — `LocaleController` is the example. **`setupServices()` does no I/O**: work that can fail or take time belongs to `InitializationScreen`, which can show progress and offer a retry.
 
+The two exceptions are `LocaleController.load()` and `ThemeModeController.load()`, which `main()` awaits before `runApp`. The initialization screen is itself themed and localized, so reading either there would paint it wrong and flip. Both swallow their own failure and fall back to a default, so neither has anything a retry could fix.
+
 `Course` is deliberately registered *by* the initialization screen rather than in `main`, so reaching any screen past it guarantees every lesson is parsed and no later screen needs a loading state for it.
 
 ### Code generation
@@ -126,10 +128,21 @@ lib/theme/theme.dart                      # buildAppTheme() -> FThemeData
 lib/theme/app_theme.dart                  # the app's own tokens (theme_tailor), context.appTheme
 lib/theme/shape_metrics.dart              # corner radii + the FBorderRadius scale
 lib/theme/presets/app_color_preset.dart   # the colour presets
+lib/theme/presets/neobrutalism_palette.dart  # the unbranded preset's colours
 lib/theme/presets/thuas_palette.dart      # De Haagse Hogeschool's house style, transcribed
 ```
 
 **A preset changes colour and nothing else.** The type scale, the two font families and the radii belong to the app and are shared by every preset. `AppColorPreset.neutral` is the default and is what the app looks like unbranded; `AppColorPreset.thuas` is a skin. Adding a preset means adding a case to `AppColorPreset.resolve()` and nothing else.
+
+**The neutral preset is neobrutalism *as a palette only*** — the flat yellow accent, the cream page, the near-black ink. None of the movement's other devices: no thick outlines, no hard offset shadows. Borrowing one would put it in the shared metrics, where every preset would inherit it.
+
+**Every preset has both brightnesses.** `resolve({brightness})` returns the scheme; `buildAppTheme({preset, brightness})` builds it. The mode itself is `ThemeModeController` (`lib/services/`) — system/light/dark, persisted in `shared_preferences` like progress, and swallowing its failures the same way. It is the one thing `main()` awaits before `runApp`, because the initialization screen is itself themed and would otherwise paint light and flip.
+
+`AppThemeMode.brightnessFor(platform)` is the whole decision, so it can be tested without a widget tree. The shell reads it in `_ThemedBody`, which exists as a widget rather than a closure so its `Observer` runs in a real build and so it can see the `MediaQuery` that `WidgetsApp` installs below the state above it.
+
+**A fill token is not a text token.** `primary` is a fill: the neutral accent is 1.2:1 on the page and the THUAS green 2.63:1 on white, so neither can carry text. That is why `link` is a role of its own in `AppSemanticColors` rather than reusing `primary` — and why prose links are underlined as well as coloured. The THUAS house style has *no* colour that works as link text on white; it uses the mid grey, and the underline is what makes it a link.
+
+`test/theme/theme_test.dart` asserts every pairing across **all four** schemes (2 presets × 2 brightnesses). `test/theme/palette_test.dart` renders a real card and asserts that more than 1% of its pixels carry colour — the tripwire for a preset silently coming out greyscale, which is what shipped when the app was pinned to forui's neutral scheme and measured 0.00%.
 
 **Every rounded corner is a squircle.** Draw one with `squircle(radius)` from `shape_metrics.dart` and a `ShapeDecoration` — never `BoxDecoration.borderRadius`, which can only make a plain rounded rectangle. `kSquircleScale` converts the design's CSS radii to `ContinuousRectangleBorder`'s tighter curve; it is the one number to turn if corners look wrong. A continuous rectangle does **not** clamp an over-large radius — past half the shortest side it bows inward — so a small square tile uses `squircleOf(radius, size:)` instead.
 
@@ -190,7 +203,7 @@ Keyed on `LessonSection.id`, never on a step's position, so a tick survives the 
 
 They cover three different windows and are not interchangeable:
 
-1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand; changing the preset means changing that block too.
+1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand, light and dark; changing the preset means changing that block too. An inline script reads `localStorage['theme.mode']` — `SharedPreferencesAsync` stores web keys **verbatim, no `flutter.` prefix**, JSON-encoded — and falls back to `prefers-color-scheme`, so a student who forced light on a dark machine gets no flash. That literal key is coupled to `ThemeModeControllerBase.storageKey`.
 2. **`InitializationScreen`** — work the app does once it is running (reading the course index, compiling `python.wasm`). Shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
 3. **`LoadingOverlay`** — anything a screen waits on afterwards.
 
@@ -209,9 +222,11 @@ Four words, fixed. Drifting off them is what made the folders disagree with the 
 | **course** | Everything the app ships. `Course`. |
 | **lesson** | One markdown file per locale, under `assets/lessons/<language>/`. `Lesson`. |
 | **section** | One `##` block of a lesson. `LessonSection`. The student-facing word for it is **step**. |
-| **assignment** | A *kind of section* — one that asks for code (`SectionKind.shortAssignment`, `longAssignment`). **Not** a unit of content. |
+| **exercise** | A *kind of section* — one that asks for code (`SectionKind.quickExercise`, `exercise`). **Not** a unit of content. |
 
-A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Exercise* is not a word this codebase uses.
+A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Assignment* survives only where it names a **block** in a lesson file (```` ```python-assignment ````) and in `SectionKind.isAssignment`; as a word for a step it has been replaced by **exercise**.
+
+A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a fourth `SectionKind`, so a Verdieping can still hold an exercise.
 
 **Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table.
 
@@ -242,7 +257,11 @@ ARB files in `lib/l10n/` (`app_en.arb`, `app_nl.arb`), generated output in `lib/
 
 Reach strings through `context.localizations.myKey`, adding `import 'package:i_can_code/extensions/build_context_extension.dart';`.
 
-Dutch is the default rather than the device locale: the course is taught in Dutch, so following the device would put most students in the wrong language.
+**The device locale is the default**, offered in the cog as "Apparaattaal". Dutch is not the default but it *is* the fallback: `supported.first` is what `WidgetsApp` resolves to for a device speaking neither Dutch nor English, so the course's own language still has the last word.
+
+`LocaleController` holds a **nullable** `Locale`, and null means "follow the device". It goes to `WidgetsApp.locale` as-is, so Flutter does the resolving against `supportedLocales` and lands on its **first entry** when the device has none of them. That ordering is load-bearing: `supported.first` is the fallback language, not just the first menu row.
+
+The choice is persisted (`locale.language`) beside the theme mode, and "follow the device" is stored as the sentinel `system` rather than by clearing the key, so switching back to it is a write like any other. It resolves to the same thing an absent key does, which is what makes "never picked" and "picked the device" behave identically. Both stores are what `main()` awaits before `runApp`; the initialization screen is themed *and* localized, so reading either later makes it paint wrong and flip.
 
 ## Code style
 

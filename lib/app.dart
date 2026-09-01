@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/locale_controller.dart';
+import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
 
 /// The app shell.
@@ -25,7 +26,6 @@ class ICanCodeApp extends StatefulWidget {
 class _ICanCodeAppState extends State<ICanCodeApp> {
 
   final AppRouter _router = GetIt.I<AppRouter>();
-  final FThemeData _theme = buildAppTheme();
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class _ICanCodeAppState extends State<ICanCodeApp> {
     return Observer(
       builder: (context) => WidgetsApp.router(
         title: 'I Can Code',
-        color: _theme.colors.primary,
+        color: buildAppTheme().colors.primary,
         locale: GetIt.I<LocaleController>().locale,
         routerConfig: _router.config(),
         localizationsDelegates: const [
@@ -43,8 +43,38 @@ class _ICanCodeAppState extends State<ICanCodeApp> {
           FLocalizations.delegate,
         ],
         supportedLocales: LocaleControllerBase.supported,
-        builder: (context, child) => FTheme(data: _theme, child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => _ThemedBody(child: child),
       ),
+    );
+  }
+
+}
+
+/// Resolves the theme and hands it to [FTheme].
+///
+/// A widget of its own rather than an inline closure, because it needs the
+/// [MediaQuery] that [WidgetsApp] installs *below* the state above — and because
+/// its [Observer] MUST run in a real build, which is what lets it track
+/// [ThemeModeController].
+class _ThemedBody extends StatelessWidget {
+
+  final Widget? child;
+
+  const _ThemedBody({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Observer(
+      builder: (context) {
+        final brightness = GetIt.I<ThemeModeController>().mode.brightnessFor(
+          MediaQuery.platformBrightnessOf(context),
+        );
+
+        return FTheme(
+          data: buildAppTheme(brightness: brightness),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 
