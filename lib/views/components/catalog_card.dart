@@ -10,8 +10,14 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 /// the shape of the course stays visible.
 class CatalogCard extends StatelessWidget {
 
-  /// What the tile shows — short, because the tile is 58px square.
+  /// What the tile shows when there is no [emoji] — short, because the tile is
+  /// 58px square.
   final String label;
+
+  /// The row's own emoji, drawn in the tile in place of [label]. Null falls back
+  /// to [label]: a lesson whose file declares none, or a language this app has
+  /// no emoji for.
+  final String? emoji;
 
   final String title;
 
@@ -32,6 +38,7 @@ class CatalogCard extends StatelessWidget {
     required this.label,
     required this.title,
     required this.meta,
+    this.emoji,
     this.finished = false,
     this.subtitle,
     this.onTap,
@@ -61,7 +68,7 @@ class CatalogCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
               child: Row(
                 children: [
-                  _buildNumber(context, available: available),
+                  _buildTile(context, available: available),
                   const SizedBox(width: 22),
                   Expanded(
                     child: Column(
@@ -103,7 +110,7 @@ class CatalogCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNumber(BuildContext context, {required bool available}) {
+  Widget _buildTile(BuildContext context, {required bool available}) {
     final theme = context.theme;
 
     return SizedBox.square(
@@ -114,16 +121,16 @@ class CatalogCard extends StatelessWidget {
           shape: squircleOf(kControlCornerRadius - 2, size: 58),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: context.appTheme.text.code.copyWith(
-              fontSize: 22,
-              height: 1,
-              // Paired with the fill above. `foreground` is the *page's* text
-              // colour, which on the `primary` tile can be invisible.
-              color: available ? theme.colors.primaryForeground : theme.colors.foreground,
-            ),
-          ),
+          child: emoji != null
+              ? Text(emoji!, style: const TextStyle(fontFamilyFallback: kEmojiFontFallback, fontSize: 30, height: 1))
+              : Text(
+                  label,
+                  style: context.appTheme.text.code.copyWith(
+                    fontSize: 22,
+                    height: 1,
+                    color: available ? theme.colors.primaryForeground : theme.colors.foreground,
+                  ),
+                ),
         ),
       ),
     );

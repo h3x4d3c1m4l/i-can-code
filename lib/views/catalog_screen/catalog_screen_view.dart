@@ -65,6 +65,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
 
                         return CatalogCard(
                           label: '${courseLesson.entry.order}',
+                          emoji: lesson.emoji,
                           title: lesson.title,
                           subtitle: lesson.subtitle,
                           finished: progress.isFinished(courseLesson),

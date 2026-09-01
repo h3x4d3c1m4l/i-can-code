@@ -635,12 +635,35 @@ void main() {
         await tester.pumpWidget(_host(SectionHeading(section: section)));
         await tester.pumpAndSettle();
 
+        // `textContaining`, not `text`: the heading is a `Text.rich` whose
+        // first span is the step's emoji.
         expect(
-          tester.widget<Text>(find.text(section.title)).style?.fontSize,
+          tester.widget<Text>(find.textContaining(section.title)).style?.fontSize,
           SectionHeading.titleSize,
         );
       });
     }
+
+    testWidgets('the step\'s emoji is drawn in front of its title', (tester) async {
+      final section = lesson.sections.first;
+
+      await tester.pumpWidget(_host(SectionHeading(section: section)));
+      await tester.pumpAndSettle();
+
+      final heading = tester.widget<Text>(find.textContaining(section.title));
+
+      expect(section.emoji, isNotNull, reason: 'the fixture lesson should carry one');
+      expect(heading.textSpan?.toPlainText(), startsWith(section.emoji!));
+    });
+
+    testWidgets('a step without an emoji still renders its title', (tester) async {
+      const section = LessonSection(id: 's', title: 'Zonder emoji', kind: SectionKind.info, prose: '');
+
+      await tester.pumpWidget(_host(const SectionHeading(section: section)));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Text>(find.textContaining('Zonder emoji')).textSpan?.toPlainText(), 'Zonder emoji');
+    });
 
     testWidgets('a required step carries no badge and no way past it', (tester) async {
       await tester.pumpWidget(_host(SectionHeading(section: lesson.sections.first)));
@@ -657,7 +680,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('VERDIEPING'), findsOneWidget);
-      expect(find.text(section.title), findsOneWidget);
+      expect(find.textContaining(section.title), findsOneWidget);
 
       await tester.tap(find.text('Overslaan'));
       await tester.pumpAndSettle();
@@ -680,6 +703,27 @@ void main() {
   });
 
   group('CatalogCard', () {
+    testWidgets('an emoji fills the tile in place of the label', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const CatalogCard(label: '2', emoji: '\u{2328}\u{FE0F}', title: 'Invoer en uitvoer', meta: '3 stappen'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('\u{2328}\u{FE0F}'), findsOneWidget);
+      expect(find.text('2'), findsNothing);
+    });
+
+    testWidgets('without one the tile keeps its number', (tester) async {
+      await tester.pumpWidget(
+        _host(const CatalogCard(label: '2', title: 'Invoer en uitvoer', meta: '3 stappen')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2'), findsOneWidget);
+    });
+
     testWidgets('the tile label is legible on its own fill', (tester) async {
       await tester.pumpWidget(
         _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '3 stappen', onTap: () {})),

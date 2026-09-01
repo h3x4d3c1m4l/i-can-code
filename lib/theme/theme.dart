@@ -15,10 +15,21 @@ FThemeData buildAppTheme({
   final colors = resolved.colors;
 
   // forui carries exactly two typefaces: `display` for headings, `body` for the
-  // rest.
+  // rest. Both fall back to the emoji face, so forui's own widgets — a button
+  // label, a breadcrumb — draw an emoji the same way `AppTextStyles` does.
   final typography = FTypography(
-    display: FTypeface.inherit(colors: colors, touch: _touch, fontFamily: kDisplayFontFamily),
-    body: FTypeface.inherit(colors: colors, touch: _touch, fontFamily: kBodyFontFamily),
+    display: FTypeface.inherit(
+      colors: colors,
+      touch: _touch,
+      fontFamily: kDisplayFontFamily,
+      fontFamilyFallback: kEmojiFontFallback,
+    ),
+    body: FTypeface.inherit(
+      colors: colors,
+      touch: _touch,
+      fontFamily: kBodyFontFamily,
+      fontFamilyFallback: kEmojiFontFallback,
+    ),
   );
 
   return FThemeData(

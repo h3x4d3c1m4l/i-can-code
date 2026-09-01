@@ -36,4 +36,10 @@ void main() {
     expect(languageLabel('javascript'), 'Javascript');
     expect(languageLabel(''), '');
   });
+
+  test('a language the table does not name has no emoji, and its card falls back', () {
+    expect(languageEmoji('python'), '\u{1F40D}');
+    // A language directory may be added without touching the table.
+    expect(languageEmoji('javascript'), isNull);
+  });
 }

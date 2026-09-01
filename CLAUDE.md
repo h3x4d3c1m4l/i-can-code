@@ -158,6 +158,8 @@ Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwi
 
 `context.appTheme` falls back to the neutral preset when the ambient theme carries no extension (a widget test that builds its own `FTheme`), so it never null-checks.
 
+**Emoji are Noto Color Emoji, bundled, and never the platform's.** `kEmojiFontFamily` is the last entry of `fontFamilyFallback` on every style in `AppTextStyles` and on both of forui's typefaces, so it is reached only for a glyph Figtree, Inter and JetBrains Mono cannot draw. It is a fallback and never a `fontFamily`. Left to the platform the same lesson would show Apple's emoji on a Mac, Google's on Android and Microsoft's on Windows; on the web the engine downloads Noto from `fonts.gstatic.com` per student, on demand, which is the request the other three fonts were bundled to avoid. The COLRv1 build ships rather than the CBDT one — vector, and half the size. Every lesson step carries an `emoji` in its metadata, and so does every lesson — the lesson's fills the tile on its catalog card in place of the order number. A programming language has no file, so its emoji is a case in `languageEmoji()` beside `languageLabel()`; a language the table does not name keeps the initial on its card. See `docs/lesson-format.md`.
+
 Fonts are **bundled** under `assets/fonts/`, not fetched by `google_fonts` at runtime — a font request per student to a third party is both a privacy question and a flash of unstyled text on every cold load. `google_fonts` is still in `pubspec.yaml` but unused.
 
 ### Running it

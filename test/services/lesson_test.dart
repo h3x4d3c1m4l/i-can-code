@@ -43,6 +43,7 @@ void main() {
 
         expect(lesson.id, isNotEmpty);
         expect(lesson.title, isNotEmpty);
+        expect(lesson.emoji, isNotNull, reason: 'every lesson that ships carries an `emoji` for its card');
         expect(lesson.sections, isNotEmpty);
 
         expect(
@@ -60,6 +61,11 @@ void main() {
         for (final section in lesson.sections) {
           expect(section.title, isNotEmpty, reason: 'every section needs a heading');
           expect(section.id, isNotEmpty, reason: 'every section needs a stable id');
+          expect(
+            section.emoji,
+            isNotNull,
+            reason: '${section.title} has no `emoji`; every step that ships carries one',
+          );
           if (section.kind.isAssignment) {
             expect(section.starter, isNotNull, reason: '${section.title} needs an assignment block');
             expect(section.validator, isNotNull, reason: '${section.title} needs a validator');
@@ -76,6 +82,7 @@ void main() {
       final en = Lesson.parse(File('assets/lessons/python/01-input-and-output.en.md').readAsStringSync());
 
       expect(en.id, nl.id);
+      expect(en.emoji, nl.emoji);
       expect(en.stepCount, nl.stepCount);
       expect(en.sections.map((s) => s.kind), nl.sections.map((s) => s.kind));
       // Progress is keyed on ids, so a tick earned in Dutch has to count in
@@ -83,6 +90,8 @@ void main() {
       expect(en.sections.map((s) => s.id), nl.sections.map((s) => s.id));
       // Code is deliberately not translated, so the starters must match exactly.
       expect(en.sections.map((s) => s.starter), nl.sections.map((s) => s.starter));
+      // Nor is the emoji: it marks the step, not the language it is written in.
+      expect(en.sections.map((s) => s.emoji), nl.sections.map((s) => s.emoji));
     });
 
     test('code blocks come through unescaped, ready to run', () {
@@ -143,6 +152,48 @@ void main() {
       );
 
       expect(lesson.sections.map((section) => section.optional), [true, false]);
+    });
+
+    test('reads the lesson\'s own `emoji` off the document metadata', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\nemoji: "\u{2328}\u{FE0F}"\n```\n\n'
+        '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+
+      expect(lesson.emoji, '\u{2328}\u{FE0F}');
+      // The document's emoji is the card's, not the first step's.
+      expect(lesson.sections.single.emoji, isNull);
+    });
+
+    test('rejects a lesson `emoji` that is not text', () {
+      expect(
+        () => Lesson.parse('# T\n\n```metadata\nid: x\nemoji: 3\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('reads an `emoji` off a section', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n'
+        '## A\n\n```metadata\ntype: info\nid: a\nemoji: "\u{1F4A1}"\n```\n\nprose\n\n'
+        '## B\n\n```metadata\ntype: info\nid: b\n```\n\nprose\n',
+      );
+
+      expect(lesson.sections.map((section) => section.emoji), ['\u{1F4A1}', null]);
+    });
+
+    test('rejects an empty `emoji`', () {
+      expect(
+        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\nemoji: "  "\n```\n'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects an `emoji` that is not text', () {
+      expect(
+        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\nemoji: 3\n```\n'),
+        throwsA(isA<FormatException>()),
+      );
     });
 
     test('rejects an `optional` that is not a boolean', () {

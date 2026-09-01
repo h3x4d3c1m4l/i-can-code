@@ -4,6 +4,7 @@ Enable user interaction through text input and output.
 
 ```metadata
 id: input-and-output
+emoji: "⌨️"
 ```
 
 ## Introduction
@@ -11,6 +12,7 @@ id: input-and-output
 ```metadata
 type: info
 id: introduction
+emoji: "👋"
 ```
 
 Welcome to the first module about Python!
@@ -32,6 +34,7 @@ This calls Python's `print` function and tells it what to 'print'. The term prin
 ```metadata
 type: quick-exercise
 id: print-yourself
+emoji: "✍️"
 ```
 
 Now write a line of code yourself to "print" a piece of text. Choose your own message.
@@ -51,6 +54,7 @@ if not output:
 ```metadata
 type: exercise
 id: printing-values
+emoji: "📦"
 ```
 
 You have now seen and experienced how to use the `print` function for text. You can use that same function for other types of values too.

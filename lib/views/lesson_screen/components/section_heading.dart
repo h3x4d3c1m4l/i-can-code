@@ -20,7 +20,17 @@ class SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = Text(section.title, style: context.appTheme.text.h2.copyWith(fontSize: titleSize));
+    final style = context.appTheme.text.h2.copyWith(fontSize: titleSize);
+    final title = Text.rich(
+      TextSpan(
+        children: [
+          if (section.emoji case final String emoji)
+            TextSpan(text: '$emoji ', style: TextStyle(letterSpacing: titleSize * 0.12)),
+          TextSpan(text: section.title),
+        ],
+      ),
+      style: style,
+    );
     if (onSkip case final VoidCallback skip) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

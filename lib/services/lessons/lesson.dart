@@ -35,6 +35,13 @@ class LessonSection {
   final String title;
   final SectionKind kind;
 
+  /// The step's own emoji, from the section's `metadata`. Shown beside the
+  /// title and nowhere else — a breadcrumb stays text.
+  ///
+  /// Nullable so a lesson missing one still opens; `test/services/lesson_test.dart`
+  /// is what holds every lesson that ships to having one.
+  final String? emoji;
+
   /// A "Verdieping": worth reading, but not required. The step carries a badge
   /// and a way past it, and skipping it stores nothing — see
   /// `docs/lesson-format.md`.
@@ -57,6 +64,7 @@ class LessonSection {
     required this.title,
     required this.kind,
     required this.prose,
+    this.emoji,
     this.optional = false,
     this.starter,
     this.validator,
@@ -79,12 +87,20 @@ class Lesson {
   /// when the lesson does not have one.
   final String? subtitle;
 
+  /// The lesson's own emoji, from the document-level `metadata`. It fills the
+  /// tile on its catalog card, in place of the order number.
+  ///
+  /// Nullable for the same reason [LessonSection.emoji] is: a lesson missing one
+  /// still opens, and the card falls back to the number.
+  final String? emoji;
+
   final List<LessonSection> sections;
 
   const Lesson({
     required this.id,
     required this.title,
     this.subtitle,
+    this.emoji,
     required this.sections,
   });
 
@@ -103,10 +119,12 @@ class Lesson {
     String? id;
     String? title;
     String? subtitle;
+    String? emoji;
     final sections = <LessonSection>[];
 
     String? sectionTitle;
     String? sectionId;
+    String? sectionEmoji;
     SectionKind? sectionKind;
     var sectionOptional = false;
     var prose = <String>[];
@@ -132,6 +150,7 @@ class Lesson {
           id: sectionId!,
           title: sectionTitle,
           kind: sectionKind!,
+          emoji: sectionEmoji,
           optional: sectionOptional,
           prose: prose.join('\n').trim(),
           starter: starter,
@@ -140,6 +159,7 @@ class Lesson {
       );
       sectionKind = null;
       sectionId = null;
+      sectionEmoji = null;
       sectionOptional = false;
       prose = <String>[];
       starter = null;
@@ -169,11 +189,20 @@ class Lesson {
             if (meta is! YamlMap) throw const FormatException('A `metadata` block is not a YAML mapping.');
             if (sectionTitle == null) {
               id = meta['id'] as String? ?? id;
+              emoji = _readEmoji(meta, 'The lesson') ?? emoji;
             } else {
               final type = meta['type'] as String?;
               if (type == null) throw FormatException('Section "$sectionTitle" declares no `type`.');
               sectionKind = SectionKind.parse(type);
               sectionId = meta['id'] as String?;
+              final emoji = meta['emoji'];
+              if (emoji != null && emoji is! String) {
+                throw FormatException('Section "$sectionTitle" declares an `emoji` that is not text.');
+              }
+              sectionEmoji = (emoji as String?)?.trim();
+              if (sectionEmoji != null && sectionEmoji!.isEmpty) {
+                throw FormatException('Section "$sectionTitle" declares an empty `emoji`.');
+              }
               final optional = meta['optional'];
               if (optional != null && optional is! bool) {
                 throw FormatException('Section "$sectionTitle" declares an `optional` that is not true or false.');
@@ -218,7 +247,17 @@ class Lesson {
     if (title == null) throw const FormatException('The lesson has no `#` title.');
     if (sections.isEmpty) throw const FormatException('The lesson has no `##` sections.');
 
-    return Lesson(id: id, title: title, subtitle: subtitle, sections: sections);
+    return Lesson(id: id, title: title, subtitle: subtitle, emoji: emoji, sections: sections);
+  }
+
+  static String? _readEmoji(YamlMap meta, String owner) {
+    final emoji = meta['emoji'];
+    if (emoji == null) return null;
+    if (emoji is! String) throw FormatException('$owner declares an `emoji` that is not text.');
+
+    final trimmed = emoji.trim();
+    if (trimmed.isEmpty) throw FormatException('$owner declares an empty `emoji`.');
+    return trimmed;
   }
 
 }

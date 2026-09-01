@@ -4,6 +4,7 @@ Wat Python is en waarom je het zou willen leren.
 
 ```metadata
 id: introduction
+emoji: "🧠"
 ```
 
 ## Wat programmeren is
@@ -11,6 +12,7 @@ id: introduction
 ```metadata
 type: info
 id: coding
+emoji: "💡"
 ```
 
 Programmeren is het schrijven van een computerprogramma. Je schrijft hierbij reeksen instructies welke uitgevoerd kunnen worden door een computer. De programma's voor vroege computers werden veelal geschreven in machinetaal. Machinetaal is de taal die een computer direct (zonder vertaalproces) 'begrijpt'.
@@ -22,6 +24,7 @@ Vandaag de dag wordt machinetaal nog maar weinig gebruikt. Dankzij programmeerta
 ```metadata
 type: info
 id: different-languages
+emoji: "🧭"
 ```
 
 Er zijn intussen heel veel programmeertalen. Dat kan de vraag oproepen met welke je zou moeten beginnen. Je zou willen dat er een _heilige graal_ tussen zit. De programmeertaal die makkelijk te leren is, waarmee je vrijwel alles kunt en die een snel programma oplevert. Helaas is het niet zo simpel. Programmeertalen hebben uiteenlopende combinaties van eigenschappen, sommige gunstig en andere minder gunstig.
@@ -33,6 +36,7 @@ Op de volgende verdiepingspagina vind je een aantal indelingen. Per indeling en 
 ```metadata
 type: info
 id: sorting-languages
+emoji: "🗂️"
 optional: true
 ```
 

@@ -4,6 +4,7 @@ What Python is, and why you would want to learn it.
 
 ```metadata
 id: introduction
+emoji: "🧠"
 ```
 
 ## What coding is
@@ -11,6 +12,7 @@ id: introduction
 ```metadata
 type: info
 id: coding
+emoji: "💡"
 ```
 
 Coding is writing a computer program. You write sequences of instructions that a computer can carry out. The programs for early computers were mostly written in machine language. Machine language is the language a computer 'understands' directly, without any translation step.
@@ -22,6 +24,7 @@ These days machine language is hardly used any more. Programming languages have 
 ```metadata
 type: info
 id: different-languages
+emoji: "🧭"
 ```
 
 By now there are a great many programming languages. That raises the question of which one you should start with. You would want one of them to be the _holy grail_: the language that is easy to learn, that lets you build almost anything, and that produces a fast program. Sadly it is not that simple. Languages come with wildly different combinations of traits, some of them handy and others less so.
@@ -33,6 +36,7 @@ The next page goes deeper and sorts them in a few different ways. For each way, 
 ```metadata
 type: info
 id: sorting-languages
+emoji: "🗂️"
 optional: true
 ```
 

@@ -21,6 +21,23 @@ const String kBodyFontFamily = 'Inter';
 /// The code face.
 const String kCodeFontFamily = 'JetBrains Mono';
 
+/// The emoji face, bundled like the other three.
+///
+/// It is never a `fontFamily`, only ever the last entry of a
+/// [TextStyle.fontFamilyFallback]: the three faces above carry no emoji, so a
+/// glyph reaches this one only when none of them can draw it.
+///
+/// Bundling it is what makes an emoji look the same everywhere. Left to the
+/// platform, the same lesson would show Apple's emoji on a Mac or an iPhone,
+/// Google's on Android, and Microsoft's on Windows — and on the web the engine
+/// would fetch Noto from `fonts.gstatic.com` per student, which is the request
+/// the other three fonts were bundled to avoid.
+const String kEmojiFontFamily = 'Noto Color Emoji';
+
+/// Every style in [AppTextStyles] ends here, so an emoji renders the same in a
+/// heading, in prose and in the code editor.
+const List<String> kEmojiFontFallback = [kEmojiFontFamily];
+
 extension AppThemeContext on BuildContext {
 
   /// The app's design tokens for this subtree, falling back to the neutral
@@ -184,6 +201,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
     : this(
         display: TextStyle(
           fontFamily: kDisplayFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 58,
           fontWeight: FontWeight.w800,
@@ -192,6 +210,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
         ),
         h1: TextStyle(
           fontFamily: kDisplayFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 46,
           fontWeight: FontWeight.w800,
@@ -200,6 +219,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
         ),
         h2: TextStyle(
           fontFamily: kDisplayFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 34,
           fontWeight: FontWeight.w800,
@@ -208,6 +228,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
         ),
         h3: TextStyle(
           fontFamily: kDisplayFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 26,
           fontWeight: FontWeight.w700,
@@ -216,25 +237,38 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
         ),
         body: TextStyle(
           fontFamily: kBodyFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 21,
           height: 1.65,
         ),
         bodySmall: TextStyle(
           fontFamily: kBodyFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 19,
           height: 1.6,
         ),
         label: TextStyle(
           fontFamily: kBodyFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 13,
           fontWeight: FontWeight.w800,
           letterSpacing: 13 * 0.1,
         ),
-        code: const TextStyle(fontFamily: kCodeFontFamily, fontSize: 16, height: 1.8),
-        codeSmall: const TextStyle(fontFamily: kCodeFontFamily, fontSize: 12, height: 1.4),
+        code: const TextStyle(
+          fontFamily: kCodeFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
+          fontSize: 16,
+          height: 1.8,
+        ),
+        codeSmall: const TextStyle(
+          fontFamily: kCodeFontFamily,
+          fontFamilyFallback: kEmojiFontFallback,
+          fontSize: 12,
+          height: 1.4,
+        ),
       );
 
   /// The one-word screens: "Leer Python" on login, "Klaar!" on completion.

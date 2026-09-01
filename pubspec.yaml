@@ -81,6 +81,9 @@ flutter:
           weight: 700
         - asset: assets/fonts/Inter-800.ttf
           weight: 800
+    - family: Noto Color Emoji
+      fonts:
+        - asset: assets/fonts/NotoColorEmoji.ttf
     - family: JetBrains Mono
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf

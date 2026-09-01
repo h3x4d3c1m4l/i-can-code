@@ -46,6 +46,7 @@ Data invoeren
 
 ```metadata
 id: input-and-output
+emoji: "⌨️"
 ```
 
 ## Introductie
@@ -65,6 +66,7 @@ print("Hello, world")
 ```metadata
 type: quick-exercise
 id: print-yourself
+emoji: "✍️"
 ```
 
 Schrijf nu zelf een regel code om een stukje tekst te "printen".
@@ -82,9 +84,9 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id`, shared by every locale. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
-| `metadata` under a `##` | That section's `type` and `id`. Both required. |
+| `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
 | `<lang>-validator` | The hidden checks. Never shown. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
@@ -133,6 +135,45 @@ normal way, so the badge changes what is *asked*, never what is *recorded*.
 
 `optional` MUST be `true` or `false`; anything else is a `FormatException`.
 Omitted, it is `false`.
+
+### `emoji:` — the step's own mark
+
+Every step carries one emoji, shown before its title and nowhere else. A
+breadcrumb and the progress bar stay text.
+
+The **lesson** carries one too, in its document-level `metadata`. That one fills
+the tile on the lesson's catalog card, in place of the order number. The two are
+independent: a lesson's emoji is not its first step's.
+
+```metadata
+type: info
+id: coding
+emoji: "💡"
+```
+
+- **The same in every translation.** It marks the step, not the language the
+  step is written in, so `test/services/lesson_test.dart` holds the two locales
+  to the same emoji the way it holds them to the same ids.
+- **One emoji, not a sentence.** Nothing enforces the count — the field is text
+  and a long one simply looks wrong — but a title is not the place for a row of
+  them.
+- **Quoting it is optional.** YAML reads a bare emoji as a plain string. The
+  quotes above are a courtesy to editors that would otherwise mangle it.
+- An `emoji` that is empty, or that YAML reads as something other than text
+  (`emoji: 3`), is a `FormatException`.
+
+Both fields are **optional in the parser** — a lesson missing one still opens,
+with a plain title or a numbered tile — but **required of every lesson that
+ships**, which is a rule the test holds rather than the format.
+
+A programming **language** has no file of its own, so its emoji is a case in
+`languageEmoji()` in `lib/services/lessons/course.dart`. A language the table
+does not name falls back to the initial on its card, so adding a language
+directory does not require touching it.
+
+It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
+makes a step look the same on every platform instead of borrowing Apple's emoji
+on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
 
 ## `###` inside a section — foldable subheadings
 

@@ -4,6 +4,7 @@ Maak gebruikersinteractie mogelijk via tekstinvoer en -uitvoer.
 
 ```metadata
 id: input-and-output
+emoji: "⌨️"
 ```
 
 ## Introductie
@@ -11,6 +12,7 @@ id: input-and-output
 ```metadata
 type: info
 id: introduction
+emoji: "👋"
 ```
 
 Welkom bij de eerste module over Python!
@@ -32,6 +34,7 @@ Hiermee roep je de `print`-functie in Python aan en vertel je deze functie wat h
 ```metadata
 type: quick-exercise
 id: print-yourself
+emoji: "✍️"
 ```
 
 Schrijf nu zelf een regel code om een stukje tekst te "printen". Kies zelf de boodschap.
@@ -51,6 +54,7 @@ if not output:
 ```metadata
 type: exercise
 id: printing-values
+emoji: "📦"
 ```
 
 Je hebt nu gezien én ervaren hoe je de `print`-functie kunt gebruiken voor tekst. Je kunt dezelfde functie ook gebruiken voor andere typen waarden.

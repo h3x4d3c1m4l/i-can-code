@@ -152,6 +152,16 @@ String languageLabel(String language) => switch (language) {
   _ => language.isEmpty ? language : language[0].toUpperCase() + language.substring(1),
 };
 
+/// The emoji on a language's card, or null for one this table does not name.
+///
+/// A language is a directory, so unlike a lesson it has no file to carry its
+/// own. A new language MAY be added without touching this — the card falls back
+/// to the initial [languageLabel] gives it.
+String? languageEmoji(String language) => switch (language) {
+  'python' => '🐍',
+  _ => null,
+};
+
 /// The URL segment a language's pages live under: `python` -> `learn-python`.
 /// MUST stay in step with [languageFromSlug], which is its inverse.
 String languageSlug(String language) => 'learn-$language';

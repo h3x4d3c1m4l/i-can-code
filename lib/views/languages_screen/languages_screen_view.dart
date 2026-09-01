@@ -53,6 +53,7 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
                           // The language's own initial, rather than its
                           // position in the list.
                           label: languageLabel(language).substring(0, 1),
+                          emoji: languageEmoji(language),
                           title: languageLabel(language),
                           finished: done == lessons.length,
                           meta: done == 0
