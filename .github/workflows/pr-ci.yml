@@ -1,0 +1,81 @@
+name: PR CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths-ignore: [ README.md ]
+    types: [ opened, synchronize, reopened, ready_for_review ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+
+    if: ${{ github.event.pull_request.draft != true }}
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Verify LFS assets were fetched
+        run: |
+          magic=$(head -c 4 assets/python/python.wasm | xxd -p)
+          if [ "$magic" != "0061736d" ]; then
+            echo "::error title=Git LFS assets missing::assets/python/python.wasm starts with $magic, not the wasm magic word 0061736d. Checkout probably left an LFS pointer."
+            exit 1
+          fi
+
+      - name: Detect Flutter version
+        uses: kuhnroyal/flutter-fvm-config-action@v3
+
+      - name: Setup Flutter
+        uses: flutter-actions/setup-flutter@v4
+        with:
+          channel: stable
+          version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-sdk: true
+
+      - name: Disable Flutter analytics and CLI animations
+        run: flutter config --no-analytics --no-cli-animations
+
+      - name: Flutter SDK precache
+        run: flutter precache --web
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build
+
+      # `generate: true` only regenerates l10n on `flutter build` / `flutter run`,
+      # so analyze and test would otherwise run against a missing
+      # `lib/l10n/generated/` on a clean checkout.
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      # Not optional: `dart analyze` stays green while every build and test
+      # fails when a generator emits syntax the language version rejects.
+      - name: Flutter test
+        run: flutter test
+
+      # Same flags as the deploy, so a PR builds exactly what main will.
+      # No `--wasm`: dart2wasm rejects `dart:html`, which reaches this app
+      # through re_editor -> isolate_manager -> isolate_contactor. Add it back
+      # once that chain is off `dart:html`.
+      - name: Build web
+        run: flutter build web --release --base-href '/i-can-code/'
