@@ -36,6 +36,24 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   Set<int> _passed = {};
 
+  /// The lesson's end page is showing — the step past the last one.
+  ///
+  /// Deliberately **not** a [LessonSection]: the lesson format knows nothing
+  /// about it, so it counts towards no `stepCount`, no progress and no dot on
+  /// the progress bar. It is not in the address either, so a reload comes back
+  /// to the last step rather than here.
+  @readonly
+  bool _completed = false;
+
+  /// This visit is what finished the lesson — the one moment worth confetti.
+  ///
+  /// Set when the tick that completes the lesson lands, and held for as long as
+  /// the screen lives, so the end page still celebrates a lesson that was
+  /// finished by filling a gap in the middle. Opening a lesson already finished
+  /// never sets it: a tick that was already there is not an achievement.
+  @readonly
+  bool _earnedCelebration = false;
+
   /// The address named a section this lesson does not have — `resume`, or a
   /// stale bookmark. The screen rewrites it to the step it landed on.
   final bool addressNeedsRewrite;
@@ -66,12 +84,27 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
     };
   }
 
+  /// Whether this language has another lesson after this one, which is what
+  /// puts "Volgende les" on the end page.
+  bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
+
   @action
   void goTo(int step) {
     _step = step;
     _attempt = null;
     _running = false;
+    // Leaves the end page: the progress bar and the trail can both reach past
+    // it back into the lesson.
+    _completed = false;
   }
+
+  /// Shows the lesson's end page, after the last step.
+  @action
+  void complete() => _completed = true;
+
+  /// Notes that the tick just recorded is what finished the lesson.
+  @action
+  void noteLessonFinished() => _earnedCelebration = true;
 
   @action
   void setCode(String code) => _code = {..._code, _step: code};

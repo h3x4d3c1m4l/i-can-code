@@ -146,7 +146,17 @@ lib/theme/presets/thuas_palette.dart      # De Haagse Hogeschool's house style, 
 
 **Every rounded corner is a squircle.** Draw one with `squircle(radius)` from `shape_metrics.dart` and a `ShapeDecoration` — never `BoxDecoration.borderRadius`, which can only make a plain rounded rectangle. `kSquircleScale` converts the design's CSS radii to `ContinuousRectangleBorder`'s tighter curve; it is the one number to turn if corners look wrong. A continuous rectangle does **not** clamp an over-large radius — past half the shortest side it bows inward — so a small square tile uses `squircleOf(radius, size:)` instead.
 
+The **one** exception is the tick on a finished catalog row (`CompletedBadge`), which is a `CircleBorder`. The rule is about corners, and that badge is a lamp: a flat disc lit by three stacked shadows — a tight core, a halo and a wide bloom, all at zero offset — because one shadow cannot make a glow. A small blur draws a ring around the badge and a large one thins the colour to nothing, most visibly on the dark card, where a translucent green barely lifts the surface under it. It carries no outline: one was tried and read as a second shape rather than as a crisper edge. It is not the neobrutalist hard offset shadow the preset leaves out either — that is a device of the whole style and would live in the shared metrics.
+
+Every number that badge draws with — its size, the tick and each layer of the glow — is a constant at the top of `CompletedBadge`, because the look is a matter of taste and nothing else reads them. The widget tests hold the *shape* of the thing (a circle, no outline, a glow that spreads and fades outward) and pin none of the values, so tuning one does not turn the suite red.
+
+`progressComplete` is that lamp's colour, and no longer an alias of `success`: "your check passed" and "this is done" are different things, and a deeper green went muddy under a glow. The neutral preset lights it with `NeobrutalismPalette.complete`; THUAS keeps its corporate green, because its house style has no vivid one and a preset may not invent colours it does not own.
+
 `AppButton` exists rather than forui's `FButton` because the design's padding is `38 × 19` against forui's `10 × 11`, and forui fills a button with a `BoxDecoration` that cannot carry a squircle. It is built on forui's `FTappable`, so hover, focus and button semantics still come from the framework.
+
+Its three tones are a rank: `primary` carries the reader forward, `neutral` is the quieter one beside it, `outline` is quieter still and is what a step *back* takes. An outlined button has no fill to fade, so its hover and press tint the page with the ink instead. Its edge is drawn in that same ink — the colour `neutral` is *filled* with, so the two read as one button with and without its fill — rather than in the quiet `border` a card takes, which is too faint against the cream page to say "this is a control". `AppButtonTone.outline` is one button's own edge and **not** the neobrutalist outline the preset leaves out, which goes round everything and would live in the shared metrics. `AppButton.icon` is the icon-only form; it **requires** a `semanticsLabel`, because there is no text in it to fall back on.
+
+An icon-only button is shorter than a labelled one beside it — a 20px glyph against a line of text whose height is the font's, not a number this app can state. `AppButtonRow` is what settles it: `IntrinsicHeight` plus `CrossAxisAlignment.stretch`, so a row of buttons all take the tallest one's height whatever the font does. Padding the glyph to match would be guessing at Inter's metrics and would drift the moment the type scale moved.
 
 **A button must not resize when it starts working.** `AppButton.busy` keeps the label laid out (`Visibility.maintain`) and puts the spinner in a `Positioned.fill`, so neither the label swap nor the spinner's own height can change the button's size. Swapping the label for a shorter "Bezig…" makes the button jump the moment it is pressed, which reads as the layout breaking.
 
@@ -200,6 +210,42 @@ Two things it is deliberately not:
 - **Not a record.** Every read and write swallows its own failure — a browser that refuses storage (private mode, storage disabled) must not keep the app from starting. Nothing may depend on progress being correct.
 
 Keyed on `LessonSection.id`, never on a step's position, so a tick survives the author reordering a lesson. See `docs/lesson-format.md`.
+
+### The end of a lesson
+
+The last step does not lead out of the lesson. It leads to the lesson's **end
+page** — `LessonCompletePanel`, drawn by the lesson screen in place of a step —
+which names what was finished and offers the two ways on: the next lesson, or
+the catalog. It is what the "Volgende les" jump hangs off, and the app had no
+onward path at all before it.
+
+It is **not a section.** It has no id, counts towards no `stepCount`, keeps no
+progress and draws no dot on the progress bar, so `docs/lesson-format.md` says
+nothing about it and a lesson file cannot declare one. It is not in the address
+either: a reload comes back to the last step, not here.
+
+`ConfettiBurst` fires over it, once, and **only when this visit is what
+finished the lesson**. The transition is read around the write in
+`LessonScreenController._remember`, not off the last step, because the last step
+is not always the one that completes a lesson — a student who left a gap and came
+back finishes it in the middle. Opening a lesson that was already finished gets
+the end page and no confetti; a step skipped on the way makes the page say
+"einde van" rather than "afgerond".
+
+The burst draws **nothing** when `MediaQuery.disableAnimationsOf` is set — on
+the web that is `prefers-reduced-motion: reduce`, which the engine maps onto both
+`reduceMotion` and `disableAnimations`. Its colours come from the preset's own
+tokens rather than a token of its own: flakes in flight need no paired foreground
+and no contrast floor, and a new preset gets confetti in its palette for free.
+
+**Every `LessonRoute` is built through `lessonRoute()`** (`lib/routing/`), which
+keys the screen on the lesson. auto_route keys a page on its route *name* alone,
+so replacing one `LessonRoute` with another updates the page in place — same
+element, same `State`, and so the previous lesson's view model. The widget key is
+the only thing that makes a jump to a different lesson a different screen, and
+keying every step of a lesson the same way is what keeps moving *within* one from
+throwing that state away. A route parsed from the address carries no key, so the
+first move away from a cold-loaded step rebuilds the screen once.
 
 ### Three loading states
 

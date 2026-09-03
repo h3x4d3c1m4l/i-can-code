@@ -69,11 +69,12 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                           title: lesson.title,
                           subtitle: lesson.subtitle,
                           finished: progress.isFinished(courseLesson),
-                          // Not started: how much there is. Part way in: how
-                          // far. Finished: the card shows a tick instead.
-                          meta: done == 0
-                              ? context.localizations.catalogScreen_steps(lesson.stepCount)
-                              : context.localizations.catalogScreen_progress(done, lesson.stepCount),
+                          // How far in, from the first visit on. A lesson not
+                          // started reads "0 / 5" rather than "5 stappen", so
+                          // the number in this position never changes meaning
+                          // between one row and the next. Finished: the card
+                          // shows a tick instead.
+                          meta: context.localizations.catalogScreen_progress(done, lesson.stepCount),
                           onTap: () => controller.openLesson(courseLesson),
                         );
                       },

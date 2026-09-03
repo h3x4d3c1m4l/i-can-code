@@ -26,14 +26,6 @@
   "@initializationScreen_retry": {},
   "catalogScreen_title": "Pick a topic",
   "@catalogScreen_title": {},
-  "catalogScreen_steps": "{count, plural, =1{1 step} other{{count} steps}}",
-  "@catalogScreen_steps": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "lessonScreen_run": "Run code & check",
   "@lessonScreen_run": {},
   "lessonScreen_running": "Running…",
@@ -44,14 +36,52 @@
   "@lessonScreen_passed": {},
   "lessonScreen_next": "Next",
   "@lessonScreen_next": {},
+  "lessonScreen_back": "Previous step",
+  "@lessonScreen_back": {
+    "description": "The back button beside every Next. Icon only, so this is what a screen reader announces."
+  },
   "lessonScreen_optional": "Deep dive",
   "@lessonScreen_optional": {
-    "description": "Badge above the title of a step the student may skip."
+    "description": "Badge under the title of a step the student may skip."
   },
   "lessonScreen_skip": "Skip",
   "@lessonScreen_skip": {
     "description": "The link beside the deep-dive badge that moves past the step."
   },
+  "lessonScreen_complete": "Finish",
+  "@lessonScreen_complete": {
+    "description": "The button on a lesson's last step. It leads to the lesson's end page, not out of the lesson."
+  },
+  "lessonScreen_completeTitle": "{lesson} complete!",
+  "@lessonScreen_completeTitle": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonScreen_completePartialTitle": "End of {lesson}",
+  "@lessonScreen_completePartialTitle": {
+    "description": "The end page's heading when a step was skipped, so the lesson is not actually finished.",
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonScreen_completeSteps": "{done} of {total} steps done.",
+  "@lessonScreen_completeSteps": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonScreen_nextLesson": "Next lesson",
+  "@lessonScreen_nextLesson": {},
   "lessonScreen_finish": "Back to {language}",
   "@lessonScreen_finish": {
     "placeholders": {
@@ -68,14 +98,6 @@
   "@appHeader_settings": {},
   "languagesScreen_title": "What do you want to learn?",
   "@languagesScreen_title": {},
-  "languagesScreen_lessons": "{count, plural, =1{1 lesson} other{{count} lessons}}",
-  "@languagesScreen_lessons": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "catalogScreen_progress": "{done} / {total}",
   "@catalogScreen_progress": {
     "placeholders": {

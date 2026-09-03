@@ -26,6 +26,18 @@ void main() {
     }
   });
 
+  test('every step of a lesson is one screen, and a second lesson is another', () {
+    final first = lessonRoute(languageSlug: 'learn-python', lessonId: 'input-and-output', sectionId: 'intro');
+    final later = lessonRoute(languageSlug: 'learn-python', lessonId: 'input-and-output', sectionId: 'print-yourself');
+    final other = lessonRoute(languageSlug: 'learn-python', lessonId: 'variables', sectionId: 'intro');
+
+    // auto_route keys a page on its route name alone, so the widget's own key
+    // is the only thing that decides whether the screen — and its view model —
+    // survives a replace. Equal within a lesson, different across lessons.
+    expect(first.args!.key, later.args!.key);
+    expect(first.args!.key, isNot(other.args!.key));
+  });
+
   test('a lesson without a section resolves to the resume marker', () {
     final matched = AppRouter().matcher.match('/learn-python/input-and-output');
 

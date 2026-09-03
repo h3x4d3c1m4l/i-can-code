@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
@@ -19,7 +20,7 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
   Future<void> openLesson(CourseLesson lesson) async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(
-      LessonRoute(
+      lessonRoute(
         languageSlug: languageSlug(viewModel.language),
         lessonId: lesson.translations.values.first.id,
         sectionId: lesson.translations.values.first

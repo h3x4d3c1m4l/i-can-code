@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
@@ -46,7 +47,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   SectionKind get _currentKind =>
       viewModel.lesson.translations.values.first.sections[viewModel.step].kind;
 
-  /// Moves to the next step, or back to the catalog after the last one.
+  /// Moves to the next step, or to the lesson's end page after the last one.
   Future<void> next(int stepCount) async {
     // An info step is never run, so leaving it completes it. Marked on the way
     // out: the progress bar draws a completed step ahead of the current one, so
@@ -62,13 +63,32 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// Leaves an optional step without completing it.
   Future<void> skip(int stepCount) => _advance(stepCount);
 
-  /// Moves one step on, or back to the catalog after the last one.
+  /// Back one step, or off the end page onto the last step.
+  ///
+  /// Records nothing on the way: moving backwards is reading, not progress.
+  /// [canGoBack] is what decides whether it is offered, so this has nowhere to
+  /// go only if it is called anyway.
+  Future<void> previous(int stepCount) async {
+    if (viewModel.completed) return goTo(stepCount - 1);
+    if (viewModel.step == 0) return;
+
+    await goTo(viewModel.step - 1);
+  }
+
+  /// Whether there is a step behind this one. False on the very first step,
+  /// where a back button would be a control that does nothing.
+  bool get canGoBack => viewModel.completed || viewModel.step > 0;
+
+  /// Moves one step on, or shows the lesson's end page after the last one.
   Future<void> _advance(int stepCount) async {
     if (viewModel.step + 1 < stepCount) {
       await goTo(viewModel.step + 1);
       return;
     }
-    await openLanguage(viewModel.lesson.entry.language);
+
+    // The end page rather than the catalog: it is where the way on to the next
+    // lesson lives, and where a finished lesson is actually acknowledged.
+    viewModel.complete();
   }
 
   /// Moves to [step] and names it in the address, so a reload lands back here.
@@ -81,7 +101,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
     final lesson = viewModel.lesson.translations.values.first;
     await contextAccessor.buildContext.router.replace(
-      LessonRoute(
+      lessonRoute(
         languageSlug: languageSlug(viewModel.lesson.entry.language),
         lessonId: lesson.id,
         sectionId: lesson.sections[step].id,
@@ -92,7 +112,43 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   LessonSection get _currentSection =>
       viewModel.lesson.translations.values.first.sections[viewModel.step];
 
-  Future<void> _remember(LessonSection section) => _progress.markFinished(viewModel.lesson, section.id);
+  /// Records [section] as done, and notes it when that tick is what finished
+  /// the lesson.
+  ///
+  /// Asked around the write rather than on the last step, because the last step
+  /// is not always the one that completes a lesson: a student who left a gap
+  /// and came back to fill it finishes it in the middle.
+  Future<void> _remember(LessonSection section) async {
+    final wasFinished = _progress.isFinished(viewModel.lesson);
+    await _progress.markFinished(viewModel.lesson, section.id);
+
+    if (!wasFinished && _progress.isFinished(viewModel.lesson)) viewModel.noteLessonFinished();
+  }
+
+  /// Opens the next lesson in this language, or the catalog when this was the
+  /// last one.
+  ///
+  /// Lands on its first unfinished step, the same as opening it from the
+  /// catalog would. The catalog is left under it, so Back still goes there.
+  Future<void> openNextLesson() async {
+    final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
+    if (next == null) {
+      await openLanguage(viewModel.lesson.entry.language);
+      return;
+    }
+    if (_disposed || !contextAccessor.buildContext.mounted) return;
+
+    final lesson = next.translations.values.first;
+    await contextAccessor.buildContext.router.replaceAll([
+      const LanguagesRoute(),
+      CatalogRoute(languageSlug: languageSlug(next.entry.language)),
+      lessonRoute(
+        languageSlug: languageSlug(next.entry.language),
+        lessonId: lesson.id,
+        sectionId: lesson.sections[_progress.firstUnfinishedStep(next)].id,
+      ),
+    ]);
+  }
 
   /// Opens the catalog for [language].
   Future<void> openLanguage(String language) async {

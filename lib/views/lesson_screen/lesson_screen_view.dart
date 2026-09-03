@@ -6,9 +6,12 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
+import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
+import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
@@ -59,6 +62,29 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
 
   @override
   Widget get body {
+    return Stack(
+      // The body used to be the SafeArea's only child, which sized it. Expand
+      // hands it the same tight constraints.
+      fit: StackFit.expand,
+      children: [
+        _buildBody(),
+        // A layer over the whole screen rather than part of the end page: that
+        // page scrolls, and particles that scrolled with it — or were clipped at
+        // its edge — would read as a rendering fault.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Observer(
+              builder: (context) => viewModel.completed && viewModel.earnedCelebration
+                  ? const ConfettiBurst()
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -93,16 +119,44 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               final section = lesson.sections[viewModel.step];
 
               return SingleChildScrollView(
-                child: switch (section.kind) {
-                  SectionKind.info => _buildInfo(context, lesson, section),
-                  SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
-                  SectionKind.exercise => _buildExercise(context, lesson, section),
-                },
+                child: viewModel.completed
+                    ? _buildComplete(context, lesson)
+                    : switch (section.kind) {
+                        SectionKind.info => _buildInfo(context, lesson, section),
+                        SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
+                        SectionKind.exercise => _buildExercise(context, lesson, section),
+                      },
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  /// The lesson's end page, after the last step. Set to the reading measure, so
+  /// it sits where the prose the student just read did.
+  Widget _buildComplete(BuildContext context, Lesson lesson) {
+    return _Page(
+      maxWidth: _readingWidth,
+      padding: _readingPadding,
+      child: _pastGutter(
+        LessonCompletePanel(
+          emoji: lesson.emoji,
+          title: lesson.title,
+          // Read off the view model rather than the store, so a step passed a
+          // moment ago is already counted.
+          completedSteps: viewModel.passed.length,
+          stepCount: lesson.stepCount,
+          onNextLesson: viewModel.hasNextLesson ? controller.openNextLesson : null,
+          onBack: () => controller.previous(lesson.stepCount),
+          backLabel: context.localizations.lessonScreen_back,
+          onLeave: () => controller.openLanguage(viewModel.lesson.entry.language),
+          leaveLabel: context.localizations.lessonScreen_finish(
+            languageLabel(viewModel.lesson.entry.language),
+          ),
+        ),
+      ),
     );
   }
 
@@ -217,21 +271,17 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         singleLine: singleLine,
       ),
       const SizedBox(height: 16),
-      Row(
+      AppButtonRow(
         children: [
+          ..._buildBack(context, lesson),
           AppButton(
             tone: AppButtonTone.neutral,
+            icon: FLucideIcons.play,
             busy: viewModel.running,
             onPress: viewModel.running ? null : () => controller.run(section, editor.text),
             child: Text(context.localizations.lessonScreen_run),
           ),
-          if (viewModel.passed.contains(viewModel.step)) ...[
-            const SizedBox(width: 16),
-            AppButton(
-              onPress: () => controller.next(lesson.stepCount),
-              child: Text(_nextLabel(context, lesson)),
-            ),
-          ],
+          if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
         ],
       ),
       if (attempt != null) ...[
@@ -249,21 +299,43 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   );
 
   Widget _buildContinue(BuildContext context, Lesson lesson) {
-    return Row(
-      children: [
-        AppButton(
-          onPress: () => controller.next(lesson.stepCount),
-          child: Text(_nextLabel(context, lesson)),
-        ),
-      ],
+    return AppButtonRow(
+      children: [..._buildBack(context, lesson), _buildNext(context, lesson)],
     );
   }
 
-  /// The last step names where it lands rather than saying "overzicht", which
-  /// reads as the language picker — the screen above the one it actually opens.
-  String _nextLabel(BuildContext context, Lesson lesson) => viewModel.step + 1 < lesson.stepCount
-      ? context.localizations.lessonScreen_next
-      : context.localizations.lessonScreen_finish(languageLabel(viewModel.lesson.entry.language));
+  /// The way back, or nothing at all on the first step — a control that cannot
+  /// do anything is worse than no control.
+  ///
+  /// A list rather than a nullable widget so a caller can spread it into a row
+  /// without a `if (back != null)` at every one.
+  List<Widget> _buildBack(BuildContext context, Lesson lesson) => [
+    if (controller.canGoBack)
+      AppButton.icon(
+        icon: FLucideIcons.chevronLeft,
+        semanticsLabel: context.localizations.lessonScreen_back,
+        onPress: () => controller.previous(lesson.stepCount),
+      ),
+  ];
+
+  /// The way on. The chevron is trailing, so it points out of the button in the
+  /// direction it goes; the last step ends in a tick instead, because it opens
+  /// the lesson's end page rather than another step.
+  Widget _buildNext(BuildContext context, Lesson lesson) {
+    final last = viewModel.step + 1 == lesson.stepCount;
+
+    return AppButton(
+      icon: last ? FLucideIcons.check : FLucideIcons.chevronRight,
+      iconSide: AppButtonIconSide.trailing,
+      onPress: () => controller.next(lesson.stepCount),
+      child: Text(
+        // The last step says "Afronden": it opens the lesson's end page, which
+        // is still inside the lesson. Naming the catalog here would promise a
+        // screen that is one press further on.
+        last ? context.localizations.lessonScreen_complete : context.localizations.lessonScreen_next,
+      ),
+    );
+  }
 
   String _statusLabel(BuildContext context) =>
       viewModel.running ? context.localizations.lessonScreen_running : 'python';

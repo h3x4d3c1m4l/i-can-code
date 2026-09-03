@@ -56,9 +56,9 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
                           emoji: languageEmoji(language),
                           title: languageLabel(language),
                           finished: done == lessons.length,
-                          meta: done == 0
-                              ? context.localizations.languagesScreen_lessons(lessons.length)
-                              : context.localizations.languagesScreen_progress(done, lessons.length),
+                          // The fraction from the first visit on, for the
+                          // reason the catalog gives.
+                          meta: context.localizations.languagesScreen_progress(done, lessons.length),
                           onTap: () => controller.openLanguage(language),
                         );
                       },

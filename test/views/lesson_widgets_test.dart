@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
@@ -12,9 +13,12 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
+import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
+import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
@@ -688,6 +692,21 @@ void main() {
       expect(skipped, 1);
     });
 
+    testWidgets('the badge and the way past sit under the title, not over it', (tester) async {
+      final section = lesson.sections.first;
+
+      await tester.pumpWidget(_host(SectionHeading(section: section, onSkip: () {})));
+      await tester.pumpAndSettle();
+
+      // A badge above the title would ask the reader to take in a label for a
+      // step they have not been told the name of yet, and would put every
+      // optional step's title at a different height from every required one's.
+      expect(
+        tester.getTopLeft(find.byType(OptionalStepBanner)).dy,
+        greaterThan(tester.getBottomLeft(find.textContaining(section.title)).dy - 1),
+      );
+    });
+
     testWidgets('the skip link is legible and underlined', (tester) async {
       // `link` rather than `primary`: the neutral accent is 1.2:1 on the page,
       // so it cannot carry text. The underline is what marks it as a link.
@@ -706,7 +725,7 @@ void main() {
     testWidgets('an emoji fills the tile in place of the label', (tester) async {
       await tester.pumpWidget(
         _host(
-          const CatalogCard(label: '2', emoji: '\u{2328}\u{FE0F}', title: 'Invoer en uitvoer', meta: '3 stappen'),
+          const CatalogCard(label: '2', emoji: '\u{2328}\u{FE0F}', title: 'Invoer en uitvoer', meta: '0 / 3'),
         ),
       );
       await tester.pumpAndSettle();
@@ -717,7 +736,7 @@ void main() {
 
     testWidgets('without one the tile keeps its number', (tester) async {
       await tester.pumpWidget(
-        _host(const CatalogCard(label: '2', title: 'Invoer en uitvoer', meta: '3 stappen')),
+        _host(const CatalogCard(label: '2', title: 'Invoer en uitvoer', meta: '0 / 3')),
       );
       await tester.pumpAndSettle();
 
@@ -726,7 +745,7 @@ void main() {
 
     testWidgets('the tile label is legible on its own fill', (tester) async {
       await tester.pumpWidget(
-        _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '3 stappen', onTap: () {})),
+        _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', onTap: () {})),
       );
       await tester.pumpAndSettle();
 
@@ -735,6 +754,53 @@ void main() {
       final colors = buildAppTheme().colors;
       expect(tester.widget<Text>(find.text('1')).style?.color, colors.primaryForeground);
       expect(tester.widget<Text>(find.text('1')).style?.color, isNot(colors.primary));
+    });
+
+    testWidgets('a finished row is marked with a filled badge, not a bare tick', (tester) async {
+      await tester.pumpWidget(
+        _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', finished: true, onTap: () {})),
+      );
+      await tester.pumpAndSettle();
+
+      final tokens = buildAppTheme();
+      final badge =
+          tester
+                  .widgetList<DecoratedBox>(
+                    find.ancestor(of: find.byIcon(FLucideIcons.check), matching: find.byType(DecoratedBox)),
+                  )
+                  .first
+                  .decoration
+              as ShapeDecoration;
+
+      // Filled with the completed colour, with the tick knocked out of it —
+      // never white, which fails AA on the greens both presets use here.
+      expect(badge.color, tokens.extensions.whereType<AppTheme>().first.colors.progressComplete);
+      expect(
+        tester.widget<Icon>(find.byIcon(FLucideIcons.check)).color,
+        tokens.extensions.whereType<AppTheme>().first.colors.progressCompleteForeground,
+      );
+
+      // A lamp, so a circle rather than the squircle everything else is, and a
+      // flat disc: an outline round it read as a second shape rather than as a
+      // crisper edge.
+      //
+      // The exact numbers are [CompletedBadge]'s to tune, so nothing here pins
+      // one: these hold the shape of the thing, not its settings.
+      expect((badge.shape as CircleBorder).side.style, BorderStyle.none);
+
+      // And it is lit by a stack of shadows, not one: a tight core, a halo and
+      // a wide bloom, all centred. A single shadow reads as a ring at a small
+      // blur and as nothing at a large one.
+      final shadows = badge.shadows!;
+      expect(shadows.length, greaterThan(1));
+      expect(shadows.every((shadow) => shadow.offset == Offset.zero), isTrue);
+
+      // Spreading and fading outward, which is what makes the falloff look
+      // like light rather than like stacked rings.
+      for (var layer = 1; layer < shadows.length; layer++) {
+        expect(shadows[layer].blurRadius, greaterThan(shadows[layer - 1].blurRadius));
+        expect(shadows[layer].color.a, lessThan(shadows[layer - 1].color.a));
+      }
     });
 
     testWidgets('an unavailable tile keeps the page colour on its grey fill', (tester) async {
@@ -747,7 +813,209 @@ void main() {
     });
   });
 
+  group('LessonCompletePanel', () {
+    Widget panel({int completedSteps = 3, VoidCallback? onNextLesson}) => LessonCompletePanel(
+      emoji: '\u{2328}\u{FE0F}',
+      title: 'Invoer en uitvoer',
+      completedSteps: completedSteps,
+      stepCount: 3,
+      onNextLesson: onNextLesson,
+      onBack: () {},
+      backLabel: 'Vorige stap',
+      onLeave: () {},
+      leaveLabel: 'Terug naar Python',
+    );
+
+    testWidgets('a finished lesson is named as finished', (tester) async {
+      await tester.pumpWidget(_host(panel()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invoer en uitvoer afgerond!'), findsOneWidget);
+      expect(find.text('3 van de 3 stappen gedaan.'), findsOneWidget);
+    });
+
+    testWidgets('a lesson left with a step unfinished does not claim to be', (tester) async {
+      // A skipped "Verdieping" reaches the end page without completing the
+      // lesson, and the page MUST NOT congratulate the student for it.
+      await tester.pumpWidget(_host(panel(completedSteps: 2)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Einde van Invoer en uitvoer'), findsOneWidget);
+      expect(find.text('2 van de 3 stappen gedaan.'), findsOneWidget);
+    });
+
+    testWidgets('the way forward carries the brand fill, whether or not there is a next lesson', (tester) async {
+      final primary = buildAppTheme().colors.primary;
+      ShapeDecoration decorationOf(String label) => tester
+          .widget<DecoratedBox>(
+            find.ancestor(of: find.text(label), matching: find.byType(DecoratedBox)).first,
+          )
+          .decoration as ShapeDecoration;
+
+      await tester.pumpWidget(_host(panel(onNextLesson: () {})));
+      await tester.pumpAndSettle();
+
+      expect(decorationOf('Volgende les').color, primary);
+      expect(decorationOf('Terug naar Python').color, isNot(primary));
+
+      // The last lesson of a language has nowhere else to go, so the catalog
+      // becomes the way forward rather than the quiet option beside it.
+      await tester.pumpWidget(_host(panel()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Volgende les'), findsNothing);
+      expect(decorationOf('Terug naar Python').color, primary);
+    });
+  });
+
+  group('ConfettiBurst', () {
+    testWidgets('fires a cannon from either side', (tester) async {
+      await tester.pumpWidget(_host(const SizedBox(width: 600, height: 400, child: ConfettiBurst())));
+      await tester.pump();
+
+      final cannons = tester.widgetList<Confetti>(find.byType(Confetti)).toList();
+      expect(cannons, hasLength(2));
+      expect(cannons.map((c) => c.options!.x), [0, 1]);
+      // Aimed inward and upward — 90 is straight up.
+      expect(cannons.map((c) => c.options!.angle), [60, 120]);
+      expect(cannons.every((c) => c.options!.colors.contains(buildAppTheme().colors.primary)), isTrue);
+
+      // Disposes the tickers the cannons started, which would otherwise still
+      // be running when the test ends.
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('draws nothing at all for a reader who asked for less motion', (tester) async {
+      // `prefers-reduced-motion: reduce` on the web, which the engine maps onto
+      // MediaQuery's disableAnimations.
+      await tester.pumpWidget(
+        _host(
+          // Inside the host, whose own MediaQuery would otherwise replace this
+          // one wholesale rather than being amended by it.
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: const SizedBox(width: 600, height: 400, child: ConfettiBurst()),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(Confetti), findsNothing);
+    });
+  });
+
   group('AppButton', () {
+    testWidgets('an icon sits on the side it was given, not always the same one', (tester) async {
+      Future<double> iconX(AppButtonIconSide side) async {
+        await tester.pumpWidget(
+          _host(
+            Align(
+              child: AppButton(
+                icon: FLucideIcons.chevronRight,
+                iconSide: side,
+                onPress: () {},
+                child: const Text('Volgende'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.getCenter(find.byIcon(FLucideIcons.chevronRight)).dx;
+      }
+
+      final labelX = await iconX(AppButtonIconSide.trailing).then((x) async {
+        final label = tester.getCenter(find.text('Volgende')).dx;
+        expect(x, greaterThan(label), reason: 'a trailing chevron points out of the button');
+        return label;
+      });
+
+      // Leading, so the glyph names the action rather than the destination.
+      expect(await iconX(AppButtonIconSide.leading), lessThan(labelX));
+    });
+
+    testWidgets('an outlined button draws an edge and no fill', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          Align(
+            child: AppButton.icon(
+              icon: FLucideIcons.chevronLeft,
+              semanticsLabel: 'Vorige stap',
+              onPress: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find.descendant(of: find.byType(AppButton), matching: find.byType(DecoratedBox)).first,
+                  )
+                  .decoration
+              as ShapeDecoration;
+      final theme = buildAppTheme();
+
+      // The page shows through it: an outline that filled would be the neutral
+      // tone with a line round it.
+      expect(decoration.color?.a ?? 0, 0);
+      // The page's ink, which is what the neutral tone is filled with: the same
+      // button, with and without its fill.
+      expect((decoration.shape as ContinuousRectangleBorder).side.color, theme.colors.foreground);
+      // Its glyph is the page's own ink, which `theme_test` already holds to AA
+      // against the background — so the tone needs no colour pair of its own.
+      expect(tester.widget<Icon>(find.byIcon(FLucideIcons.chevronLeft)).color, theme.colors.foreground);
+    });
+
+    testWidgets('an icon-only button is named for a screen reader', (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        _host(
+          Align(
+            child: AppButton.icon(
+              icon: FLucideIcons.chevronLeft,
+              semanticsLabel: 'Vorige stap',
+              onPress: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // There is no text in it to fall back on, so without this the button is
+      // announced as nothing at all.
+      expect(find.bySemanticsLabel('Vorige stap'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('a row gives an icon-only button the height of the labelled one beside it', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          Align(
+            child: AppButtonRow(
+              children: [
+                AppButton.icon(
+                  icon: FLucideIcons.chevronLeft,
+                  semanticsLabel: 'Vorige stap',
+                  onPress: () {},
+                ),
+                AppButton(onPress: () {}, child: const Text('Volgende')),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A glyph is shorter than a line of text, and that line's height belongs
+      // to the font. The row is what makes them agree.
+      final sizes = tester.widgetList<AppButton>(find.byType(AppButton)).map((b) => tester.getSize(find.byWidget(b)));
+      expect(sizes.map((size) => size.height).toSet(), hasLength(1), reason: 'heights: $sizes');
+    });
+
     testWidgets('keeps its width when it starts working', (tester) async {
       await tester.pumpWidget(
         _host(Align(child: AppButton(onPress: () {}, child: const Text('Draai code & controleer')))),

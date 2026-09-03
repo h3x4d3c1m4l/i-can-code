@@ -111,6 +111,19 @@ class Course {
   List<CourseLesson> lessonsFor(String language) =>
       lessons.where((lesson) => lesson.entry.language == language).toList();
 
+  /// The lesson after [lesson] in its own language, or null when it is the last
+  /// one. Course order is the filename's `NN-` prefix, so this follows a rename.
+  ///
+  /// Matched on [Lesson.id] rather than on identity, so it still answers for a
+  /// lesson that came from a second parse of the same course.
+  CourseLesson? lessonAfter(CourseLesson lesson) {
+    final siblings = lessonsFor(lesson.entry.language);
+    final id = lesson.translations.values.first.id;
+    final index = siblings.indexWhere((sibling) => sibling.translations.values.first.id == id);
+
+    return index == -1 || index + 1 == siblings.length ? null : siblings[index + 1];
+  }
+
   /// Groups asset paths into lessons. Separate from [load] so the naming rules
   /// are testable without an asset bundle.
   static List<LessonEntry> entriesFrom(Iterable<String> assets) {

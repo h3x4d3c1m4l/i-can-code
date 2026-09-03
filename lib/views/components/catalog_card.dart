@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/completed_badge.dart';
 
 /// One row of a list of things to open: a tile, a title and subtitle, and a
 /// count on the right. Shared by the language picker and the lesson catalog.
@@ -92,7 +93,7 @@ class CatalogCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   if (finished)
-                    Icon(FLucideIcons.check, size: 22, color: context.appTheme.colors.progressComplete)
+                    const CompletedBadge()
                   else
                     Text(
                       meta,

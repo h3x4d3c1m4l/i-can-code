@@ -3,7 +3,7 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 
-/// The title every step opens with, under its badge when it has one. One size
+/// The title every step opens with, over its badge when it has one. One size
 /// for all three kinds, so the steps read as one lesson.
 class SectionHeading extends StatelessWidget {
 
@@ -13,7 +13,7 @@ class SectionHeading extends StatelessWidget {
   final LessonSection section;
 
   /// Skips this step. MUST be non-null exactly when [LessonSection.optional]
-  /// is set — it is what puts the "Verdieping" banner above the title.
+  /// is set — it is what puts the "Verdieping" banner under the title.
   final VoidCallback? onSkip;
 
   const SectionHeading({required this.section, this.onSkip, super.key});
@@ -36,9 +36,12 @@ class SectionHeading extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          OptionalStepBanner(onSkip: skip),
-          const SizedBox(height: 18),
           title,
+          // Closer to the title than the prose below is, so the badge and the
+          // way past the step read as part of the heading rather than as the
+          // first thing the step says.
+          const SizedBox(height: 18),
+          OptionalStepBanner(onSkip: skip),
         ],
       );
     }

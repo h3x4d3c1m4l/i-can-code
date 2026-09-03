@@ -69,7 +69,7 @@ Future<double> _chromaticShare(
                     label: '1',
                     title: 'Invoer en uitvoer',
                     subtitle: 'Lezen en schrijven',
-                    meta: '5 stappen',
+                    meta: '0 / 5',
                   ),
                 ),
               ),

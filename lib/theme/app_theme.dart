@@ -103,6 +103,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
     required this.codeMuted,
     required this.progressTrack,
     required this.progressComplete,
+    required this.progressCompleteForeground,
     required this.progressCurrent,
   });
 
@@ -165,6 +166,17 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
   /// A lesson step already completed.
   @override
   final Color progressComplete;
+
+  /// The tick drawn on top of [progressComplete], where it is a fill rather
+  /// than a bar — the badge on a finished row in the catalog.
+  ///
+  /// Stated here rather than picked at the call site for the reason the class
+  /// doc gives: the greens both presets complete a step with are light enough
+  /// that white fails on them — 1.67:1 on the neutral preset's, under even the
+  /// 3:1 floor for graphics — so a widget reaching for the obvious white tick
+  /// would be drawing an illegible one. Ink, and it was tried the other way.
+  @override
+  final Color progressCompleteForeground;
 
   /// The step being worked on now.
   @override

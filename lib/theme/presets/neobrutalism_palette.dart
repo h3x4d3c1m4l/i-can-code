@@ -22,6 +22,16 @@ abstract final class NeobrutalismPalette {
   /// [linkLight] / [linkDark] instead, which is why `link` exists as a role.
   static const Color accent = Color(0xFFFFDC58);
 
+  /// A step already finished, in both modes: the progress bar's filled segments
+  /// and the badge on a completed row.
+  ///
+  /// Brighter and more saturated than [successLight], which it used to borrow.
+  /// The two mean different things — "your check passed" against "this is
+  /// done" — and this one is lit: it carries a glow, and a deeper green went
+  /// muddy under one. A fill only, like [accent]; [inkLight] takes 11.86:1 on
+  /// it and white would reach 1.8:1.
+  static const Color complete = Color(0xFF00E676);
+
   // ------------------------------------------------------------------- light
 
   /// The page. Cream rather than white, so a white card reads against it.

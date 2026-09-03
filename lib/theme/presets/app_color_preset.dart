@@ -79,7 +79,8 @@ AppColorPresetData _neutralLight() {
       codeForeground: NeobrutalismPalette.codeInk,
       codeMuted: NeobrutalismPalette.codeInkMuted,
       progressTrack: NeobrutalismPalette.borderLight,
-      progressComplete: NeobrutalismPalette.successLight,
+      progressComplete: NeobrutalismPalette.complete,
+      progressCompleteForeground: NeobrutalismPalette.inkLight,
       progressCurrent: NeobrutalismPalette.inkLight,
     ),
   );
@@ -122,7 +123,8 @@ AppColorPresetData _neutralDark() {
       codeForeground: NeobrutalismPalette.codeInk,
       codeMuted: NeobrutalismPalette.codeInkMuted,
       progressTrack: NeobrutalismPalette.borderDark,
-      progressComplete: NeobrutalismPalette.successDark,
+      progressComplete: NeobrutalismPalette.complete,
+      progressCompleteForeground: NeobrutalismPalette.inkLight,
       progressCurrent: NeobrutalismPalette.inkDark,
     ),
   );
@@ -172,6 +174,7 @@ AppColorPresetData _thuasLight() {
       codeMuted: ThuasPalette.greyOn55,
       progressTrack: ThuasPalette.grey15,
       progressComplete: ThuasPalette.corporateGreen,
+      progressCompleteForeground: ThuasPalette.corporateGrey,
       progressCurrent: ThuasPalette.corporateGrey,
     ),
   );
@@ -218,6 +221,7 @@ AppColorPresetData _thuasDark() {
       codeMuted: ThuasPalette.greyOn55,
       progressTrack: ThuasPalette.greyMid,
       progressComplete: ThuasPalette.corporateGreen,
+      progressCompleteForeground: ThuasPalette.corporateGrey,
       progressCurrent: ThuasPalette.grey08,
     ),
   );

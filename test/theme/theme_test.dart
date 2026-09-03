@@ -40,6 +40,10 @@ void main() {
           'body text on a card': (colors.card, colors.foreground),
           'muted text on the page': (colors.background, colors.mutedForeground),
           'success on its foreground': (semantic.success, semantic.successForeground),
+          // The tick on a finished catalog row. Every preset completes a step
+          // in a green light enough that white fails on it, which is why it has
+          // a foreground of its own rather than the obvious one.
+          'the completed tick on its badge': (semantic.progressComplete, semantic.progressCompleteForeground),
           'warning on its foreground': (semantic.warning, semantic.warningForeground),
           'text on the success surface': (semantic.successSurface, colors.foreground),
           'text on the warning surface': (semantic.warningSurface, colors.foreground),

@@ -4,8 +4,12 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 
-/// The eyebrow over an optional step — a "Verdieping": what it is, and the way
-/// past it.
+/// What an optional step is — a "Verdieping" — and the way past it, on one line
+/// under the step's title.
+///
+/// Under rather than over it: an eyebrow above the title makes the reader take
+/// in a label for a step they have not been told the name of yet, and it pushes
+/// every optional step's title to a different height from every required one's.
 ///
 /// The badge is filled rather than outlined so it reads as a label on the step
 /// and not as a control; the way past it is a link beside it, because skipping
