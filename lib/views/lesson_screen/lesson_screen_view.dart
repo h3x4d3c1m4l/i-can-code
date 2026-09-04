@@ -110,15 +110,16 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               // The end page is not a step and has no index, so it takes the
               // one past the last — which is also where it sits.
               key: ValueKey(viewModel.completed ? lesson.stepCount : viewModel.step),
-              child: SingleChildScrollView(
-                child: viewModel.completed
-                    ? _buildComplete(context, lesson)
-                    : switch (section.kind) {
-                        SectionKind.info => _buildInfo(context, lesson, section),
-                        SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
-                        SectionKind.exercise => _buildExercise(context, lesson, section),
-                      },
-              ),
+              // The scroll view belongs to the page rather than to the screen:
+              // the two-column task step does not scroll as one. See [_Page]
+              // and [_SplitPage].
+              child: viewModel.completed
+                  ? _buildComplete(context, lesson)
+                  : switch (section.kind) {
+                      SectionKind.info => _buildInfo(context, lesson, section),
+                      SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
+                      SectionKind.exercise => _buildExercise(context, lesson, section),
+                    },
             ),
           );
         },
@@ -249,27 +250,28 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     // narrow to read a paragraph in, so the two stack.
     final stacked = MediaQuery.sizeOf(context).width < context.theme.breakpoints.lg;
 
-    return _Page(
+    // Stacked, the workspace sits under the prose and has to line up with it,
+    // and the two scroll as one page. Side by side it starts its own column,
+    // where the gutter would only push it away from the divide.
+    if (stacked) {
+      return _Page(
+        maxWidth: _taskWidth,
+        padding: _taskPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [prose, const SizedBox(height: 30), _pastGutter(workspace)],
+        ),
+      );
+    }
+
+    return _SplitPage(
       maxWidth: _taskWidth,
       padding: _taskPadding,
-      child: stacked
-          // Stacked, the workspace sits under the prose and has to line up with
-          // it. Side by side it starts its own column, where the gutter would
-          // only push it away from the divide.
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [prose, const SizedBox(height: 30), _pastGutter(workspace)],
-            )
-          // Even halves. `Expanded.flex` is an integer ratio against a default
-          // of 1, so `flex: 11` would be an 11:1 split, not 1:1.1.
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: Padding(padding: const EdgeInsets.only(top: 6), child: prose)),
-                const SizedBox(width: 36),
-                Expanded(child: workspace),
-              ],
-            ),
+      gap: 36,
+      // Nudged down onto the editor card's own top edge: the prose starts with
+      // a heading, which sits a little higher than the card's first line.
+      left: Padding(padding: const EdgeInsets.only(top: 6), child: prose),
+      right: workspace,
     );
   }
 
@@ -376,7 +378,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
 
 }
 
-/// The centred, width-capped column every step is laid out in.
+/// The centred, width-capped column a step that scrolls as one is laid out in.
 class _Page extends StatelessWidget {
 
   final double maxWidth;
@@ -387,10 +389,79 @@ class _Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
+      // Inside the scroll rather than around it, which is what lets the top
+      // keep the first screenful clear of the bar while everything scrolled
+      // past passes *under* the bar.
       padding: padding,
       child: Center(
         child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child),
+      ),
+    );
+  }
+
+}
+
+/// The two-column task step: the prose scrolls on its own, and the editor and
+/// its output stand still beside it.
+///
+/// The two columns scroll apart because they are read differently — the prose
+/// is read top to bottom while the editor is worked in, and a shared scroll
+/// pushed the editor off screen the moment the student looked something up.
+/// Below `lg` there is only one column and the step is a [_Page] again.
+///
+/// The [padding]'s **vertical** halves belong to the columns and not to the
+/// page, for the reason [_Page] states: they have to be inside the scroll. The
+/// horizontal halves and [maxWidth] stay outside, so the two columns are
+/// measured against one page rather than each against its own.
+class _SplitPage extends StatelessWidget {
+
+  final double maxWidth;
+  final EdgeInsets padding;
+
+  /// What separates the two columns.
+  final double gap;
+
+  final Widget left;
+  final Widget right;
+
+  const _SplitPage({
+    required this.maxWidth,
+    required this.padding,
+    required this.gap,
+    required this.left,
+    required this.right,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final vertical = EdgeInsets.only(top: padding.top, bottom: padding.bottom);
+
+    return Padding(
+      padding: EdgeInsets.only(left: padding.left, right: padding.right),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          // Both columns take the window's full height, which is what gives
+          // each one a viewport to scroll inside. The height is there to take:
+          // `StepTransition` lays every step out to the full size of the
+          // screen.
+          //
+          // Even halves. `Expanded.flex` is an integer ratio against a default
+          // of 1, so `flex: 11` would be an 11:1 split, not 1:1.1.
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: SingleChildScrollView(padding: vertical, child: left)),
+              SizedBox(width: gap),
+              // A scroll view as well, though this column is meant to stand
+              // still: it fits the window and so does not scroll, but a long
+              // enough run of output would otherwise overflow it with no way
+              // to reach the end.
+              Expanded(child: SingleChildScrollView(padding: vertical, child: right)),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -202,7 +202,7 @@ An icon-only button is shorter than a labelled one beside it — a 20px glyph ag
 
 **forui defaults every tappable's cursor to `MouseCursor.defer`**, which on the web leaves the ordinary arrow over buttons, breadcrumb crumbs and the settings cog. `buildAppTheme()` sets it once on `FStyle.tappableStyle`; every widget style inherits from that one, so nothing needs a `MouseRegion` of its own.
 
-Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwind's. The lesson's two-column step stacks below `lg` (1024). Note that `Expanded(flex:)` is an *integer* ratio against a default of 1 — `flex: 11` is an 11:1 split, not 1:1.1, which is how the prose column once came out one word wide.
+Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwind's. The lesson's two-column step stacks below `lg` (1024) and scrolls as one page there; side by side each column scrolls on its own, so reading down the prose leaves the editor and its output where they are. Note that `Expanded(flex:)` is an *integer* ratio against a default of 1 — `flex: 11` is an 11:1 split, not 1:1.1, which is how the prose column once came out one word wide.
 
 `AppSemanticColors` names the roles forui has no slot for — `warning`, `success`, the code editor's surface, the progress bar. **Write a colour there, not inline in a widget**, and read it through `context.appTheme.colors`. Each `*Foreground` is stated next to its fill on purpose: the THUAS corporate green reaches only 2.63:1 against white, so picking a foreground at the call site is exactly how a screen ends up illegible. `test/theme/theme_test.dart` asserts every pairing clears WCAG AA in every preset — **add a pair there when you add a colour.**
 
