@@ -337,6 +337,8 @@ Flutter's asset globbing is **not recursive**, so every asset directory is liste
 
 `PythonRuntime` is named for what it is. A second language means a second runtime beside it and an interface above them both — not renaming this one. `PythonAttemptRunner` sits on top and is the only thing that should call `run()`: it wraps the student's code and the section's validator into **one** program, because the checks must see the exact output that run produced.
 
+**The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `languageLabel()`, the same name without the number.
+
 The student's source is carried into that program as **base64 of JSON**, never interpolated. Interpolation needs escaping their code can always defeat — a triple quote, a stray backslash — and base64's alphabet contains no quote, so the payload cannot terminate the literal holding it. `test/services/python_attempt_runner_test.dart` runs the wrapper through the machine's own `python3` (skipped when absent), so the capture, traceback trimming and `output` stripping are tested without a browser.
 
 ### Localization

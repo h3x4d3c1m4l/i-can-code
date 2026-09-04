@@ -360,8 +360,18 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     );
   }
 
-  String _statusLabel(BuildContext context) =>
-      viewModel.running ? context.localizations.lessonScreen_running : 'python';
+  /// What the editor's strip says over the code: a run in progress, or else the
+  /// interpreter the code will run on.
+  ///
+  /// The version is the runtime's own answer, so the strip cannot claim a build
+  /// the app is not shipping. Where there is none to ask — every non-web build,
+  /// and so every widget test — the lesson's own language stands in, which is
+  /// the same name without the number.
+  String _statusLabel(BuildContext context) {
+    if (viewModel.running) return context.localizations.lessonScreen_running;
+
+    return controller.runtimeVersion ?? languageLabel(viewModel.lesson.entry.language);
+  }
 
   /// The editor for [step], created from the section's starter block the first
   /// time it is shown and kept afterwards.

@@ -16,6 +16,24 @@ import { Wasi, WasiExit } from './wasi.js';
  *  board file without bound. */
 const MAX_OUTPUT_BYTES = 256 * 1024;
 
+/** Where the stdlib is mounted inside the interpreter's own filesystem. Named
+ *  once because three things MUST agree on it: the file map, PYTHONPATH, and
+ *  the version probe below. */
+const STDLIB_PATH = '/python314.zip';
+
+/** The environment every interpreter is started with — a student's program and
+ *  the version probe alike. */
+const PYTHON_ENV = {
+  PYTHONHOME: '/',
+  PYTHONPATH: STDLIB_PATH,
+  // Without this CPython tries to write .pyc files next to the source and
+  // the read-only filesystem refuses, noisily.
+  PYTHONDONTWRITEBYTECODE: '1',
+  // Output is captured at the end rather than streamed, so buffering would
+  // only risk losing the tail of a program that dies mid-write.
+  PYTHONUNBUFFERED: '1',
+};
+
 let compiled = null;
 let stdlib = null;
 
@@ -96,6 +114,45 @@ function assertWasm(buffer, url) {
       : `${url} is not a WebAssembly module.`);
 }
 
+/** Instantiates a fresh interpreter and runs it to completion.
+ *
+ *  How it ends is the caller's problem, and there are two endings: a program
+ *  that runs exits through proc_exit, which throws WasiExit out of _start, while
+ *  an interpreter that answers before it gets that far — `-V` — returns from
+ *  _start normally. Either way the instance is spent. */
+async function start(wasi) {
+  const instance = await WebAssembly.instantiate(compiled, wasi.imports());
+  wasi.memory = instance.exports.memory;
+  instance.exports._start();
+}
+
+/** What the interpreter says it is — "Python 3.14.7" — asked of the build that
+ *  is actually loaded rather than written down anywhere in the app.
+ *
+ *  `-V` because the answer then carries the name as well as the number, and
+ *  neither has to be assembled here. It writes to stdout and it is cheap: one
+ *  extra instantiate, measured at ~4ms against a compile of a 7 MB module.
+ *
+ *  Its failure is not startup's failure: a runtime that cannot name itself still
+ *  runs code, so this answers null and whoever shows it falls back. */
+async function probeVersion() {
+  const out = new Collector();
+  const wasi = new Wasi({
+    args: ['python', '-V'],
+    env: PYTHON_ENV,
+    files: new Map([[STDLIB_PATH, stdlib]]),
+    stdin: new Uint8Array(0),
+    onOutput: (kind, bytes) => { if (kind === 'stdout') out.add(bytes); },
+  });
+
+  try {
+    await start(wasi);
+  } catch (error) {
+    if (!(error instanceof WasiExit) || error.code !== 0) return null;
+  }
+  return out.text().trim() || null;
+}
+
 async function run({ code, stdin }) {
   const started = performance.now();
   const stdout = new Collector();
@@ -105,22 +162,13 @@ async function run({ code, stdin }) {
   // traceback names main.py and quotes the offending line instead of saying
   // "<string>". That difference matters a lot when a class is reading the error.
   const files = new Map([
-    ['/python314.zip', stdlib],
+    [STDLIB_PATH, stdlib],
     ['/main.py', new TextEncoder().encode(code)],
   ]);
 
   const wasi = new Wasi({
     args: ['python', '/main.py'],
-    env: {
-      PYTHONHOME: '/',
-      PYTHONPATH: '/python314.zip',
-      // Without this CPython tries to write .pyc files next to the source and
-      // the read-only filesystem refuses, noisily.
-      PYTHONDONTWRITEBYTECODE: '1',
-      // Output is captured at the end rather than streamed, so buffering would
-      // only risk losing the tail of a program that dies mid-write.
-      PYTHONUNBUFFERED: '1',
-    },
+    env: PYTHON_ENV,
     files,
     stdin: new TextEncoder().encode(stdin ?? ''),
     onOutput: (kind, bytes) => (kind === 'stdout' ? stdout : stderr).add(bytes),
@@ -128,9 +176,7 @@ async function run({ code, stdin }) {
 
   let exitCode = 0;
   try {
-    const instance = await WebAssembly.instantiate(compiled, wasi.imports());
-    wasi.memory = instance.exports.memory;
-    instance.exports._start();
+    await start(wasi);
   } catch (error) {
     if (error instanceof WasiExit) {
       exitCode = error.code;
@@ -160,7 +206,7 @@ self.onmessage = async (event) => {
   try {
     if (message.type === 'init') {
       await init(message);
-      self.postMessage({ type: 'ready' });
+      self.postMessage({ type: 'ready', version: await probeVersion() });
     } else if (message.type === 'run') {
       const result = await run(message);
       self.postMessage({ type: 'result', id: message.id, ...result });

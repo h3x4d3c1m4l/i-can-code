@@ -52,6 +52,15 @@ abstract class PythonRuntime {
   /// False where no host is available. The UI stays usable but cannot run.
   bool get isSupported;
 
+  /// What the interpreter calls itself — "Python 3.14.0" — asked of the build
+  /// that is actually loaded rather than written down anywhere in the app, so a
+  /// screen naming it cannot drift from what runs the student's code.
+  ///
+  /// Null until [ready] has completed, and wherever there is no host to ask.
+  /// A runtime that cannot name itself still runs code, so a caller MUST have
+  /// something to show in its place.
+  String? get version;
+
   /// Loads the interpreter. Safe to call repeatedly; only the first does work.
   Future<void> ready();
 

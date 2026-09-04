@@ -9,12 +9,14 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
+import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
 
 class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel> {
 
   final PythonAttemptRunner _runner = GetIt.I<PythonAttemptRunner>();
+  final PythonRuntime _runtime = GetIt.I<PythonRuntime>();
   final ProgressStore _progress = GetIt.I<ProgressStore>();
 
   bool _disposed = false;
@@ -41,6 +43,14 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     viewModel.finishRun(result);
     if (result.passed) await _remember(section);
   }
+
+  /// What the student's code will run on, in the interpreter's own words.
+  ///
+  /// Read at build time rather than stored: the runtime is started by the
+  /// initialization screen, so by the time a lesson is on screen it has already
+  /// answered and the label cannot change under this screen. Null where there is
+  /// no runtime to ask.
+  String? get runtimeVersion => _runtime.version;
 
   /// The kind of the step being shown. Read off any translation —
   /// `lesson_test.dart` holds that every locale has the same sections.

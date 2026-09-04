@@ -15,6 +15,9 @@ class UnsupportedPythonRuntime implements PythonRuntime {
   bool get isSupported => false;
 
   @override
+  String? get version => null;
+
+  @override
   Future<void> ready() async {}
 
   @override

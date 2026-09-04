@@ -36,9 +36,15 @@ class WebPythonRuntime implements PythonRuntime {
   Future<void>? _readying;
   Completer<PythonResult>? _pending;
   int _nextId = 0;
+  String? _version;
 
   @override
   bool get isSupported => true;
+
+  /// Reported by the worker with its `ready`, and kept across a [cancel]: the
+  /// build being restarted is the same one that named itself.
+  @override
+  String? get version => _version;
 
   @override
   Future<void> ready() => _readying ??= _start();
@@ -56,6 +62,9 @@ class WebPythonRuntime implements PythonRuntime {
         final data = event.data.dartify()! as Map<Object?, Object?>;
         switch (data['type']) {
           case 'ready':
+            // Null when the probe failed. The interpreter is still usable, so
+            // this MUST NOT keep the worker from being ready.
+            _version = data['version'] as String?;
             if (!completer.isCompleted) completer.complete();
           case 'result':
             _complete(PythonResult(

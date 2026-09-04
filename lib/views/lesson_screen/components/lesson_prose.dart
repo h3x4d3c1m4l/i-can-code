@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:forui/forui.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
@@ -313,11 +314,17 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // The corner the editor names its runtime in.
+              // The corner the editor names its runtime in. Named the way a
+              // reader writes it, never the fence's own lower-case word, and
+              // without a version: this code is static and no interpreter ran
+              // it.
               if (_language case final String language)
                 Padding(
                   padding: CodeEditorCard.headerPadding,
-                  child: Align(alignment: Alignment.centerRight, child: Text(language, style: labelStyle)),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(languageLabel(language), style: labelStyle),
+                  ),
                 ),
               Padding(
                 padding: _language == null ? _unlabelled : CodeEditorCard.codePadding,
