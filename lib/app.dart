@@ -8,6 +8,7 @@ import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/components/app_header_host.dart';
 
 /// The app shell.
 ///
@@ -72,7 +73,10 @@ class _ThemedBody extends StatelessWidget {
 
         return FTheme(
           data: buildAppTheme(brightness: brightness),
-          child: child ?? const SizedBox.shrink(),
+          // The bar sits above the router rather than inside each screen, so
+          // navigating cannot take it with it. Screens fill it through
+          // AppHeaderPublisher.
+          child: AppHeaderHost(child: child ?? const SizedBox.shrink()),
         );
       },
     );

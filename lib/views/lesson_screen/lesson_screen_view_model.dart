@@ -54,6 +54,15 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   bool _earnedCelebration = false;
 
+  /// Which way the student last moved, which is the direction the step that is
+  /// leaving slides out and the one arriving slides in.
+  ///
+  /// Not derived from the step numbers by the view: it MUST be read at the
+  /// moment of the move, and by the time the view rebuilds the step it is
+  /// leaving is already gone.
+  @readonly
+  bool _forward = true;
+
   /// The address named a section this lesson does not have — `resume`, or a
   /// stale bookmark. The screen rewrites it to the step it landed on.
   final bool addressNeedsRewrite;
@@ -90,6 +99,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
 
   @action
   void goTo(int step) {
+    // Off the end page is always backwards: it sits past the last step, so
+    // every step in the lesson is behind it.
+    _forward = !_completed && step > _step;
     _step = step;
     _attempt = null;
     _running = false;
@@ -100,7 +112,10 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
 
   /// Shows the lesson's end page, after the last step.
   @action
-  void complete() => _completed = true;
+  void complete() {
+    _forward = true;
+    _completed = true;
+  }
 
   /// Notes that the tick just recorded is what finished the lesson.
   @action

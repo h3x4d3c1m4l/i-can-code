@@ -94,6 +94,14 @@
   "@lessonScreen_truncated": {},
   "lessonScreen_crashed": "Python could not (fully) run your code:",
   "@lessonScreen_crashed": {},
+  "appHeader_hideBar": "Hide the bar",
+  "@appHeader_hideBar": {
+    "description": "The button in the bar that puts it away, on a screen worth reading without it. Icon only, so this is what a screen reader announces."
+  },
+  "appHeader_showBar": "Show the bar",
+  "@appHeader_showBar": {
+    "description": "The button that floats over the page while the bar is away, and brings it back."
+  },
   "appHeader_settings": "Settings",
   "@appHeader_settings": {},
   "languagesScreen_title": "What do you want to learn?",

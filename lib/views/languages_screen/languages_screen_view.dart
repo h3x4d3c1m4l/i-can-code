@@ -1,10 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_header.dart';
+import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/languages_screen/languages_screen_controller.dart';
 import 'package:i_can_code/views/languages_screen/languages_screen_view_model.dart';
@@ -15,12 +17,13 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
 
   @override
   Widget get body {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const AppHeader(),
-        Expanded(child: SingleChildScrollView(child: _buildContent())),
-      ],
+    // Home, so the trail is the app's own name and nothing else — and it does
+    // not offer to navigate to the screen it is already on.
+    return AppHeaderPublisher(
+      // The one screen that names the version: it belongs to the app, and this
+      // is the screen that is only the app.
+      builder: (context) => AppHeaderConfig(version: appVersion),
+      child: SingleChildScrollView(child: _buildContent()),
     );
   }
 
@@ -30,7 +33,9 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
         final languages = viewModel.course.languages;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(32, 60, 32, 100),
+          // The bar is over the page, not above it, so the first screenful
+          // keeps clear of it here — and the rest scrolls under it.
+          padding: const EdgeInsets.fromLTRB(32, AppHeader.height + 60, 32, 100),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 820),

@@ -24,6 +24,7 @@ import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.d
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
+import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:re_editor/re_editor.dart';
 
 /// Wraps [child] in what the lesson widgets need: the app theme, the
@@ -1099,6 +1100,71 @@ void main() {
         expect(seen.length, 2, reason: 'only the page and the card should be painted here, found $hex');
       });
     }
+  });
+
+  group('StepTransition', () {
+    /// A step, keyed the way the lesson screen keys one: by its index.
+    Widget step(int index) =>
+        KeyedSubtree(key: ValueKey('step$index'), child: SizedBox.expand(child: Text('stap $index')));
+
+    Widget host(Widget child, {bool motion = true}) => _host(
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
+          child: SizedBox(height: 300, child: child),
+        ),
+      ),
+    );
+
+    /// Where a step sits once it has arrived.
+    Future<double> settled(WidgetTester tester) async {
+      await tester.pumpAndSettle();
+      return tester.getTopLeft(find.byKey(const ValueKey('step0'))).dx;
+    }
+
+    testWidgets('going on, the step leaving goes left and the one arriving comes from the right', (tester) async {
+      await tester.pumpWidget(host(StepTransition(forward: true, child: step(0))));
+      final rest = await settled(tester);
+
+      await tester.pumpWidget(host(StepTransition(forward: true, child: step(1))));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Both are on screen at once, travelling the same way: the one being read
+      // is pushed off the way the reader came from.
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step0'))).dx, lessThan(rest));
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, greaterThan(rest));
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('step0')), findsNothing);
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, rest);
+    });
+
+    testWidgets('going back, both travel the other way', (tester) async {
+      await tester.pumpWidget(host(StepTransition(forward: true, child: step(1))));
+      await tester.pumpAndSettle();
+      final rest = tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx;
+
+      // The direction of the *move*, which is why it is read off the view model
+      // rather than worked out from the two steps here.
+      await tester.pumpWidget(host(StepTransition(forward: false, child: step(0))));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, greaterThan(rest));
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step0'))).dx, lessThan(rest));
+    });
+
+    testWidgets('a reader who asked for less motion gets the next step and no travel', (tester) async {
+      await tester.pumpWidget(host(StepTransition(forward: true, child: step(0)), motion: false));
+      final rest = await settled(tester);
+
+      await tester.pumpWidget(host(StepTransition(forward: true, child: step(1)), motion: false));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('step0')), findsNothing);
+      expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, rest);
+    });
   });
 }
 

@@ -9,8 +9,8 @@ import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/header_icon_button.dart';
 
 /// The cog in the header. Holds the language choice and anything else that
 /// belongs to the reader rather than to the lesson.
@@ -102,9 +102,10 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
               ],
             ),
         ],
-        child: _CogButton(
-          onPress: _controller.toggle,
+        child: HeaderIconButton(
+          icon: FLucideIcons.settings,
           semanticsLabel: context.localizations.appHeader_settings,
+          onPress: _controller.toggle,
         ),
       ),
     );
@@ -171,33 +172,5 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     AppThemeMode.light => FLucideIcons.sun,
     AppThemeMode.dark => FLucideIcons.moon,
   };
-
-}
-
-class _CogButton extends StatelessWidget {
-
-  final VoidCallback onPress;
-  final String semanticsLabel;
-
-  const _CogButton({required this.onPress, required this.semanticsLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-
-    return FTappable(
-      onPress: onPress,
-      semanticsButton: true,
-      semanticsLabel: semanticsLabel,
-      builder: (context, states, child) => DecoratedBox(
-        decoration: ShapeDecoration(
-          color: states.contains(FTappableVariant.hovered) ? theme.colors.secondary : const Color(0x00000000),
-          shape: squircleOf(kChipCornerRadius, size: 38),
-        ),
-        child: Padding(padding: const EdgeInsets.all(9), child: child),
-      ),
-      child: Icon(FLucideIcons.settings, size: 20, color: theme.colors.foreground),
-    );
-  }
 
 }

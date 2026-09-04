@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/app.dart';
+import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/locale_controller.dart';
@@ -14,14 +15,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServices();
 
-  // The only I/O that cannot wait for the initialization screen: that screen is
-  // itself themed and localized, so reading these there would paint it in the
-  // wrong mode and the wrong language and then flip. Both swallow their own
-  // failure and fall back to a default, so there is nothing here for a retry to
-  // do.
+  // The only I/O before the first frame. The two controllers cannot wait for the
+  // initialization screen: that screen is itself themed and localized, so
+  // reading them there would paint it in the wrong mode and the wrong language
+  // and then flip. The package info could have waited, but it is one small
+  // same-origin file and reading it here is what spares the home screen a
+  // loading state for a version string. All three swallow their own failure and
+  // fall back, so there is nothing here for a retry to do.
   await Future.wait([
     GetIt.I<ThemeModeController>().load(),
     GetIt.I<LocaleController>().load(),
+    loadPackageInfo(),
   ]);
 
   runApp(const ICanCodeApp());

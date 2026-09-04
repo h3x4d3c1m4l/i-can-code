@@ -92,6 +92,46 @@ Every screen is four classes wired together by `ScreenBase<TViewModel, TControll
 
 Navigation is auto_route. A controller that needs to navigate goes through its `BuildContextAccessor`, and **must** check `_disposed` before touching `contextAccessor.buildContext` — the accessor is only assigned once the screen has built, so a controller that navigates from its constructor would otherwise read it too early. `InitializationScreenController` is the worked example.
 
+### The bar
+
+**The header belongs to no screen.** `AppHeaderHost` (`lib/views/components/`) sits above the router in the app shell, so navigating cannot move it: the mark, the cog and the popover state are one widget for the life of the app, and only what actually changed about the trail fades over. It was the first child of every screen's own column once, which meant a new screen brought a new bar — rebuilt from nothing on arrival and dragged along by whatever transition the page had.
+
+A screen fills it by wrapping its body in `AppHeaderPublisher` and handing over an `AppHeaderBuilder`. A *builder*, not a built bar: the host resolves it inside its own `Observer`, so the lesson's step and the locale keep the trail and the progress bar current without the screen pushing anything at them. Below no host — a widget test that builds one screen — the publisher is a pass-through and the screen renders as it always did.
+
+**The bar brings its own `Overlay` and `Navigator`** — `OverlayHost`, wrapped around everything the host lays out. Above the router means above the router's `Navigator`, and that is what the cog's popover (`OverlayPortal` throws without an `Overlay`) and its reset dialog (`showFDialog` looks up a `Navigator`) had been finding all along. Without it the cog is a red error box whose width squeezes the trail out of the row beside it. It covers the window rather than the bar, because both escape it: a menu clipped to 76px would end inside the bar, and a barrier has to dim the page it is asking about. It is built from a `Page` rather than `onGenerateRoute`, which caches the child it was handed on the first frame and would freeze the router under it on the screen it started on.
+
+`test/views/app_header_host_test.dart` builds the host with **nothing above it**, the way the shell has nothing above it. A harness that wrapped it in a `Navigator` is what let this ship.
+
+Two rules it exists to keep:
+
+- **Publishing and releasing are deferred by a microtask.** The bar is built before the screen under it, so filling it from `initState` would rebuild a widget Flutter has already built this frame.
+- **The bar belongs to the last screen still standing**, not to whoever spoke last. More than one screen is mounted at a time: a pushed screen leaves the one under it standing, and a replaced one is disposed only *after* its successor is built. So the host keeps a claim per screen in arrival order — bottom to top of the page stack — and a screen that leaves hands the bar back to the one underneath instead of emptying it. Emptying on release is what left the language picker with no bar at all once the catalog above it was closed: auto_route keeps the page it already has, so nothing publishes on the way back down.
+
+**Zen mode.** A lesson is read, so its bar starts out of the way: on a screen whose header says `offersZen` — only the lesson screen — the bar is gone when the lesson opens. It is **one thing the reader turns on and off, by a button each way**: the host floats one in the band the bar left behind to bring it back, and the bar carries one to put it away again. The answer is scoped to the lesson being read — **every lesson opens without the bar**, because asking for it back was about the lesson in front of the reader and not about every lesson after it — and it is not persisted either, since reading one lesson without the chrome is not a setting about the app.
+
+Three rules behind that shape:
+
+- **Nothing reveals the bar by itself.** It was a band along the top edge that the pointer reached into once, and a bar that came and went with the pointer moved the page under the reader's hands. With a button each way the bar only ever appears because the reader asked.
+- **The page keeps its box.** It has the whole window whether the bar is showing or not, and the bar is drawn *over* it. Insetting the page instead reflowed the lesson on every press of either button, and cut what was scrolled past against an invisible edge with empty space above it.
+- **A hidden bar must leave a way back.** The floating button waits in the band the bar left behind, in the cog's own column and at the cog's own height, so pressing it puts the cog under the pointer without either of them having moved — and it is a real focusable button, reachable by pointer, touch and tab alike. Meanwhile the bar itself is taken out of the focus *and* semantics trees, because off screen is not gone: it would otherwise still be read out and still take the tab meant for the page.
+
+**The page runs under the bar and pads for it itself.** The host gives every screen the whole window; what keeps a first screenful clear of the bar is `AppHeader.height`, added to the screen's own scroll padding — which is why that constant appears in three views. Everything scrolled past then passes under the bar instead of being cut off above it.
+
+**The bar's contents stop at `breakpoints.xl`**, centred, while its surface stays full width — it is the top of the window, not a card in it. `xl` (1280) is the first Tailwind step that clears the widest column the app lays out, a lesson's two-column step at `1120 + 26`, so on a wide monitor the cog sits at the edge of the widest page instead of out in a corner. `AppHeader.chromeInset()` is that same measurement, and the host stands the button that brings a hidden bar back on it, which is what keeps the two in one column at every width.
+
+**The version is named once, on the home screen**, beside the mark and not inside the app crumb — the crumb is the app's *name*, and a version tacked onto it would be read out as part of it on every screen. The two are set at different sizes on one line, so the trail aligns them on their **baseline**; centring their boxes leaves the smaller one sitting low. `appVersion` (`lib/app_info.dart`) reads it back out of the running build through `package_info_plus`, so it cannot drift from `pubspec.yaml` — on the web that is a fetch of the `version.json` the build writes beside `index.html`, same origin and so untouched by cross-origin isolation. `main()` awaits `loadPackageInfo()`, which registers the `PackageInfo` in GetIt; it is **not** an initialization step, because that screen's failures are fatal and a version string is not worth failing a start over. It is null when there is nothing to show — the plugin answers empty strings rather than throwing when `version.json` is missing, and a widget test registers nothing at all — and the bar then omits it.
+
+`HeaderIconButton` is the icon button all three are — the cog, and the two that hide and show the bar. Not `AppButton.icon`, which is padded `19 × 19` to stand beside a line of text and is far too big for a 76px bar.
+
+### Motion
+
+**A duration reaches an animated widget through `context.motion(duration)`**, which returns `Duration.zero` when `MediaQueryData.disableAnimations` is set — on the web, `prefers-reduced-motion: reduce`. The animation still ends where it was going, it just gets there in one frame. `ConfettiBurst`, which draws nothing at all under that flag, is the one thing that opts out of animating rather than shortening.
+
+Two swaps are animated, and both are their own widget for the reason above:
+
+- `FadeThrough` (`lib/views/components/`) — the trail and the chrome beside the cog. The old fades out and *then* the new fades in, over one `AnimatedSwitcher` controller split by two `Interval`s. Not a crossfade: two lines of text at half opacity on top of each other read as a rendering fault rather than as a change.
+- `StepTransition` (`lib/views/lesson_screen/components/`) — one step of a lesson out, the next in, in the direction the student is travelling. The direction is `LessonScreenViewModel.forward`, set at the moment of the move: by the time the view rebuilds, the step being left is already gone. Note what it leans on — `AnimatedSwitcher` gives the same `transitionBuilder` both children and says nothing about which is which, so the builder compares the child it is handed against the current one by key, and **must be a new closure on every build** or the outgoing step keeps the transition it arrived with.
+
 ### State management
 
 MobX for all reactive state. `@readonly` generates a private field plus a public getter; mutations go in `@action` methods. Wrap anything that should rebuild in `Observer` from `flutter_mobx`.
@@ -100,7 +140,7 @@ MobX for all reactive state. `@readonly` generates a private field plus a public
 
 App-wide state is a plain MobX store registered in GetIt from `setupServices()` in `main.dart` — `LocaleController` is the example. **`setupServices()` does no I/O**: work that can fail or take time belongs to `InitializationScreen`, which can show progress and offer a retry.
 
-The two exceptions are `LocaleController.load()` and `ThemeModeController.load()`, which `main()` awaits before `runApp`. The initialization screen is itself themed and localized, so reading either there would paint it wrong and flip. Both swallow their own failure and fall back to a default, so neither has anything a retry could fix.
+Three things are awaited by `main()` before `runApp` instead. `LocaleController.load()` and `ThemeModeController.load()` have to be: the initialization screen is itself themed and localized, so reading either there would paint it wrong and flip. `loadPackageInfo()` (see *The bar*) does not have to be, but it is one small same-origin file and reading it here spares the home screen a loading state. All three swallow their own failure and fall back, so none has anything a retry could fix.
 
 `Course` is deliberately registered *by* the initialization screen rather than in `main`, so reaching any screen past it guarantees every lesson is parsed and no later screen needs a loading state for it.
 

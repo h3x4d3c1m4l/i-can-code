@@ -8,6 +8,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
 import 'package:i_can_code/views/components/app_header.dart';
+import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 
 class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogScreenController> {
@@ -16,15 +17,12 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
 
   @override
   Widget get body {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppHeader(
-          onTapHome: controller.goHome,
-          crumbs: [AppCrumb(languageLabel(viewModel.language))],
-        ),
-        Expanded(child: SingleChildScrollView(child: _buildContent())),
-      ],
+    return AppHeaderPublisher(
+      builder: (context) => AppHeaderConfig(
+        onTapHome: controller.goHome,
+        crumbs: [AppCrumb(languageLabel(viewModel.language))],
+      ),
+      child: SingleChildScrollView(child: _buildContent()),
     );
   }
 
@@ -35,7 +33,8 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
         final lessons = viewModel.lessons;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(32, 60, 32, 100),
+          // Clear of the bar on the first screenful, and under it after that.
+          padding: const EdgeInsets.fromLTRB(32, AppHeader.height + 60, 32, 100),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 820),

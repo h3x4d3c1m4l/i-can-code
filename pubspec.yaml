@@ -26,6 +26,7 @@ dependencies:
   re_highlight: 0.0.3
   markdown: 7.3.1
   shared_preferences: 2.5.5
+  package_info_plus: 10.2.1
   yaml: 3.1.4
   freezed_annotation: 3.1.0
   meta: 1.19.0

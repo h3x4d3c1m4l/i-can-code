@@ -19,7 +19,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// reads as a layout bug that is not there.
 const double _width = 800;
 
-Widget _host(Widget child) => FTheme(
+Widget _host(Widget child, {double width = _width}) => FTheme(
   data: buildAppTheme(),
   child: Localizations(
     locale: const Locale('nl'),
@@ -27,19 +27,28 @@ Widget _host(Widget child) => FTheme(
     child: Directionality(
       textDirection: TextDirection.ltr,
       child: MediaQuery(
-        data: const MediaQueryData(size: Size(_width, 800)),
+        data: MediaQueryData(size: Size(width, 800)),
         // A Navigator, not a bare Overlay: `showFDialog` looks one up, and the
         // Navigator brings the Overlay the popover menu needs.
         child: Navigator(
           onGenerateRoute: (_) => PageRouteBuilder<void>(
             pageBuilder: (_, _, _) =>
-                Align(alignment: Alignment.topCenter, child: SizedBox(width: _width, child: child)),
+                Align(alignment: Alignment.topCenter, child: SizedBox(width: width, child: child)),
           ),
         ),
       ),
     ),
   ),
 );
+
+/// Where a line of text actually sits: the top of its box plus the distance
+/// down to the letters standing on the baseline.
+double _baselineOf(WidgetTester tester, Finder finder) {
+  final box = tester.renderObject<RenderBox>(finder);
+  // The dry form: `getDistanceToBaseline` may only be asked by the parent that
+  // is laying the box out, and asserts its way out of a test.
+  return tester.getTopLeft(finder).dy + box.getDryBaseline(box.constraints, TextBaseline.alphabetic)!;
+}
 
 void main() {
   setUp(() {
@@ -124,6 +133,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(home, 1);
+  });
+
+  testWidgets('the bar stops at the widest page rather than at the window', (tester) async {
+    // Wider than forui's `xl`, which is where the contents are capped.
+    const wide = 1800.0;
+    await tester.binding.setSurfaceSize(const Size(wide, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_host(AppHeader(onTapHome: () {}, crumbs: const [AppCrumb('Python')]), width: wide));
+    await tester.pumpAndSettle();
+
+    final left = tester.getTopLeft(find.byType(AppLogo)).dx;
+    final right = tester.getBottomRight(find.byType(SettingsMenu)).dx;
+
+    expect(right - left, closeTo(1280, 0.5), reason: 'capped at xl, padding included');
+    expect(left, closeTo(wide - right, 0.5), reason: 'and centred, so both edges give up the same');
+    // The surface underneath is the top of the window, not a card in it: only
+    // what is *in* the bar is capped.
+    expect(tester.getSize(find.byType(AppHeader)).width, wide);
+  });
+
+  testWidgets('the version stands beside the mark', (tester) async {
+    await tester.pumpWidget(_host(const AppHeader(version: '1.2.3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('v1.2.3'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('v1.2.3')).dx,
+      greaterThan(tester.getTopLeft(find.text('I Can Code')).dx),
+      reason: 'after the app name, not before it',
+    );
+    // On the name's own baseline. The two are set at different sizes, so
+    // centring their boxes would leave the smaller one sitting low.
+    expect(_baselineOf(tester, find.text('v1.2.3')), closeTo(_baselineOf(tester, find.text('I Can Code')), 0.5));
+  });
+
+  testWidgets('and nowhere else: a screen that names no version shows none', (tester) async {
+    await tester.pumpWidget(_host(AppHeader(onTapHome: () {}, crumbs: const [AppCrumb('Python')])));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(RegExp(r'^v\d')), findsNothing);
   });
 
   testWidgets('the cog opens the settings menu', (tester) async {

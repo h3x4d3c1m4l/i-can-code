@@ -55,6 +55,8 @@
   },
   "lessonScreen_truncated": "De uitvoer was te lang en is afgekapt.",
   "lessonScreen_crashed": "Python kon je code niet (geheel) uitvoeren:",
+  "appHeader_hideBar": "Balk verbergen",
+  "appHeader_showBar": "Balk tonen",
   "appHeader_settings": "Instellingen",
   "languagesScreen_title": "Wat wil je leren?",
   "catalogScreen_progress": "{done} / {total}",

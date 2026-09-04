@@ -8,6 +8,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
+import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
@@ -16,6 +17,7 @@ import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
+import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_controller.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
 import 'package:re_editor/re_editor.dart';
@@ -35,8 +37,13 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// number, roughly 60–70 characters at [_readingProseSize].
   static const double _readingWidth = 660 + _gutter;
 
-  /// The design's reading-step padding.
-  static const EdgeInsets _readingPadding = EdgeInsets.fromLTRB(32 - _gutter, 72, 32, 110);
+  /// The design's reading-step padding, plus the bar.
+  ///
+  /// The bar is drawn *over* the page rather than above it, so what keeps the
+  /// first screenful clear of it is padding inside the scroll view — and what
+  /// is scrolled past goes under the bar instead of being cut off at an
+  /// invisible edge. The design's own number is the one after it.
+  static const EdgeInsets _readingPadding = EdgeInsets.fromLTRB(32 - _gutter, AppHeader.height + 72, 32, 110);
 
   /// Prose in a single column.
   static const double _readingProseSize = 21;
@@ -44,7 +51,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// The design's two-column task step, wider overall than a single column.
   static const double _taskWidth = 1120 + _gutter;
 
-  static const EdgeInsets _taskPadding = EdgeInsets.fromLTRB(32 - _gutter, 44, 32, 90);
+  static const EdgeInsets _taskPadding = EdgeInsets.fromLTRB(32 - _gutter, AppHeader.height + 44, 32, 90);
 
   /// Puts a widget that is not prose back on the prose's own left edge.
   static Widget _pastGutter(Widget child) =>
@@ -84,41 +91,26 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     );
   }
 
+  /// The lesson, and the header it puts in the app's bar.
+  ///
+  /// The bar is resolved by the shell, so everything read in [_buildHeader] is
+  /// observed there: the trail and the progress bar follow the step without the
+  /// screen pushing anything at them.
   Widget _buildBody() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Observer(
-          builder: (context) {
-            final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
-            return AppHeader(
-              onTapHome: controller.leave,
-              crumbs: [
-                AppCrumb(
-                  languageLabel(viewModel.lesson.entry.language),
-                  onTap: () => controller.openLanguage(viewModel.lesson.entry.language),
-                ),
-                // The step is deliberately not a crumb: it is already the
-                // page heading and the progress bar, and a third showing made
-                // the trail change length as the student moved.
-                AppCrumb(lesson.title, onTap: viewModel.step == 0 ? null : () => controller.goTo(0)),
-              ],
-              trailing: StepProgressBar(
-                stepCount: lesson.stepCount,
-                current: viewModel.step,
-                passed: viewModel.passed,
-                onTap: controller.goTo,
-              ),
-            );
-          },
-        ),
-        Expanded(
-          child: Observer(
-            builder: (context) {
-              final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
-              final section = lesson.sections[viewModel.step];
+    return AppHeaderPublisher(
+      builder: _buildHeader,
+      child: Observer(
+        builder: (context) {
+          final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
+          final section = lesson.sections[viewModel.step];
 
-              return SingleChildScrollView(
+          return StepTransition(
+            forward: viewModel.forward,
+            child: KeyedSubtree(
+              // The end page is not a step and has no index, so it takes the
+              // one past the last — which is also where it sits.
+              key: ValueKey(viewModel.completed ? lesson.stepCount : viewModel.step),
+              child: SingleChildScrollView(
                 child: viewModel.completed
                     ? _buildComplete(context, lesson)
                     : switch (section.kind) {
@@ -126,11 +118,37 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                         SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
                         SectionKind.exercise => _buildExercise(context, lesson, section),
                       },
-              );
-            },
-          ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  AppHeaderConfig _buildHeader(BuildContext context) {
+    final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
+
+    return AppHeaderConfig(
+      onTapHome: controller.leave,
+      crumbs: [
+        AppCrumb(
+          languageLabel(viewModel.lesson.entry.language),
+          onTap: () => controller.openLanguage(viewModel.lesson.entry.language),
         ),
+        // The step is deliberately not a crumb: it is already the page heading
+        // and the progress bar, and a third showing made the trail change
+        // length as the student moved.
+        AppCrumb(lesson.title, onTap: viewModel.step == 0 ? null : () => controller.goTo(0)),
       ],
+      trailing: StepProgressBar(
+        stepCount: lesson.stepCount,
+        current: viewModel.step,
+        passed: viewModel.passed,
+        onTap: controller.goTo,
+      ),
+      // A lesson is read. This is the one screen the bar gets out of the way of.
+      offersZen: true,
     );
   }
 
@@ -171,7 +189,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           _pastGutter(_buildHeading(lesson, section)),
           const SizedBox(height: 30),
           LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
-          const SizedBox(height: 10),
+          // Wider than any gap inside the prose. The row under it is the way
+          // *out* of the step rather than another block of it, and set to the
+          // prose's own rhythm it read as one more paragraph.
+          const SizedBox(height: 36),
           _pastGutter(_buildContinue(context, lesson)),
         ],
       ),
