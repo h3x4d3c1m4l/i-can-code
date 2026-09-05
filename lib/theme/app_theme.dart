@@ -98,6 +98,8 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
     required this.warningSurface,
     required this.errorSurface,
     required this.link,
+    required this.neutralButton,
+    required this.neutralButtonForeground,
     required this.codeBackground,
     required this.codeForeground,
     required this.codeMuted,
@@ -146,6 +148,26 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
   /// is a role of its own.
   @override
   final Color link;
+
+  /// The quieter button beside the brand fill — `AppButtonTone.neutral`'s fill,
+  /// and the colour `AppButtonTone.outline` draws its edge and its label in, so
+  /// the two read as one button with and without its fill.
+  ///
+  /// **Not `foreground`**, which it used to be. Body text is as dark as the
+  /// preset gets because prose has to be read; a button is a slab of whatever
+  /// it is filled with, and a preset is free to want that slab softer than its
+  /// text without softening the text with it. The neutral preset does: see
+  /// `NeobrutalismPalette.controlLight`.
+  ///
+  /// A fill *and* a text colour — the outlined tone has no fill to carry a
+  /// label — so it MUST clear AA on the page and on a card as well as against
+  /// [neutralButtonForeground].
+  @override
+  final Color neutralButton;
+
+  /// Text and glyphs drawn on top of [neutralButton].
+  @override
+  final Color neutralButtonForeground;
 
   /// The dark card the code editor and the sample snippets are drawn on.
   @override

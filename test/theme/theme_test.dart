@@ -58,6 +58,12 @@ void main() {
           // is a role of its own.
           'a link on the page': (colors.background, semantic.link),
           'a link on a card': (colors.card, semantic.link),
+          'the neutral button on its label': (semantic.neutralButton, semantic.neutralButtonForeground),
+          // The outlined tone has no fill: its edge and its label are the same
+          // colour, drawn straight onto whichever surface it stands on. So this
+          // token is a text colour too, and has to clear both.
+          'an outlined button on the page': (colors.background, semantic.neutralButton),
+          'an outlined button on a card': (colors.card, semantic.neutralButton),
         };
 
         for (final MapEntry(key: name, value: pair) in pairs.entries) {

@@ -11,6 +11,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/presets/app_color_preset.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
@@ -261,13 +262,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('python'), findsOneWidget);
+      // The language's *name*, through `languageLabel`, and not the fence's own
+      // token: the corner of the card reads the way the editor's strip does.
+      expect(find.text('Python'), findsOneWidget);
 
       // Right-aligned, like the editor card's runtime label.
       final card = tester.getRect(
         find.ancestor(of: find.textContaining('print("x")'), matching: find.byType(DecoratedBox)).first,
       );
-      final label = tester.getRect(find.text('python'));
+      final label = tester.getRect(find.text('Python'));
       expect(
         card.right - label.right,
         CodeEditorCard.headerPadding.right,
@@ -958,17 +961,17 @@ void main() {
                   )
                   .decoration
               as ShapeDecoration;
-      final theme = buildAppTheme();
+      final neutralButton = AppTheme.of(AppColorPreset.neutral).colors.neutralButton;
 
       // The page shows through it: an outline that filled would be the neutral
       // tone with a line round it.
       expect(decoration.color?.a ?? 0, 0);
-      // The page's ink, which is what the neutral tone is filled with: the same
-      // button, with and without its fill.
-      expect((decoration.shape as ContinuousRectangleBorder).side.color, theme.colors.foreground);
-      // Its glyph is the page's own ink, which `theme_test` already holds to AA
-      // against the background — so the tone needs no colour pair of its own.
-      expect(tester.widget<Icon>(find.byIcon(FLucideIcons.chevronLeft)).color, theme.colors.foreground);
+      // The colour the neutral tone is *filled* with, so the two read as the
+      // same button with and without its fill.
+      expect((decoration.shape as ContinuousRectangleBorder).side.color, neutralButton);
+      // Its glyph too, which `theme_test` already holds to AA against both the
+      // page and a card — so the tone needs no colour pair of its own.
+      expect(tester.widget<Icon>(find.byIcon(FLucideIcons.chevronLeft)).color, neutralButton);
     });
 
     testWidgets('an icon-only button is named for a screen reader', (tester) async {

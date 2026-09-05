@@ -15,19 +15,26 @@ enum AppButtonTone {
 
   /// The quieter one beside it — "Draai code & controleer", "Annuleren".
   ///
-  /// Filled with the page's *foreground*, so it inverts with the mode: near
-  /// black on the light page, off white on the dark one. Quiet next to the
-  /// brand fill either way, but never quiet in the sense of low contrast.
+  /// Filled with `AppSemanticColors.neutralButton`, which inverts with the
+  /// mode: a warm charcoal on the light page, off white on the dark one. Quiet
+  /// next to the brand fill either way, but never quiet in the sense of low
+  /// contrast.
+  ///
+  /// **Not the page's `foreground`**, which it used to be. Body text is as dark
+  /// as a preset gets because prose has to be read, and a button is a slab of
+  /// its colour rather than a line of it: the neutral preset's near-black ink
+  /// read as a hole punched in the cream at that size. See the token's own doc.
   neutral,
 
   /// Quieter still: an outline and no fill, for a step *back*.
   ///
-  /// Drawn in the page's own ink, the colour [neutral] is *filled* with, so the
-  /// two read as the same button with and without its fill. Ink rather than the
+  /// Drawn in the same `neutralButton` colour [neutral] is *filled* with, so
+  /// the two read as the same button with and without its fill — which is why
+  /// softening that fill moves this edge with it. That colour rather than the
   /// quiet `border` a card is outlined with, which against the cream page is
-  /// too faint to say "this is a control"; and ink rather than literal black,
-  /// so the edge inverts with the mode instead of disappearing into the dark
-  /// page.
+  /// too faint to say "this is a control"; and a token rather than literal
+  /// black, so the edge inverts with the mode instead of disappearing into the
+  /// dark page.
   ///
   /// Not the neobrutalist thick outline the preset leaves out — that one goes
   /// round everything and would live in the shared metrics. This is one
@@ -174,12 +181,13 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final semantic = context.appTheme.colors;
     final enabled = onPress != null;
 
     final (background, foreground) = switch (tone) {
       AppButtonTone.primary => (theme.colors.primary, theme.colors.primaryForeground),
-      AppButtonTone.neutral => (theme.colors.foreground, theme.colors.background),
-      AppButtonTone.outline => (_transparent, theme.colors.foreground),
+      AppButtonTone.neutral => (semantic.neutralButton, semantic.neutralButtonForeground),
+      AppButtonTone.outline => (_transparent, semantic.neutralButton),
     };
 
     return FTappable(
@@ -193,7 +201,7 @@ class AppButton extends StatelessWidget {
             kControlCornerRadius,
             side: tone == AppButtonTone.outline
                 ? BorderSide(
-                    color: theme.colors.foreground.withValues(alpha: enabled ? 1 : 0.4),
+                    color: semantic.neutralButton.withValues(alpha: enabled ? 1 : 0.4),
                     width: outlineWidth,
                   )
                 : BorderSide.none,

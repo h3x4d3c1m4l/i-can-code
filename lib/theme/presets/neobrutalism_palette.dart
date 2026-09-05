@@ -47,6 +47,23 @@ abstract final class NeobrutalismPalette {
   /// grey, so it belongs to the cream rather than sitting on it.
   static const Color inkMutedLight = Color(0xFF6B6250);
 
+  /// The quieter button beside the accent — what `AppButtonTone.neutral` is
+  /// filled with, and what `AppButtonTone.outline` draws its edge and its label
+  /// in.
+  ///
+  /// **Not [inkLight].** Body text is near black because prose has to be read;
+  /// a button is a slab of its colour, and at that size near black stops
+  /// reading as a control on the cream and starts reading as a hole punched in
+  /// it. This is the darkest step of the warm grey [inkMutedLight] belongs to,
+  /// so the two are the same colour at two weights rather than a brown beside a
+  /// black. It carries [pageLight] at 9.68:1 as a fill, and clears AA as the
+  /// outlined button's own text on [pageLight] (9.68:1) and [cardLight]
+  /// (10.55:1).
+  ///
+  /// The dark scheme has no equivalent: an off-white slab on a dark page is
+  /// already quiet, so `neutralButton` is [inkDark] there.
+  static const Color controlLight = Color(0xFF453E33);
+
   /// A quiet fill: the blockquote, a hovered menu row. A tint of [accent].
   static const Color secondaryLight = Color(0xFFFFE9A8);
 
