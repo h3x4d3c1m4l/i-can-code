@@ -70,6 +70,19 @@ void main() {
             expect(section.starter, isNotNull, reason: '${section.title} needs an assignment block');
             expect(section.validator, isNotNull, reason: '${section.title} needs a validator');
           }
+          if (section.kind == SectionKind.matchPairs) {
+            expect(
+              section.pairs.length,
+              greaterThanOrEqualTo(2),
+              reason: '${section.title} is a board with nothing to match',
+            );
+            for (final pair in section.pairs) {
+              expect(pair.cue, isNotEmpty, reason: '${section.title} has a half-empty pair');
+              expect(pair.answer, isNotEmpty, reason: '${section.title} has a half-empty pair');
+            }
+          } else {
+            expect(section.pairs, isEmpty, reason: '${section.title} is not a board');
+          }
           expect(section.prose, isNot(contains('&quot;')), reason: 'prose must not be HTML-escaped');
           expect(section.prose, isNot(contains('```metadata')), reason: 'metadata must not reach the reader');
           expect(section.prose, isNot(contains('-validator')), reason: 'validators must never be rendered');
@@ -92,6 +105,9 @@ void main() {
       expect(en.sections.map((s) => s.starter), nl.sections.map((s) => s.starter));
       // Nor is the emoji: it marks the step, not the language it is written in.
       expect(en.sections.map((s) => s.emoji), nl.sections.map((s) => s.emoji));
+      // A board's tiles *are* translated, but a translation that dropped one
+      // would be a different game.
+      expect(en.sections.map((s) => s.pairs.length), nl.sections.map((s) => s.pairs.length));
     });
 
     test('code blocks come through unescaped, ready to run', () {
@@ -194,6 +210,81 @@ void main() {
         () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\nemoji: 3\n```\n'),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('reads a `pairs` block, first line to second', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n'
+        '## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n\nprose\n\n'
+        '```pairs\n`print()`\n… toont iets.\n\n`input()`\n… vraagt iets.\n```\n',
+      );
+
+      final pairs = lesson.sections.single.pairs;
+
+      expect(lesson.sections.single.kind, SectionKind.matchPairs);
+      expect(pairs.map((pair) => pair.cue), ['`print()`', '`input()`']);
+      expect(pairs.map((pair) => pair.answer), ['… toont iets.', '… vraagt iets.']);
+      // The block never reaches the reader as prose.
+      expect(lesson.sections.single.prose, 'prose');
+    });
+
+    test('rejects a match-pairs section with no `pairs` block', () {
+      expect(
+        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a board with only one pair, which is not a game', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n\n'
+          '```pairs\neen\none\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a pair that is not two lines', () {
+      // The trap the blank-line form exists to catch: pairs written without one.
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n\n'
+          '```pairs\neen\none\ntwee\ntwo\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a `pairs` block on a section that is not a board', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\n'
+          '```pairs\neen\none\n\ntwee\ntwo\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a board that also asks for code', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n\n'
+          '```pairs\neen\none\n\ntwee\ntwo\n```\n\n```python-assignment\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('a board is not an assignment, so nothing demands an editor of it', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: match-pairs\nid: s\n```\n\n'
+        '```pairs\neen\none\n\ntwee\ntwo\n```\n',
+      );
+
+      expect(lesson.sections.single.kind.isAssignment, isFalse);
+      expect(lesson.sections.single.starter, isNull);
+      expect(lesson.sections.single.validator, isNull);
     });
 
     test('rejects an `optional` that is not a boolean', () {

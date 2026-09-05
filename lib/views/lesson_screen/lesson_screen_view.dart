@@ -15,6 +15,7 @@ import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
+import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
@@ -119,6 +120,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                       SectionKind.info => _buildInfo(context, lesson, section),
                       SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
                       SectionKind.exercise => _buildExercise(context, lesson, section),
+                      SectionKind.matchPairs => _buildMatchPairs(context, lesson, section),
                     },
             ),
           );
@@ -222,6 +224,52 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             editorHeight: CodeEditorCard.heightForLines(1),
             singleLine: true,
           ).map(_pastGutter),
+        ],
+      ),
+    );
+  }
+
+  /// A match-pairs step: a reading step whose prose ends in a board instead of
+  /// an editor.
+  ///
+  /// The reading measure rather than the task's two columns: there is nothing
+  /// to type here, so the step is read the way an [SectionKind.info] one is and
+  /// the board takes the prose's own width.
+  Widget _buildMatchPairs(BuildContext context, Lesson lesson, LessonSection section) {
+    return _Page(
+      maxWidth: _readingWidth,
+      padding: _readingPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _pastGutter(_buildHeading(lesson, section)),
+          const SizedBox(height: 30),
+          LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
+          const SizedBox(height: 24),
+          _pastGutter(
+            PairMatchBoard(
+              // The section's id, not its position: the board has to come back
+              // the same way after a step away, and the same way in either
+              // translation.
+              seed: section.id,
+              pairs: section.pairs,
+              matched: viewModel.matched,
+              picked: viewModel.picked,
+              onPick: (tile) => controller.pick(section, tile),
+            ),
+          ),
+          const SizedBox(height: 36),
+          // The way on appears once the board is solved, the same rule an
+          // exercise's does — and, like an exercise, it is already there on a
+          // step that passed on an earlier visit.
+          _pastGutter(
+            AppButtonRow(
+              children: [
+                ..._buildBack(context, lesson),
+                if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -22,6 +22,7 @@ import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
+import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
@@ -1164,6 +1165,199 @@ void main() {
 
       expect(find.byKey(const ValueKey('step0')), findsNothing);
       expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, rest);
+    });
+  });
+
+  group('boardOrder', () {
+    test('deals both halves of every pair, into one pool', () {
+      final tiles = boardOrder('printing-pairs', 4);
+
+      expect(tiles, hasLength(8));
+      expect(
+        tiles,
+        unorderedEquals([
+          for (var pair = 0; pair < 4; pair++) ...[(pair: pair, cue: true), (pair: pair, cue: false)],
+        ]),
+      );
+    });
+
+    test('the same section deals the same board', () {
+      // The board is rebuilt on every pick, hover and resize; a fresh shuffle
+      // each time would move the tiles under the reader's hand.
+      expect(boardOrder('printing-pairs', 6), boardOrder('printing-pairs', 6));
+    });
+
+    test('never comes back in the order the lesson wrote it', () {
+      // Which would stand every pair side by side, in the file's own order.
+      for (var count = 2; count <= 8; count++) {
+        for (final seed in ['a', 'printing-pairs', 'zzz', 'een-twee-drie', '']) {
+          final written = [
+            for (var pair = 0; pair < count; pair++) ...[(pair: pair, cue: true), (pair: pair, cue: false)],
+          ];
+
+          expect(boardOrder(seed, count), isNot(written), reason: '$seed x $count');
+        }
+      }
+    });
+
+    test('does not keep the cues away from the answers', () {
+      // One pool is the point: a board split into a block of each tells the
+      // student which half of a pair a tile is before they have read it.
+      final halves = boardOrder('printing-pairs', 4).map((tile) => tile.cue).toList();
+
+      expect(halves.sublist(0, 4), isNot(everyElement(isTrue)));
+    });
+  });
+
+  group('PairMatchBoard.tileSizeFor', () {
+    test('puts every tile in one row while they fit', () {
+      // (700 - 3 gaps) / 4.
+      expect(PairMatchBoard.tileSizeFor(700, 4), closeTo(166, 0.5));
+    });
+
+    test('takes tiles off the row rather than letting one go under the minimum', () {
+      final side = PairMatchBoard.tileSizeFor(700, 8);
+
+      expect(side, greaterThanOrEqualTo(PairMatchBoard.minTileSize));
+      // All eight across would be 77 each; four fit at 166, so the block wraps.
+      expect(side, closeTo(166, 0.5));
+    });
+
+    test('width left over once every tile is placed stops at the cap', () {
+      expect(PairMatchBoard.tileSizeFor(2000, 4), PairMatchBoard.maxTileSize);
+    });
+
+    test('a board narrower than two tiles draws one per row', () {
+      expect(PairMatchBoard.tileSizeFor(260, 4), PairMatchBoard.maxTileSize);
+    });
+  });
+
+  group('PairMatchBoard', () {
+    const pairs = [
+      LessonPair(cue: 'kat', answer: 'cat'),
+      LessonPair(cue: 'hond', answer: 'dog'),
+      LessonPair(cue: 'vis', answer: 'fish'),
+    ];
+
+    Widget board({
+      Set<int> matched = const {},
+      Set<PairHalf> picked = const {},
+      ValueChanged<PairHalf>? onPick,
+    }) => _host(
+      PairMatchBoard(
+        seed: 'printing-pairs',
+        pairs: pairs,
+        matched: matched,
+        picked: picked,
+        onPick: onPick ?? (_) {},
+      ),
+    );
+
+    /// What every tile on the board is filled with. The widget's own target
+    /// value, not the frame it is currently animating through.
+    List<Color> fills(WidgetTester tester) => tester
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .map((tile) => (tile.decoration! as ShapeDecoration).color!)
+        .toList();
+
+    /// A board of squares is taller than the test surface, so a tile has to be
+    /// scrolled to before it can be tapped.
+    Future<void> press(WidgetTester tester, String half) async {
+      await tester.ensureVisible(find.textContaining(half));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining(half), warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('draws a tile for every half', (tester) async {
+      await tester.pumpWidget(board());
+      await tester.pumpAndSettle();
+
+      expect(fills(tester), hasLength(pairs.length * 2));
+      for (final pair in pairs) {
+        expect(find.textContaining(pair.cue), findsOneWidget);
+        expect(find.textContaining(pair.answer), findsOneWidget);
+      }
+    });
+
+    testWidgets('every tile is a square, and none larger than the cap', (tester) async {
+      await tester.pumpWidget(board());
+      await tester.pumpAndSettle();
+
+      final sizes = tester
+          .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+          .map((tile) => tester.getSize(find.byWidget(tile)))
+          .toList();
+
+      expect(sizes, hasLength(pairs.length * 2));
+      expect(sizes, everyElement(predicate<Size>((size) => size.width == size.height, 'is square')));
+      // Six tiles across the 700 the host gives it would be 107 each, under the
+      // minimum, so the board wraps to four.
+      expect(sizes.first.width, closeTo(PairMatchBoard.tileSizeFor(700, 6), 0.5));
+    });
+
+    testWidgets('a tap names the tile it landed on, half and all', (tester) async {
+      final picks = <PairHalf>[];
+
+      await tester.pumpWidget(board(onPick: picks.add));
+      await tester.pumpAndSettle();
+
+      await press(tester, 'hond');
+      await press(tester, 'dog');
+
+      // Where a tile stands is the deal's business; what it reports is which
+      // half of which pair it is.
+      expect(picks, [(pair: 1, cue: true), (pair: 1, cue: false)]);
+    });
+
+    testWidgets('a matched tile is done and no longer answers a tap', (tester) async {
+      final picks = <PairHalf>[];
+
+      await tester.pumpWidget(board(matched: const {0}, onPick: picks.add));
+      await tester.pumpAndSettle();
+
+      await press(tester, 'kat');
+
+      expect(picks, isEmpty);
+    });
+
+    testWidgets('a matched pair is drawn as done, both halves of it', (tester) async {
+      final tokens = buildAppTheme().appTheme;
+
+      await tester.pumpWidget(board(matched: const {2}));
+      await tester.pumpAndSettle();
+
+      expect(fills(tester).where((fill) => fill == tokens.colors.successSurface), hasLength(2));
+    });
+
+    testWidgets('a wrong pick shows on both of its tiles and on no others', (tester) async {
+      final tokens = buildAppTheme().appTheme;
+
+      await tester.pumpWidget(board(picked: const {(pair: 0, cue: true), (pair: 1, cue: false)}));
+      await tester.pumpAndSettle();
+
+      expect(fills(tester).where((fill) => fill == tokens.colors.warningSurface), hasLength(2));
+    });
+
+    testWidgets('a pick on its own is not wrong yet', (tester) async {
+      final tokens = buildAppTheme().appTheme;
+
+      await tester.pumpWidget(board(picked: const {(pair: 0, cue: true)}));
+      await tester.pumpAndSettle();
+
+      expect(fills(tester).where((fill) => fill == tokens.colors.warningSurface), isEmpty);
+    });
+
+    testWidgets('the board only says so once every pair is together', (tester) async {
+      await tester.pumpWidget(board(matched: const {0, 1}));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Goed!'), findsNothing);
+
+      await tester.pumpWidget(board(matched: const {0, 1, 2}));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Goed!'), findsOneWidget);
     });
   });
 }

@@ -80,3 +80,27 @@ if "3,14" in code.replace(" ", ""):
 if output != "42\n3.14":
     raise Exception("`print` 42 first, then 3.14. Use 2 separate `print` lines for this.")
 ```
+
+## What belongs together?
+
+```metadata
+type: match-pairs
+id: printing-pairs
+emoji: "🧩"
+```
+
+You now know what `print` does with text and with numbers. Put together the parts that form one sentence that is true.
+
+```pairs
+`print("Hello")`
+… shows the text Hello.
+
+`print(42)`
+… shows the number 42, with no quotation marks around it.
+
+`print(3.14)`
+… uses a dot as the decimal separator, not a comma.
+
+Two `print` lines below one another
+… produce two lines of output.
+```

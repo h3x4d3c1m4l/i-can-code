@@ -311,10 +311,11 @@ Four words, fixed. Drifting off them is what made the folders disagree with the 
 | **lesson** | One markdown file per locale, under `assets/lessons/<language>/`. `Lesson`. |
 | **section** | One `##` block of a lesson. `LessonSection`. The student-facing word for it is **step**. |
 | **exercise** | A *kind of section* — one that asks for code (`SectionKind.quickExercise`, `exercise`). **Not** a unit of content. |
+| **pair** | The two halves of one item on a match-pairs board. `LessonPair`. |
 
 A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Assignment* survives only where it names a **block** in a lesson file (```` ```python-assignment ````) and in `SectionKind.isAssignment`; as a word for a step it has been replaced by **exercise**.
 
-A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a fourth `SectionKind`, so a Verdieping can still hold an exercise.
+A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
 **Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table.
 
@@ -328,6 +329,17 @@ Two things that are easy to get wrong:
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
 `test/services/lesson_test.dart` parses every file that ships, so an authoring mistake fails the test run instead of the initialization screen.
+
+**A step does not have to ask for code.** `SectionKind.matchPairs` is a board of tiles the student pairs up — declared `type: match-pairs`, filled from a `pairs` block, and carrying no editor and no validator, because the board itself is the check. It is why `SectionKind.isAssignment` names the two kinds it is true of rather than reading "not `info`": a match-pairs step is neither prose nor an assignment, and the older test would have had the parser demand an editor for a step that has none.
+
+Three things hold that board together, and each is in `PairMatchBoard` (`lib/views/lesson_screen/components/`) rather than in the file format:
+
+- **The deal is derived, never drawn.** `boardOrder()` seeds a `Random` from the section's `id` and shuffles every tile — both halves of every pair, into **one pool** — so the board survives its own rebuilds, one per pick, per hover, per resize, per change of language, instead of dealing itself a new hand each time. One pool and not a block of cues over a block of answers, because a split board tells the student which half of a pair a tile is before they have read a word of it, and that is half of every pair narrowed down for them. A tile is a `PairHalf`, a record, so a pick is findable in a set by value. The one deal it refuses is the lesson's own order, which would stand every pair side by side. Not `String.hashCode`, which Dart promises nothing about between releases.
+- **A tile is a square, and the board is one grid.** `tileSizeFor()` spends the step's width on more tiles per row before it spends any on bigger ones: as many across as fit without one falling under `minTileSize`, and never past `maxTileSize`, where a square stops being a tile and becomes a poster. A square has no reading direction, which is what makes a grid possible at all — unlike a bar of text it need not be as wide as the words in it, and four pairs fit in two rows rather than four. Those words are set to the tile for the same reason: a fixed 16px is adrift in a 220px square and spilling out of a 150px one. They scroll *inside* it rather than overflowing, since the square is a box the lesson author cannot see.
+- **A wrong pick has no timer behind it.** Both tiles stay showing until the next tap, which starts the pick over. A flash that clears itself would need a `Future.delayed` in the controller and a disposal guard around it, to say something the tiles already say.
+- **Colour is never the only answer.** A matched tile takes a tick and a wrong one an ×, and every state's fill is a `*Surface` token, so one text colour stays legible through all four.
+
+What is matched lives in `LessonScreenViewModel` per step, the way typed code does, so stepping away and back finds the board as it was left. It is **not** seeded from `ProgressStore`, which remembers that a step passed and not how: a finished lesson opens on a board that can be played again, with the way on already offered — the same thing an exercise does with its starter code.
 
 Flutter's asset globbing is **not recursive**, so every asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared.
 

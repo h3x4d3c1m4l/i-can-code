@@ -5,6 +5,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// What the last run produced: the program's output, then its verdict. The
 /// three outcomes are drawn differently — a traceback in the code face, a failed
@@ -73,7 +74,7 @@ class OutputPanel extends StatelessWidget {
     if (result.programError case final String error) {
       // A raw traceback alone reads as the app breaking, so it is introduced
       // as a message about the student's code.
-      return _Banner(
+      return VerdictBanner(
         background: tokens.colors.errorSurface,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,35 +97,18 @@ class OutputPanel extends StatelessWidget {
     if (result.checkMessage case final String message) {
       // Markdown, not text: a validator's message is authored alongside the
       // prose and uses the same `code` spans to name a function.
-      return _Banner(
+      return VerdictBanner(
         background: tokens.colors.warningSurface,
         child: LessonProse(markdown: message, fontSize: 17, paragraphSpacing: 0),
       );
     }
 
-    return _Banner(
+    return VerdictBanner(
       background: tokens.colors.successSurface,
       child: Text(
         context.localizations.lessonScreen_passed,
         style: tokens.text.h3.copyWith(fontSize: 18),
       ),
-    );
-  }
-
-}
-
-class _Banner extends StatelessWidget {
-
-  final Color background;
-  final Widget child;
-
-  const _Banner({required this.background, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: ShapeDecoration(color: background, shape: squircle(kCardCornerRadius)),
-      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20), child: child),
     );
   }
 

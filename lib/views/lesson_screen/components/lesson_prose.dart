@@ -108,6 +108,11 @@ class LessonProse extends StatelessWidget {
   /// message inside its panel.
   final bool hangingGutter;
 
+  /// How each paragraph is set. Centred inside a square tile, where the words
+  /// are the whole of what the tile holds; start everywhere prose is read as
+  /// prose.
+  final WrapAlignment textAlign;
+
   /// The gap the sheet puts between every pair of sibling blocks — list items
   /// included, which is what this number costs.
   ///
@@ -130,6 +135,7 @@ class LessonProse extends StatelessWidget {
     this.fontSize = 21,
     this.paragraphSpacing = 18,
     this.hangingGutter = false,
+    this.textAlign = WrapAlignment.start,
     super.key,
   });
 
@@ -146,6 +152,7 @@ class LessonProse extends StatelessWidget {
 
     final sheet = MarkdownStyleSheet(
         p: body,
+        textAlign: textAlign,
         pPadding: EdgeInsets.only(bottom: paragraphBottom),
         blockSpacing: _blockSpacing,
         h1: tokens.text.h2,

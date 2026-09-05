@@ -40,6 +40,10 @@
   "@lessonScreen_back": {
     "description": "The back button beside every Next. Icon only, so this is what a screen reader announces."
   },
+  "lessonScreen_pairsHint": "Pick two tiles that belong together.",
+  "@lessonScreen_pairsHint": {
+    "description": "Above a match-the-pairs board. Says nothing about left and right: below `sm` the two columns are stacked."
+  },
   "lessonScreen_optional": "Deep dive",
   "@lessonScreen_optional": {
     "description": "Badge under the title of a step the student may skip."

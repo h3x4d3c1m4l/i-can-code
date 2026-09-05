@@ -44,6 +44,22 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     if (result.passed) await _remember(section);
   }
 
+  /// Picks one tile of a match-pairs board, and records the step the moment its
+  /// last pair lands.
+  ///
+  /// [section] comes from the view for the reason [run]'s does: it is already
+  /// resolved for the locale on screen.
+  Future<void> pick(LessonSection section, PairHalf tile) async {
+    viewModel.pick(tile);
+
+    if (viewModel.matched.length < section.pairs.length) return;
+    // A board solved a second time has nothing left to record.
+    if (viewModel.passed.contains(viewModel.step)) return;
+
+    viewModel.markPassed();
+    await _remember(section);
+  }
+
   /// What the student's code will run on, in the interpreter's own words.
   ///
   /// Read at build time rather than stored: the runtime is started by the
@@ -62,7 +78,10 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     // An info step is never run, so leaving it completes it. Marked on the way
     // out: the progress bar draws a completed step ahead of the current one, so
     // marking on arrival would lose the "you are here".
-    if (!_currentKind.isAssignment) {
+    //
+    // Named rather than `!isAssignment`: a match-pairs step is not read either,
+    // and it is [pick] that completes it — leaving it must not.
+    if (_currentKind == SectionKind.info) {
       viewModel.markPassed();
       await _remember(_currentSection);
     }

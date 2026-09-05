@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
@@ -26,6 +27,20 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// The last attempt for the current step, or null before the first Run.
   @readonly
   AttemptResult? _attempt;
+
+  /// Which pairs of a match-pairs board have been put together, per step, as
+  /// indices into that section's own `pairs`.
+  ///
+  /// Per step for the reason [_code] is: stepping back and forward again finds
+  /// the board as it was left. It is **not** seeded from [ProgressStore], which
+  /// remembers that a step passed and not how — so a finished lesson opens on an
+  /// empty board that may be played again, with the way on already offered.
+  @readonly
+  Map<int, Set<int>> _matchedPairs = {};
+
+  /// The tiles standing picked on the current step, at most two.
+  @readonly
+  Set<PairHalf> _picked = {};
 
   /// A run is in flight, which disables Run so a second cannot start.
   @readonly
@@ -97,6 +112,41 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// puts "Volgende les" on the end page.
   bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
 
+  /// The pairs already matched on the step being shown.
+  Set<int> get matched => _matchedPairs[_step] ?? const {};
+
+  /// Two tiles are picked, which can only mean they do not belong together: a
+  /// pair that matched cleared them both. They stay showing until the next tap,
+  /// which starts the pick over rather than adding a third tile to it.
+  bool get pickedWrong => _picked.length == 2;
+
+  /// Picks one tile of a match-pairs board.
+  ///
+  /// A pick that completes a pair records it and clears the board; one that does
+  /// not leaves both tiles standing, which is the only feedback a wrong guess
+  /// gets — and the next tap starts the pick over rather than adding a third
+  /// tile to it. Tapping a tile that is already picked puts it back.
+  @action
+  void pick(PairHalf tile) {
+    final standing = pickedWrong ? const <PairHalf>{} : _picked;
+
+    if (standing.contains(tile)) {
+      _picked = {...standing}..remove(tile);
+      return;
+    }
+
+    _picked = {...standing, tile};
+    if (_picked.length < 2) return;
+
+    // Two tiles of one pair are always its two halves: a tile is picked at most
+    // once, so the second cannot be the first over again.
+    final (first, second) = (_picked.first, _picked.last);
+    if (first.pair != second.pair) return;
+
+    _matchedPairs = {..._matchedPairs, _step: {...matched, first.pair}};
+    _picked = {};
+  }
+
   @action
   void goTo(int step) {
     // Off the end page is always backwards: it sits past the last step, so
@@ -105,6 +155,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
     _step = step;
     _attempt = null;
     _running = false;
+    // What is already matched is kept, but a half-made pick is not: it belongs
+    // to the moment it was made.
+    _picked = {};
     // Leaves the end page: the progress bar and the trail can both reach past
     // it back into the lesson.
     _completed = false;

@@ -11,17 +11,56 @@ enum SectionKind {
 
   /// A full exercise, in the design's two-column layout: prose on the left,
   /// editor and output on the right.
-  exercise;
+  exercise,
+
+  /// Match the pairs: prose, then a board of tiles the student pairs up. Asks
+  /// for work but not for code, so there is no editor and nothing to run — the
+  /// board itself is the check.
+  matchPairs;
 
   /// Whether the student writes and runs code here.
-  bool get isAssignment => this != SectionKind.info;
+  ///
+  /// Stated as the two kinds it is true of rather than as "not [info]":
+  /// [matchPairs] is not prose either, and reading it as an assignment would
+  /// have the parser demand an editor for a step that has none.
+  bool get isAssignment => this == SectionKind.quickExercise || this == SectionKind.exercise;
 
   static SectionKind parse(String value) => switch (value) {
     'info' => SectionKind.info,
     'quick-exercise' => SectionKind.quickExercise,
     'exercise' => SectionKind.exercise,
+    'match-pairs' => SectionKind.matchPairs,
     _ => throw FormatException('Unknown section type "$value".'),
   };
+
+}
+
+/// One tile of a [SectionKind.matchPairs] board: which pair it belongs to, and
+/// which of that pair's two halves it is.
+///
+/// A board holds two of these per [LessonPair] and deals them into one pool, so
+/// picking two tiles of the same [pair] is what makes a match. A record, for the
+/// value equality — a tile has to be findable in a set of picks.
+typedef PairHalf = ({int pair, bool cue});
+
+/// Two halves of one item on a [SectionKind.matchPairs] board.
+///
+/// The board deals both into **one pool**, so which of the two is written first
+/// changes nothing the student sees. The names say how a pair is written rather
+/// than how it is drawn: the thing, and then what is said about it.
+///
+/// Both are inline markdown, rendered the way a section's prose is, so a tile
+/// may name a function in `code` spans.
+class LessonPair {
+
+  /// The half written first — what the pair is about.
+  final String cue;
+
+  /// The half written second. Not "the right one": either half is found by
+  /// picking the other.
+  final String answer;
+
+  const LessonPair({required this.cue, required this.answer});
 
 }
 
@@ -59,6 +98,11 @@ class LessonSection {
   /// The hidden checks. See `docs/lesson-format.md` for the contract.
   final String? validator;
 
+  /// What the student matches up, from the section's `pairs` block. Empty on
+  /// every kind but [SectionKind.matchPairs], which the parser holds to at
+  /// least two.
+  final List<LessonPair> pairs;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -68,6 +112,7 @@ class LessonSection {
     this.optional = false,
     this.starter,
     this.validator,
+    this.pairs = const [],
   });
 
 }
@@ -130,6 +175,9 @@ class Lesson {
     var prose = <String>[];
     String? starter;
     String? validator;
+    // Nullable, unlike `LessonSection.pairs`: "no `pairs` block" and "a `pairs`
+    // block with nothing in it" are different mistakes.
+    List<LessonPair>? pairs;
 
     void flush() {
       if (sectionTitle == null) return;
@@ -143,7 +191,20 @@ class Lesson {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} but has no assignment block.');
       }
       if (!sectionKind!.isAssignment && (starter != null || validator != null)) {
-        throw FormatException('Section "$sectionTitle" is info but carries an assignment or validator block.');
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an assignment or validator block.',
+        );
+      }
+      if (sectionKind == SectionKind.matchPairs) {
+        if (pairs == null) {
+          throw FormatException('Section "$sectionTitle" is a match-pairs step but has no `pairs` block.');
+        }
+        // One pair is not a game: its two tiles are the only two on the board.
+        if (pairs!.length < 2) {
+          throw FormatException('Section "$sectionTitle" declares ${pairs!.length} pair(s); a board needs at least 2.');
+        }
+      } else if (pairs != null) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `pairs` block.');
       }
       sections.add(
         LessonSection(
@@ -155,6 +216,7 @@ class Lesson {
           prose: prose.join('\n').trim(),
           starter: starter,
           validator: validator,
+          pairs: pairs ?? const [],
         ),
       );
       sectionKind = null;
@@ -164,6 +226,7 @@ class Lesson {
       prose = <String>[];
       starter = null;
       validator = null;
+      pairs = null;
     }
 
     final lines = source.replaceAll('\r\n', '\n').split('\n');
@@ -213,6 +276,11 @@ class Lesson {
             starter = body.join('\n');
           case _BlockRole.validator:
             validator = body.join('\n');
+          case _BlockRole.pairs:
+            if (sectionTitle == null) {
+              throw const FormatException('A `pairs` block belongs to a section, not to the lesson.');
+            }
+            pairs = _parsePairs(body, sectionTitle);
           case _BlockRole.sample:
             // A worked example. Put the fence back so the renderer still sees
             // a code block.
@@ -250,6 +318,40 @@ class Lesson {
     return Lesson(id: id, title: title, subtitle: subtitle, emoji: emoji, sections: sections);
   }
 
+  /// Reads a `pairs` block: one pair per paragraph, two lines each.
+  ///
+  /// Line-based rather than YAML because a tile is arbitrary text — `print("a:
+  /// b")` is a plain scalar YAML would refuse — and because a separator
+  /// character would sooner or later appear inside a tile. A blank line is the
+  /// one thing that cannot.
+  static List<LessonPair> _parsePairs(List<String> body, String section) {
+    final pairs = <LessonPair>[];
+    var block = <String>[];
+
+    void flush() {
+      if (block.isEmpty) return;
+      if (block.length != 2) {
+        throw FormatException(
+          'Section "$section" has a pair of ${block.length} lines; a pair is two, separated from the next by a '
+          'blank line.',
+        );
+      }
+      pairs.add(LessonPair(cue: block[0].trim(), answer: block[1].trim()));
+      block = <String>[];
+    }
+
+    for (final line in body) {
+      if (line.trim().isEmpty) {
+        flush();
+        continue;
+      }
+      block.add(line);
+    }
+    flush();
+
+    return pairs;
+  }
+
   static String? _readEmoji(YamlMap meta, String owner) {
     final emoji = meta['emoji'];
     if (emoji == null) return null;
@@ -262,7 +364,7 @@ class Lesson {
 
 }
 
-enum _BlockRole { metadata, assignment, validator, sample }
+enum _BlockRole { metadata, assignment, validator, pairs, sample }
 
 /// An opening code fence, with its role read off the language it declares:
 /// ```` ```python-assignment ````. Stripping the `-assignment` / `-validator`
@@ -289,6 +391,11 @@ class _Fence {
 
     if (declared == 'metadata') {
       return _Fence(marker: marker, role: _BlockRole.metadata, language: null);
+    }
+    // Reserved the way `metadata` is, and for the same reason: what a
+    // match-pairs board holds is not a programming language.
+    if (declared == 'pairs') {
+      return _Fence(marker: marker, role: _BlockRole.pairs, language: null);
     }
     for (final (suffix, role) in const [('-assignment', _BlockRole.assignment), ('-validator', _BlockRole.validator)]) {
       if (declared.endsWith(suffix)) {

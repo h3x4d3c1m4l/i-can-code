@@ -80,3 +80,27 @@ if "3,14" in code.replace(" ", ""):
 if output != "42\n3.14":
     raise Exception("`print` eerst 42, daarna 3.14. Gebruik hiervoor 2 losse `print`-regels.")
 ```
+
+## Wat hoort bij elkaar?
+
+```metadata
+type: match-pairs
+id: printing-pairs
+emoji: "🧩"
+```
+
+Je weet nu wat `print` met tekst en met getallen doet. Zet de stukjes bij elkaar die samen één kloppende zin vormen.
+
+```pairs
+`print("Hallo")`
+… toont de tekst Hallo.
+
+`print(42)`
+… toont het getal 42, zonder aanhalingstekens eromheen.
+
+`print(3.14)`
+… gebruikt een punt als decimaalteken, geen komma.
+
+Twee `print`-regels onder elkaar
+… geven twee regels uitvoer.
+```

@@ -66,7 +66,13 @@ void _listSections(Lesson lesson) {
     ..writeln('${lesson.title}  (id: ${lesson.id})')
     ..writeln();
   for (final (index, section) in lesson.sections.indexed) {
-    final runnable = section.kind.isAssignment ? '' : '   (nothing to run)';
+    // A match-pairs board has no validator to run but is still work, so it is
+    // reported by what it holds rather than by what it lacks.
+    final runnable = switch (section.kind) {
+      final kind when kind.isAssignment => '',
+      SectionKind.matchPairs => '   (${section.pairs.length} pairs)',
+      _ => '   (nothing to run)',
+    };
     final optional = section.optional ? '  [verdieping]' : '';
     stdout.writeln('  $index  ${section.kind.name.padRight(16)} ${section.title}$optional$runnable');
   }

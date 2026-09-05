@@ -89,6 +89,7 @@ if "print(" not in code:
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
 | `<lang>-validator` | The hidden checks. Never shown. |
+| `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
 
 ### Every section needs an `id`
@@ -112,15 +113,23 @@ a position survives none of that.
 | `info` | Prose only. No editor, nothing to run. |
 | `quick-exercise` | Prose and editor stacked in **one column** — the question is a sentence or two. |
 | `exercise` | The design's **two columns**: prose left, editor and output right. |
+| `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
 
-An `info` section must not carry an assignment or validator block; the other two
-must carry both. `Lesson.parse` throws a `FormatException` naming the section
-when either rule is broken.
+Which blocks a section may carry follows from its type:
+
+| `type` | Assignment and validator | `pairs` |
+| --- | --- | --- |
+| `info` | Must not | Must not |
+| `quick-exercise`, `exercise` | Must carry both | Must not |
+| `match-pairs` | Must not | Must carry one |
+
+`Lesson.parse` throws a `FormatException` naming the section when any of those
+is broken.
 
 ### `optional: true` — a "Verdieping"
 
-Any of the three types may add `optional: true`. The step then carries a
-**Verdieping** badge above its title and an **Overslaan** link beside it.
+Any type may add `optional: true`. The step then carries a **Verdieping** badge
+above its title and an **Overslaan** link beside it.
 
 ```metadata
 type: info
@@ -218,6 +227,76 @@ The parser is constructed with **`encodeHtml: false`**. By default it
 HTML-escapes block text, which would hand CPython `print(&quot;hi&quot;)` and
 fail at runtime instead of here. `test/services/lesson_test.dart` asserts no
 `&quot;` survives into any block.
+
+## `pairs` — a match-the-pairs board
+
+A `match-pairs` section carries one `pairs` block in place of an assignment and
+a validator. The board **is** the check: the step passes the moment its last
+pair lands, and there is nothing to run.
+
+````markdown
+## Wat hoort bij elkaar?
+
+```metadata
+type: match-pairs
+id: printing-pairs
+emoji: "🧩"
+```
+
+Zet de stukjes bij elkaar die samen één kloppende zin vormen.
+
+```pairs
+`print("Hallo")`
+… toont de tekst Hallo.
+
+`print(42)`
+… toont het getal 42, zonder aanhalingstekens eromheen.
+```
+````
+
+**One pair per paragraph, two lines each.** The two lines are the pair's two
+halves and a blank line ends the pair. Which of them is written first changes
+nothing the student sees — the board deals both halves of every pair into one
+pool — so write them in the order the pair reads.
+
+That shape rather than YAML or a `left | right` separator, because a tile is
+arbitrary text: `print("a: b")` is not a plain YAML scalar, and any separator
+character turns up inside a tile sooner or later. A blank line cannot.
+
+- **Every tile is dealt into one pool**, by a shuffle derived from the section's
+  `id` — so the board comes back the same way after a step away and stands the
+  same in both translations, and the order the file lists pairs in is never the
+  order the student sees. One pool, and not a block of first halves over a block
+  of second ones: split, the board says which half of a pair a tile is before
+  the student has read a word of it, which is half of every pair narrowed down
+  for them.
+- **At least two pairs.** One pair is not a game.
+- **Both halves are inline markdown**, rendered the way prose is, so a tile may
+  name a function in `code` spans.
+- **A tile is a square**, so keep a half short enough to sit in one. Longer text
+  is not lost — the tile scrolls rather than overflowing — but a tile that has to
+  be scrolled cannot be read at a glance, which is all the time a matching game
+  gives it.
+- A paragraph of anything but two lines is a `FormatException`, and so is a
+  `pairs` block on a section of another type, or a `match-pairs` section
+  without one.
+
+### The `…` is the lesson's, not the format's
+
+The second halves above open with an ellipsis because those particular pairs are
+sentences cut in two, and it tells the reader which end of one they are holding.
+**Nothing parses it**, and nothing needs it: a pair may just as well be a
+function and what it does, or a word and its translation, where neither half has
+to announce itself.
+
+It is worth knowing that the board is where the ellipsis earns its keep, though.
+Every tile is dealt into one pool, so the words on a tile are the **only** thing
+that can say which end of a pair it is. A pair whose halves need telling apart
+has to say so in its own text, the way the ellipsis does.
+
+Progress works as it does everywhere else: solving the board records the
+section's `id`, and a `match-pairs` step marked `optional: true` can be skipped
+without recording anything.
 
 ## `<lang>-validator` — the hidden checks
 
