@@ -16,7 +16,17 @@ enum SectionKind {
   /// Match the pairs: prose, then a board of tiles the student pairs up. Asks
   /// for work but not for code, so there is no editor and nothing to run — the
   /// board itself is the check.
-  matchPairs;
+  matchPairs,
+
+  /// Predict the output: the lesson's own program, and a box to write what the
+  /// student thinks it prints before it is run.
+  ///
+  /// Code runs here, but the student writes none of it, so this is not an
+  /// assignment: there is no editor and no validator. **The answer key is the
+  /// interpreter** — the program is run and its output compared to the
+  /// prediction — so a lesson cannot state one that drifts from the code beside
+  /// it.
+  predictOutput;
 
   /// Whether the student writes and runs code here.
   ///
@@ -30,6 +40,7 @@ enum SectionKind {
     'quick-exercise' => SectionKind.quickExercise,
     'exercise' => SectionKind.exercise,
     'match-pairs' => SectionKind.matchPairs,
+    'predict-output' => SectionKind.predictOutput,
     _ => throw FormatException('Unknown section type "$value".'),
   };
 
@@ -86,9 +97,10 @@ class LessonSection {
   /// `docs/lesson-format.md`.
   final bool optional;
 
-  /// The section's prose, as markdown source, with the `metadata`,
-  /// `<lang>-assignment` and `<lang>-validator` blocks removed. Plain fenced
-  /// blocks stay in — those are worked examples the student reads.
+  /// The section's prose, as markdown source, with every block that has a role
+  /// of its own removed — `metadata`, `<lang>-assignment`, `<lang>-validator`,
+  /// `<lang>-predict`, `pairs` and `explanation`. Plain fenced blocks stay in:
+  /// those are worked examples the student reads.
   final String prose;
 
   /// What the editor opens with. Empty for a blank start; null on an [info]
@@ -103,6 +115,22 @@ class LessonSection {
   /// least two.
   final List<LessonPair> pairs;
 
+  /// The program whose output the student predicts, from the section's
+  /// `<lang>-predict` block. Null on every kind but
+  /// [SectionKind.predictOutput], which the parser holds to a non-empty one.
+  ///
+  /// Read, never edited: it is the question, and running it is what answers it.
+  final String? program;
+
+  /// Why the output is what it is, from the section's `explanation` block, shown
+  /// **after** the answer. Inline markdown, rendered the way prose is. Null when
+  /// the author wrote none, which is allowed.
+  ///
+  /// Optional on [SectionKind.predictOutput] and refused everywhere else: it is
+  /// the feedback half of a prediction, and feedback is what turns a wrong guess
+  /// from a dead end into the point of the step.
+  final String? explanation;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -113,6 +141,8 @@ class LessonSection {
     this.starter,
     this.validator,
     this.pairs = const [],
+    this.program,
+    this.explanation,
   });
 
 }
@@ -178,6 +208,8 @@ class Lesson {
     // Nullable, unlike `LessonSection.pairs`: "no `pairs` block" and "a `pairs`
     // block with nothing in it" are different mistakes.
     List<LessonPair>? pairs;
+    String? program;
+    String? explanation;
 
     void flush() {
       if (sectionTitle == null) return;
@@ -206,6 +238,25 @@ class Lesson {
       } else if (pairs != null) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `pairs` block.');
       }
+      if (sectionKind == SectionKind.predictOutput) {
+        if (program == null) {
+          throw FormatException('Section "$sectionTitle" is a predict-output step but has no predict block.');
+        }
+        // A program that prints nothing has no output to predict, and the step
+        // would pass on an empty answer.
+        if (program!.trim().isEmpty) {
+          throw FormatException('Section "$sectionTitle" declares an empty predict block; there is nothing to run.');
+        }
+      } else if (program != null) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries a predict block.');
+      }
+      // Optional where it belongs, refused everywhere else: it is shown with the
+      // answer to a prediction, and no other kind has an answer to show it with.
+      if (sectionKind != SectionKind.predictOutput && explanation != null) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an `explanation` block.',
+        );
+      }
       sections.add(
         LessonSection(
           id: sectionId!,
@@ -217,6 +268,8 @@ class Lesson {
           starter: starter,
           validator: validator,
           pairs: pairs ?? const [],
+          program: program,
+          explanation: explanation,
         ),
       );
       sectionKind = null;
@@ -227,6 +280,8 @@ class Lesson {
       starter = null;
       validator = null;
       pairs = null;
+      program = null;
+      explanation = null;
     }
 
     final lines = source.replaceAll('\r\n', '\n').split('\n');
@@ -276,6 +331,17 @@ class Lesson {
             starter = body.join('\n');
           case _BlockRole.validator:
             validator = body.join('\n');
+          case _BlockRole.predict:
+            program = body.join('\n');
+          case _BlockRole.explanation:
+            if (sectionTitle == null) {
+              throw const FormatException('An `explanation` block belongs to a section, not to the lesson.');
+            }
+            final text = body.join('\n').trim();
+            if (text.isEmpty) {
+              throw FormatException('Section "$sectionTitle" declares an empty `explanation` block.');
+            }
+            explanation = text;
           case _BlockRole.pairs:
             if (sectionTitle == null) {
               throw const FormatException('A `pairs` block belongs to a section, not to the lesson.');
@@ -364,7 +430,7 @@ class Lesson {
 
 }
 
-enum _BlockRole { metadata, assignment, validator, pairs, sample }
+enum _BlockRole { metadata, assignment, validator, predict, explanation, pairs, sample }
 
 /// An opening code fence, with its role read off the language it declares:
 /// ```` ```python-assignment ````. Stripping the `-assignment` / `-validator`
@@ -397,7 +463,15 @@ class _Fence {
     if (declared == 'pairs') {
       return _Fence(marker: marker, role: _BlockRole.pairs, language: null);
     }
-    for (final (suffix, role) in const [('-assignment', _BlockRole.assignment), ('-validator', _BlockRole.validator)]) {
+    // Reserved for the same reason again — it is prose about the code, not code.
+    if (declared == 'explanation') {
+      return _Fence(marker: marker, role: _BlockRole.explanation, language: null);
+    }
+    for (final (suffix, role) in const [
+      ('-assignment', _BlockRole.assignment),
+      ('-validator', _BlockRole.validator),
+      ('-predict', _BlockRole.predict),
+    ]) {
       if (declared.endsWith(suffix)) {
         return _Fence(
           marker: marker,

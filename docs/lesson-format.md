@@ -37,6 +37,13 @@ index — the failure mode the old `index.yaml` had.
 separately in `pubspec.yaml`; a new language directory is silently absent at
 runtime until it is declared there.
 
+## Worked examples of every type
+
+`docs/samples/` holds one complete, parseable lesson per section type — see
+[samples/README.md](samples/README.md). Each can be run through the real harness
+with `tool/try_lesson.dart`, and `test/services/lesson_test.dart` parses them all
+so they cannot drift from this document.
+
 ## The shape of a file
 
 ````markdown
@@ -89,6 +96,8 @@ if "print(" not in code:
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
 | `<lang>-validator` | The hidden checks. Never shown. |
+| `<lang>-predict` | The program a `predict-output` step asks about. See below. |
+| `explanation` | Why that program's output is what it is. Shown after the answer. |
 | `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
 
@@ -114,14 +123,16 @@ a position survives none of that.
 | `quick-exercise` | Prose and editor stacked in **one column** — the question is a sentence or two. |
 | `exercise` | The design's **two columns**: prose left, editor and output right. |
 | `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
+| `predict-output` | Prose, a program, and a box to say what it prints before it runs. No editor — see below. |
 
 Which blocks a section may carry follows from its type:
 
-| `type` | Assignment and validator | `pairs` |
-| --- | --- | --- |
-| `info` | Must not | Must not |
-| `quick-exercise`, `exercise` | Must carry both | Must not |
-| `match-pairs` | Must not | Must carry one |
+| `type` | Assignment and validator | `pairs` | `<lang>-predict` | `explanation` |
+| --- | --- | --- | --- | --- |
+| `info` | Must not | Must not | Must not | Must not |
+| `quick-exercise`, `exercise` | Must carry both | Must not | Must not | Must not |
+| `match-pairs` | Must not | Must carry one | Must not | Must not |
+| `predict-output` | Must not | Must not | Must carry one | May carry one |
 
 `Lesson.parse` throws a `FormatException` naming the section when any of those
 is broken.
@@ -227,6 +238,78 @@ The parser is constructed with **`encodeHtml: false`**. By default it
 HTML-escapes block text, which would hand CPython `print(&quot;hi&quot;)` and
 fail at runtime instead of here. `test/services/lesson_test.dart` asserts no
 `&quot;` survives into any block.
+
+## `<lang>-predict` — predict the output
+
+A `predict-output` section carries one `<lang>-predict` block in place of an
+assignment and a validator. The student reads the program, writes what they
+think it prints, and only then is it run.
+
+````markdown
+## Wat komt eruit?
+
+```metadata
+type: predict-output
+id: predict-print
+emoji: "🔮"
+```
+
+Denk eerst zelf na over wat er op het scherm verschijnt.
+
+```python-predict
+print("Hallo")
+print(42)
+print("Hallo", 42)
+```
+
+```explanation
+De derde regel is de verrassing: geef je `print` méér dan één ding, dan zet
+Python er zelf een **spatie** tussen.
+```
+````
+
+### The interpreter is the answer key
+
+**A lesson file states no expected output**, and there is nowhere to put one.
+The program is run and what it printed is what the prediction is held against,
+so the answer cannot drift from the code beside it the way a hand-written one
+can. `tool/try_lesson.dart <lesson.md> <n>` runs the block and prints what a
+student will be measured against — check a new step with it.
+
+Two rules follow, and neither is enforced by the parser:
+
+- **The program MUST be deterministic.** No `random`, no clock, no input. The
+  same program has to print the same thing for every student, on every visit.
+- **It MUST print something.** A program with no output has nothing to predict.
+  The parser refuses an *empty block*, but it cannot see that `x = 1` prints
+  nothing — that is the author's to catch, and `try_lesson.dart` will show it.
+
+### How a prediction is compared
+
+Line by line, with trailing whitespace and surrounding blank lines removed from
+both sides — `print` ends every line with a newline that no student can type on
+purpose, and a keyboard leaves trailing spaces nobody can see.
+
+**Everything else counts**: case, quotes, and the spaces `print` puts between
+arguments. `Hallo42` is not `Hallo 42`, and `42` is not `"42"`. That is the
+whole exercise — write a step whose surprise is one of those differences.
+
+### A wrong prediction still completes the step
+
+The output is shown either way, the prediction is read back beside it, and the
+step is ticked. Getting it wrong is not a failure state: the surprise is the
+lesson, and hiding the answer to make the student guess again turns it into a
+lock. What decides the tick is that the program ran.
+
+### `explanation` — the feedback half
+
+Optional, and only on this type. Inline markdown, rendered the way prose is,
+shown **under** the answer and to everyone — the student who guessed right has
+learned no more about *why* than the one who did not.
+
+It is refused on every other type: it is shown with the answer to a prediction,
+and no other kind has an answer to show it with. An empty one is a
+`FormatException`, the same as an empty program.
 
 ## `pairs` — a match-the-pairs board
 

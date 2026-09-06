@@ -362,13 +362,26 @@ Three things hold that board together, and each is in `PairMatchBoard` (`lib/vie
 
 What is matched lives in `LessonScreenViewModel` per step, the way typed code does, so stepping away and back finds the board as it was left. It is **not** seeded from `ProgressStore`, which remembers that a step passed and not how: a finished lesson opens on a board that can be played again, with the way on already offered — the same thing an exercise does with its starter code.
 
+**A step may run code the student did not write.** `SectionKind.predictOutput` shows the lesson's own program and asks what it prints *before* it is run — declared `type: predict-output`, filled from a `<lang>-predict` block, and carrying no editor and no validator either. It is why `isAssignment` stays false here: code runs, but the student writes none of it.
+
+**The interpreter is the answer key.** A lesson file states no expected output and has nowhere to put one — `LessonScreenController.predict` calls `PythonAttemptRunner.attempt` with the section's program and *no validator*, and `matchesPrediction` (`prediction_verdict.dart`) holds the answer against what that run printed. An expected output written into the file is one that can drift from the code beside it; this one cannot. `tool/try_lesson.dart` runs a predict step too, so an author can see what their students will be measured against.
+
+Four things that shape it:
+
+- **Trailing whitespace is not a wrong answer, and nothing else is forgiven.** `print` ends every line with a newline no student can deliberately type, and a keyboard leaves trailing spaces nobody can see; both come off. Case, quotes and the space `print` puts between two arguments all count — those *are* the exercise.
+- **A wrong prediction still completes the step.** The output is shown either way, with the prediction read back beside it. What decides the tick is that the program ran. Hiding the answer to make the student guess again turns the moment of surprise — the whole reason the step exists — into a lock, and nothing here is graded.
+- **The verdict is about a frozen prediction.** `LessonScreenViewModel.prediction` is set when the run starts and is what the banner reads; the box's own controller keeps changing. Reading the box would let a student type the output that is sitting right beside them and watch the verdict flip.
+- **The program is a `CodeSample`, never a `CodeEditorCard`.** It cannot be changed, and an editor carries a caret and a text-input connection that invite typing into it. `CodeSample` is the same dark card a worked example in the prose takes — the two are one widget, because both are code that is *read*.
+
+The optional `explanation` block is shown under the answer and to everyone, right or wrong. It is the feedback half of a practice test, and a student who guessed right has learned no more about *why* than one who did not.
+
 Flutter's asset globbing is **not recursive**, so every asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared.
 
 ### Running Python
 
 `lib/services/python/` picks a host through a conditional import. The web host is the only one that exists; everything else, including the Dart VM `flutter test` runs on, falls through to `python_runtime_stub.dart`, which reports `isSupported == false` rather than throwing.
 
-`PythonRuntime` is named for what it is. A second language means a second runtime beside it and an interface above them both — not renaming this one. `PythonAttemptRunner` sits on top and is the only thing that should call `run()`: it wraps the student's code and the section's validator into **one** program, because the checks must see the exact output that run produced.
+`PythonRuntime` is named for what it is. A second language means a second runtime beside it and an interface above them both — not renaming this one. `PythonAttemptRunner` sits on top and is the only thing that should call `run()`: it wraps the student's code and the section's validator into **one** program, because the checks must see the exact output that run produced. A validator-less `attempt` is a plain run, which is what a `predict-output` step is.
 
 **The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `languageLabel()`, the same name without the number.
 

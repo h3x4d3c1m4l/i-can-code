@@ -48,6 +48,24 @@
   "@lessonScreen_pairsHint": {
     "description": "Above a match-the-pairs board. Says nothing about left and right: below `sm` the two columns are stacked."
   },
+  "lessonScreen_predictYours": "Your prediction",
+  "@lessonScreen_predictYours": {
+    "description": "Labels the box a predict-output step is answered in, and the same answer read back beside the real output."
+  },
+  "lessonScreen_predictHint": "Type what you think will appear\u2026",
+  "@lessonScreen_predictHint": {
+    "description": "Placeholder inside that box. Says \"appear\" rather than \"is printed\": the step may come before print has a name."
+  },
+  "lessonScreen_predictCheck": "Check prediction",
+  "@lessonScreen_predictCheck": {
+    "description": "Runs the step's program and compares its output with the prediction. Doubles as Stop while the run is in flight, so it shares a button with lessonScreen_stop."
+  },
+  "lessonScreen_predictCorrect": "Spot on!",
+  "@lessonScreen_predictCorrect": {},
+  "lessonScreen_predictWrong": "Not quite. Compare your prediction with what actually came out.",
+  "@lessonScreen_predictWrong": {
+    "description": "A wrong prediction still completes the step: seeing the difference is the point, and this is not a graded answer."
+  },
   "lessonScreen_optional": "Deep dive",
   "@lessonScreen_optional": {
     "description": "Badge under the title of a step the student may skip."

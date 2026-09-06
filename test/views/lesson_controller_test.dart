@@ -70,6 +70,7 @@ class _HeldRuntime implements PythonRuntime {
 /// Two exercises, so there is a step to move on from and a last step to end on.
 const List<LessonSection> _sections = [
   LessonSection(id: 'first', title: 'Eerste', kind: SectionKind.exercise, prose: '', starter: ''),
+  LessonSection(id: 'guess', title: 'Raden', kind: SectionKind.predictOutput, prose: '', program: 'print(42)'),
   LessonSection(id: 'last', title: 'Laatste', kind: SectionKind.exercise, prose: '', starter: ''),
 ];
 
@@ -117,6 +118,59 @@ void main() {
 
     return (controller, viewModel);
   }
+
+  /// A controller sitting on the predict-output step, with nothing yet asked.
+  (LessonScreenController, LessonScreenViewModel) predicting() {
+    final accessor = BuildContextAccessor();
+    final viewModel = LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'guess');
+
+    return (LessonScreenController(viewModel: viewModel, contextAccessor: accessor), viewModel);
+  }
+
+  test('a prediction runs the lesson\'s own program, with no checks on it', () async {
+    final (controller, viewModel) = predicting();
+    final section = _sections.firstWhere((s) => s.id == 'guess');
+
+    unawaited(controller.predict(section, 'iets anders'));
+    await pumpEventQueue();
+    runtime.finish(passed: true, output: '42\n');
+    await pumpEventQueue();
+
+    expect(viewModel.attempt?.output, '42\n');
+    // Frozen at the moment of asking, so typing into the box afterwards cannot
+    // rewrite the verdict on the screen.
+    expect(viewModel.prediction, 'iets anders');
+  });
+
+  test('a wrong prediction still completes the step', () async {
+    // Seeing the difference is the exercise, and there is nothing being graded
+    // here: what decides the tick is that the program ran, not that the guess
+    // was right.
+    final (controller, viewModel) = predicting();
+    final section = _sections.firstWhere((s) => s.id == 'guess');
+
+    unawaited(controller.predict(section, 'volstrekt fout'));
+    await pumpEventQueue();
+    runtime.finish(passed: true, output: '42\n');
+    await pumpEventQueue();
+
+    expect(viewModel.passed, contains(viewModel.step));
+    expect(GetIt.I<ProgressStore>().finishedIn(GetIt.I<Course>().lessons.single), contains('guess'));
+  });
+
+  test('leaving a predict step drops the answer that arrives after it', () async {
+    final (controller, viewModel) = predicting();
+    final section = _sections.firstWhere((s) => s.id == 'guess');
+
+    unawaited(controller.predict(section, 'iets'));
+    await pumpEventQueue();
+    await controller.stop();
+    runtime.finish(passed: true, output: '42\n');
+    await pumpEventQueue();
+
+    expect(viewModel.attempt, isNull, reason: 'a stopped run reports no verdict');
+    expect(viewModel.prediction, isNull, reason: 'the prediction belongs to the verdict it was asked for');
+  });
 
   test('Stop ends the run and leaves no verdict behind', () async {
     final (controller, viewModel) = await running();

@@ -4,8 +4,8 @@ import 'package:i_can_code/extensions/app_localizations_extension.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// What the last run produced: its verdict, then the program's output. The
@@ -43,42 +43,13 @@ class OutputPanel extends StatelessWidget {
 
   bool get _hasOutput => result.output.trim().isNotEmpty;
 
-  Widget _buildOutput(BuildContext context) {
-    final theme = context.theme;
-    final tokens = context.appTheme;
-
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        color: theme.colors.card,
-        shape: squircle(kCardCornerRadius, side: BorderSide(color: theme.colors.border)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              context.localizations.lessonScreen_output.toUpperCase(),
-              style: tokens.text.label.copyWith(fontSize: 12, color: theme.colors.mutedForeground),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              result.output.trimRight(),
-              style: tokens.text.code.copyWith(fontSize: 15, height: 1.7),
-            ),
-            if (result.truncated) ...[
-              const SizedBox(height: 10),
-              Text(
-                context.localizations.lessonScreen_truncated,
-                style: tokens.text.bodySmall.copyWith(fontSize: 14, color: tokens.colors.warning),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildOutput(BuildContext context) => OutputCard(
+    label: context.localizations.lessonScreen_output,
+    // Trailing whitespace off: print() ends every line with a newline, which
+    // would otherwise leave a blank line inside the card.
+    text: result.output.trimRight(),
+    note: result.truncated ? context.localizations.lessonScreen_truncated : null,
+  );
 
   Widget _buildVerdict(BuildContext context) {
     final tokens = context.appTheme;

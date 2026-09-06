@@ -53,6 +53,27 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     if (result.passed) await _remember(section);
   }
 
+  /// Runs a predict-output step's own program and shows what it printed.
+  ///
+  /// No validator: the program is the lesson's, not the student's, so there is
+  /// nothing to check about it. **The interpreter is the answer key** — what
+  /// [prediction] is held against is what this run produced, which is why a
+  /// lesson file states no expected output and cannot drift from the code in it.
+  ///
+  /// The step is recorded on a clean run whether the prediction was right or
+  /// not. Seeing the difference is the step; a wrong guess with feedback on it
+  /// is not a failure, and there is nothing here being graded.
+  Future<void> predict(LessonSection section, String prediction) async {
+    if (viewModel.running) return;
+
+    final token = ++_runToken;
+    viewModel.startRun(prediction: prediction);
+    final result = await _runner.attempt(code: section.program ?? '');
+    if (_disposed || token != _runToken) return;
+    viewModel.finishRun(result);
+    if (result.passed) await _remember(section);
+  }
+
   /// Ends the run in flight — at the student's asking, or on their way out of
   /// the step it belongs to.
   ///

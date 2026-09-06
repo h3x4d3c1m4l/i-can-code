@@ -12,6 +12,12 @@ environment:
 dependencies:
   flutter: { sdk: flutter }
   flutter_localizations: { sdk: flutter }
+  # Not used by this app's own code. forui's FTextField reaches for Cupertino's
+  # text-selection toolbar and magnifier on Apple platforms, and without this the
+  # glyphs it names have no font — a missing box in the selection toolbar on iOS
+  # Safari, and a build warning on every `flutter build web`. Tree-shaken to a
+  # few bytes, since only those glyphs are referenced.
+  cupertino_icons: ^1.0.8
   intl: any
 
   forui: 0.26.0

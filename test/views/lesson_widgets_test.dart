@@ -24,6 +24,7 @@ import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
@@ -1288,6 +1289,98 @@ void main() {
 
       expect(find.byKey(const ValueKey('step0')), findsNothing);
       expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, rest);
+    });
+  });
+
+  group('matchesPrediction', () {
+    test('a prediction that says the same thing matches', () {
+      expect(matchesPrediction('Hallo\n42', 'Hallo\n42\n'), isTrue);
+    });
+
+    test('the newline print leaves behind is not a mistake', () {
+      // Every print() ends its line, and no student can deliberately type a
+      // trailing newline into a box. Nor can they see the trailing spaces a
+      // keyboard leaves.
+      expect(matchesPrediction('Hallo', 'Hallo\n'), isTrue);
+      expect(matchesPrediction('Hallo  \n\n', 'Hallo\n'), isTrue);
+      expect(matchesPrediction('\nHallo\n', 'Hallo\n'), isTrue);
+    });
+
+    test('everything else counts, because that is the exercise', () {
+      // The space print() puts between two arguments is the whole point of the
+      // step that ships; quotes and case are what the lesson before it taught.
+      expect(matchesPrediction('Hallo42', 'Hallo 42\n'), isFalse);
+      expect(matchesPrediction('hallo', 'Hallo\n'), isFalse);
+      expect(matchesPrediction('"42"', '42\n'), isFalse);
+      // A line short is a different answer, not a near miss.
+      expect(matchesPrediction('Hallo', 'Hallo\n42\n'), isFalse);
+    });
+
+    test('a blank line *inside* the output is kept', () {
+      expect(matchesPrediction('a\n\nb', 'a\n\nb\n'), isTrue);
+      expect(matchesPrediction('a\nb', 'a\n\nb\n'), isFalse);
+    });
+  });
+
+  group('PredictionVerdict', () {
+    Widget verdict({required String prediction, required String output, String? explanation}) => _host(
+      PredictionVerdict(
+        result: AttemptResult(passed: true, output: output),
+        prediction: prediction,
+        explanation: explanation,
+      ),
+    );
+
+    testWidgets('a right prediction is said once, not printed twice', (tester) async {
+      await tester.pumpWidget(verdict(prediction: 'Hallo', output: 'Hallo\n'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Goed voorspeld!'), findsOneWidget);
+      // Right, the two cards would hold the same text and the second would read
+      // as a second answer.
+      expect(find.text('Hallo'), findsOneWidget);
+      expect(find.text('JOUW VOORSPELLING'), findsNothing);
+    });
+
+    testWidgets('a wrong prediction shows both, to be compared', (tester) async {
+      await tester.pumpWidget(verdict(prediction: 'Hallo42', output: 'Hallo 42\n'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Net niet'), findsOneWidget);
+      expect(find.text('JOUW VOORSPELLING'), findsOneWidget);
+      expect(find.text('Hallo42'), findsOneWidget);
+      expect(find.text('Hallo 42'), findsOneWidget);
+    });
+
+    testWidgets('the explanation is shown to everyone, right or wrong', (tester) async {
+      // Feedback is what makes a practice test beat re-reading, and a student
+      // who guessed right has learned no more about *why* than one who did not.
+      for (final prediction in ['Hallo', 'iets anders']) {
+        await tester.pumpWidget(
+          verdict(prediction: prediction, output: 'Hallo\n', explanation: 'Omdat print het zo doet.'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Omdat print het zo doet.'), findsOneWidget, reason: prediction);
+      }
+    });
+
+    testWidgets('a broken program is not the student getting it wrong', (tester) async {
+      // The lesson's own program failed, or there is no runtime to run it on.
+      // Either way it is said the way every other step says it.
+      await tester.pumpWidget(
+        _host(
+          const PredictionVerdict(
+            result: AttemptResult(passed: false, output: '', programError: 'NameError: name "x" is not defined'),
+            prediction: 'Hallo',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('NameError'), findsOneWidget);
+      expect(find.text('Goed voorspeld!'), findsNothing);
+      expect(find.textContaining('Net niet'), findsNothing);
     });
   });
 

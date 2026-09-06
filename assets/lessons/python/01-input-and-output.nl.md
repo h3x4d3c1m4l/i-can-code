@@ -89,6 +89,28 @@ if output != "42\n3.14":
     raise Exception("`print` eerst 42, daarna 3.14.")
 ```
 
+## Wat komt eruit?
+
+```metadata
+type: predict-output
+id: predict-print
+emoji: "🔮"
+```
+
+Voordat je dit programma laat draaien: denk eerst zelf na over wat er op het scherm verschijnt. Schrijf je voorspelling op — precies zoals je denkt dat het eruitziet, regel voor regel.
+
+Eerst voorspellen en daarna pas kijken werkt beter dan meteen op de knop drukken. Zit je ernaast, dan zie je meteen waar je beeld van Python niet klopte, en juist dát blijft hangen.
+
+```python-predict
+print("Hallo")
+print(42)
+print("Hallo", 42)
+```
+
+```explanation
+De eerste twee regels doen wat je verwacht. De derde is de verrassing: geef je `print` méér dan één ding, gescheiden door een komma, dan zet Python er zelf een **spatie** tussen. Die spatie staat nergens in je code — `print` maakt hem.
+```
+
 ## Wat hoort bij elkaar?
 
 ```metadata

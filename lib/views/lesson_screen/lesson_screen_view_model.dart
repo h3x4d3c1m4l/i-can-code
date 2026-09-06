@@ -42,6 +42,25 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   Set<PairHalf> _picked = {};
 
+  /// What the student has typed into a predict-output step's box, per step.
+  ///
+  /// Per step for the reason [_matchedPairs] is: stepping away and back finds
+  /// the answer as it was left. Kept here rather than only in the field's own
+  /// controller because the button that runs the program is disabled until
+  /// there is something to compare, and that is a decision the view has to make
+  /// during its own build.
+  @readonly
+  Map<int, String> _predictions = {};
+
+  /// The prediction the run in flight was started with — or, once it lands, the
+  /// one the verdict on screen is about.
+  ///
+  /// Held apart from [_predictions] on purpose: the box stays where it is after
+  /// the answer appears, and a student who types into it MUST NOT silently turn
+  /// a wrong prediction into a right one.
+  @readonly
+  String? _prediction;
+
   /// A run is in flight, which turns Run into Stop — the one thing that can be
   /// asked of a program that is already going.
   @readonly
@@ -116,6 +135,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// The pairs already matched on the step being shown.
   Set<int> get matched => _matchedPairs[_step] ?? const {};
 
+  /// What has been typed into the step being shown, on a predict-output step.
+  String get typedPrediction => _predictions[_step] ?? '';
+
   /// Two tiles are picked, which can only mean they do not belong together: a
   /// pair that matched cleared them both. They stay showing until the next tap,
   /// which starts the pick over rather than adding a third tile to it.
@@ -159,6 +181,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
     // What is already matched is kept, but a half-made pick is not: it belongs
     // to the moment it was made.
     _picked = {};
+    // The typed prediction is kept for the same reason the matched pairs are;
+    // the one the verdict was about goes with the verdict.
+    _prediction = null;
     // Leaves the end page: the progress bar and the trail can both reach past
     // it back into the lesson.
     _completed = false;
@@ -179,9 +204,15 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   void setCode(String code) => _code = {..._code, _step: code};
 
   @action
-  void startRun() {
+  void setPrediction(String prediction) => _predictions = {..._predictions, _step: prediction};
+
+  /// [prediction] is what a predict-output step was answered with, and null on
+  /// every other kind — there is nothing to compare a written program against.
+  @action
+  void startRun({String? prediction}) {
     _running = true;
     _attempt = null;
+    _prediction = prediction;
   }
 
   /// Marks the current step done without a run behind it, for an info step,
@@ -199,6 +230,7 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   void stopRun() {
     _running = false;
     _attempt = null;
+    _prediction = null;
   }
 
   @action

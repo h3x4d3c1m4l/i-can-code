@@ -52,12 +52,15 @@ void main(List<String> args) {
   }
 
   final section = lesson.sections[index];
-  if (!section.kind.isAssignment) {
+  // A predict-output step runs too — the lesson's own program rather than the
+  // student's, which is exactly what an author needs to see: its output is the
+  // answer key, and the file states none.
+  if (!section.kind.isAssignment && section.kind != SectionKind.predictOutput) {
     _bail('Section $index ("${section.title}") is ${section.kind.name} — there is nothing to run.');
     return;
   }
 
-  final code = _readCode(args) ?? section.starter!;
+  final code = _readCode(args) ?? section.starter ?? section.program!;
   _report(section, code);
 }
 
@@ -71,6 +74,7 @@ void _listSections(Lesson lesson) {
     final runnable = switch (section.kind) {
       final kind when kind.isAssignment => '',
       SectionKind.matchPairs => '   (${section.pairs.length} pairs)',
+      SectionKind.predictOutput => '   (predict its output)',
       _ => '   (nothing to run)',
     };
     final optional = section.optional ? '  [verdieping]' : '';
@@ -120,6 +124,11 @@ void _report(LessonSection section, String code) {
       ..writeln(_indent(error.trimRight()));
   } else if (result.checkMessage case final String message) {
     stdout.writeln('FAILED  — "$message"');
+  } else if (section.kind == SectionKind.predictOutput) {
+    // There is no validator here, so "passed" only means the program ran. What
+    // an author is checking is the output above: it is what the student's
+    // prediction gets held against, and nothing else states it.
+    stdout.writeln('RAN     — the output above is what the prediction is matched against');
   } else {
     stdout.writeln('PASSED');
   }

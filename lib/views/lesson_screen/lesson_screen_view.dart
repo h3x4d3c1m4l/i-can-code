@@ -4,18 +4,22 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/code_sample.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
@@ -66,6 +70,11 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// typed. Held by the view because a [CodeLineEditingController] is a Flutter
   /// object with a lifecycle, not observable state.
   final Map<int, CodeLineEditingController> _editors = {};
+
+  /// One prediction field per step, for the reason [_editors] is one per step: a
+  /// [TextEditingController] carries a selection and a composing region, which
+  /// are Flutter's business rather than observable state.
+  final Map<int, TextEditingController> _predictions = {};
 
   LessonScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
 
@@ -122,6 +131,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                       SectionKind.quickExercise => _buildQuickExercise(context, lesson, section),
                       SectionKind.exercise => _buildExercise(context, lesson, section),
                       SectionKind.matchPairs => _buildMatchPairs(context, lesson, section),
+                      SectionKind.predictOutput => _buildPredictOutput(context, lesson, section),
                     },
             ),
           );
@@ -271,6 +281,86 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// A predict-output step: prose, the program, a box to say what it will print,
+  /// and — once asked — the answer.
+  ///
+  /// The reading measure rather than the task's two columns, for the reason a
+  /// match-pairs step takes it: there is no code to write here, so the step is
+  /// read the way an [SectionKind.info] one is.
+  ///
+  /// The program is a [CodeSample] and **not** a [CodeEditorCard]: it cannot be
+  /// changed, and an editor invites typing into it.
+  Widget _buildPredictOutput(BuildContext context, Lesson lesson, LessonSection section) {
+    final tokens = context.appTheme;
+    final prediction = _predictionFor(viewModel.step);
+    final attempt = viewModel.attempt;
+    // Frozen when the run was started, so typing into the box afterwards cannot
+    // rewrite a verdict that is already on the screen.
+    final asked = viewModel.prediction;
+
+    return _Page(
+      maxWidth: _readingWidth,
+      padding: _readingPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _pastGutter(_buildHeading(lesson, section)),
+          const SizedBox(height: 30),
+          LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
+          const SizedBox(height: 20),
+          _pastGutter(
+            CodeSample(
+              source: section.program ?? '',
+              language: viewModel.lesson.entry.language,
+              // The interpreter that is about to run it, the way the editor's
+              // own strip names it — this code really does get run.
+              label: _statusLabel(context),
+              style: tokens.text.code.copyWith(color: tokens.colors.codeForeground),
+              labelStyle: tokens.text.codeSmall.copyWith(color: tokens.colors.codeMuted),
+              surface: tokens.colors.codeBackground,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _pastGutter(
+            PredictionField(
+              controller: prediction,
+              onChange: viewModel.setPrediction,
+              // Locked once the answer is showing: re-typing the output that is
+              // sitting right beside it would be answering nobody's question.
+              enabled: attempt == null,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _pastGutter(
+            AppButtonRow(
+              children: [
+                _buildBack(context, lesson),
+                RunButton(
+                  running: viewModel.running,
+                  runLabel: context.localizations.lessonScreen_predictCheck,
+                  stopLabel: context.localizations.lessonScreen_stop,
+                  // Predicting *is* the exercise, so there is nothing to ask for
+                  // until something has been predicted.
+                  onRun: viewModel.typedPrediction.trim().isEmpty || attempt != null
+                      ? null
+                      : () => controller.predict(section, prediction.text),
+                  onStop: controller.stop,
+                ),
+                if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
+              ],
+            ),
+          ),
+          if (attempt != null && asked != null) ...[
+            const SizedBox(height: 20),
+            _pastGutter(
+              PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
+            ),
+          ],
         ],
       ),
     );
@@ -431,10 +521,19 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   CodeLineEditingController _editorFor(int step, LessonSection section) =>
       _editors[step] ??= CodeLineEditingController.fromText(viewModel.code[step] ?? section.starter ?? '');
 
+  /// The prediction field for [step], seeded from what the view model already
+  /// holds — so a step left and come back to opens on the answer as it was
+  /// written, the way a match-pairs board comes back as it was left.
+  TextEditingController _predictionFor(int step) =>
+      _predictions[step] ??= TextEditingController(text: viewModel.predictions[step] ?? '');
+
   @override
   void dispose() {
     for (final editor in _editors.values) {
       editor.dispose();
+    }
+    for (final prediction in _predictions.values) {
+      prediction.dispose();
     }
     super.dispose();
   }

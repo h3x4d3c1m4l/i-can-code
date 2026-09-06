@@ -3,15 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:forui/forui.dart';
-import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
-import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/code_sample.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:re_highlight/languages/python.dart';
-import 'package:re_highlight/re_highlight.dart';
-import 'package:re_highlight/styles/atom-one-dark.dart';
 
 /// One `###` group of a section's prose: the heading, and every block under it
 /// up to the next `###`.
@@ -258,17 +254,8 @@ class LessonProse extends StatelessWidget {
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
 
-  /// The languages a worked example may be written in. The same registry and
-  /// theme the editor uses, so a sample and the student's code match.
-  static final Highlight _highlight = Highlight()..registerLanguage('python', langPython);
-
   /// Extra space *outside* the card, on top of the sheet's own rhythm.
   static const double _extra = 8;
-
-  /// Without a language there is no header, so the code takes its top inset
-  /// instead and the card keeps the same shape.
-  static EdgeInsets get _unlabelled =>
-      CodeEditorCard.codePadding.copyWith(top: CodeEditorCard.headerPadding.top);
 
   final TextStyle style;
 
@@ -306,59 +293,22 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
 
   @override
   Widget? visitText(md.Text text, TextStyle? preferredStyle) {
-    // Full width, so a one-line example is not shrink-wrapped around its text.
     return Padding(
       // Top is bare [_extra] because the paragraph above already contributes
       // its spacing; the bottom has to supply that itself.
       padding: EdgeInsets.only(top: _extra, bottom: trailingSpace + _extra),
-      child: SizedBox(
-        width: double.infinity,
-        child: DecoratedBox(
-          decoration: ShapeDecoration(color: surface, shape: squircle(kCardCornerRadius)),
-          // The editor card's own metrics, so an example and the box the
-          // student types into look like one object.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // The corner the editor names its runtime in. Named the way a
-              // reader writes it, never the fence's own lower-case word, and
-              // without a version: this code is static and no interpreter ran
-              // it.
-              if (_language case final String language)
-                Padding(
-                  padding: CodeEditorCard.headerPadding,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(languageLabel(language), style: labelStyle),
-                  ),
-                ),
-              Padding(
-                padding: _language == null ? _unlabelled : CodeEditorCard.codePadding,
-                // A long line scrolls rather than wrapping, which would read
-                // as two statements.
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Text.rich(_highlighted(text.text.trimRight())),
-                ),
-              ),
-            ],
-          ),
-        ),
+      // The corner is left to [CodeSample], which names the language the way a
+      // reader writes it rather than as the fence's own lower-case word — and
+      // without a version, because this code is static and no interpreter ran
+      // it.
+      child: CodeSample(
+        source: text.text,
+        language: _language,
+        style: style,
+        labelStyle: labelStyle,
+        surface: surface,
       ),
     );
-  }
-
-  /// [source], coloured — or plain when the fence names no language, or one
-  /// with no grammar registered. An unknown language is not an error.
-  TextSpan _highlighted(String source) {
-    if (_language == null || !_highlight.listLanguages().contains(_language)) {
-      return TextSpan(text: source, style: style);
-    }
-
-    final renderer = TextSpanRenderer(style, atomOneDarkTheme);
-    _highlight.highlight(code: source, language: _language!).render(renderer);
-    return renderer.span ?? TextSpan(text: source, style: style);
   }
 
 }

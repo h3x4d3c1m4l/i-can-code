@@ -27,7 +27,11 @@ class RunButton extends StatelessWidget {
   final String runLabel;
   final String stopLabel;
 
-  final VoidCallback onRun;
+  /// Null while there is nothing to run yet, which dims the button and stops it
+  /// responding — a predict-output step with an empty box. Never null while
+  /// [running]: stopping is always available.
+  final VoidCallback? onRun;
+
   final VoidCallback onStop;
 
   const RunButton({

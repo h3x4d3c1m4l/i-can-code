@@ -89,6 +89,28 @@ if output != "42\n3.14":
     raise Exception("`print` 42 first, then 3.14.")
 ```
 
+## What comes out?
+
+```metadata
+type: predict-output
+id: predict-print
+emoji: "🔮"
+```
+
+Before you run this program: work out for yourself what will appear on the screen. Write your prediction down — exactly as you think it will look, line by line.
+
+Predicting first and looking afterwards works better than going straight for the button. If you are wrong, you see at once where your picture of Python did not match, and that is the part that sticks.
+
+```python-predict
+print("Hello")
+print(42)
+print("Hello", 42)
+```
+
+```explanation
+The first two lines do what you expect. The third is the surprise: give `print` more than one thing, separated by a comma, and Python puts a **space** between them itself. That space appears nowhere in your code — `print` makes it.
+```
+
 ## What belongs together?
 
 ```metadata
