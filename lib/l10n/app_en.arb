@@ -97,6 +97,27 @@
   "lessonScreen_truncated": "The output was too long and has been cut short.",
   "@lessonScreen_truncated": {},
   "lessonScreen_crashed": "Python could not (fully) run your code:",
+  "lessonScreen_checkNotAllowed": "You may not use {construct} in this exercise.",
+  "@lessonScreen_checkNotAllowed": {
+    "description": "Shown when a step's allow_only/disallow check refused something and the lesson author wrote no message. `construct` is already phrased: a Python keyword arrives as a markdown code span, anything else as one of the lessonScreen_construct* strings. Each locale writes those to fit its own sentence here — English carries the article on the phrase (\"an assignment\"), Dutch carries it on the sentence (\"geen {construct}\") — so they are not interchangeable between locales.",
+    "placeholders": {
+      "construct": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonScreen_constructCall": "a function call",
+  "@lessonScreen_constructCall": {
+    "description": "A construct with no Python keyword to quote, read inside lessonScreen_checkNotAllowed. A whole line that is a call, like print(42)."
+  },
+  "lessonScreen_constructAssignment": "an assignment",
+  "lessonScreen_constructExpression": "a bare expression",
+  "@lessonScreen_constructExpression": {
+    "description": "A statement that is only a value, like a lone 42 or a docstring."
+  },
+  "lessonScreen_constructComprehension": "a comprehension",
+  "lessonScreen_constructFString": "an f-string",
+  "lessonScreen_constructTypeAlias": "a type alias",
   "@lessonScreen_crashed": {},
   "appHeader_hideBar": "Hide the bar",
   "@appHeader_hideBar": {

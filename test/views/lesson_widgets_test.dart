@@ -354,6 +354,24 @@ void main() {
       expect(find.text('Goed!'), findsOneWidget);
     });
 
+    testWidgets('the verdict stands above the output, whatever it says', (tester) async {
+      // The answer to what the student asked, before the evidence for it. Output
+      // is capped at 256 KB, so a runaway program must not push it off screen.
+      for (final entry in {
+        const AttemptResult(passed: true, output: 'Hello, world\n'): 'Goed!',
+        const AttemptResult(passed: false, output: 'Hello, world\n', checkMessage: 'Bijna.'): 'Bijna.',
+      }.entries) {
+        await tester.pumpWidget(_host(OutputPanel(result: entry.key)));
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.getTopLeft(find.textContaining(entry.value)).dy,
+          lessThan(tester.getTopLeft(find.text('Hello, world')).dy),
+          reason: entry.value,
+        );
+      }
+    });
+
     testWidgets('a failed check shows the validator\'s own words', (tester) async {
       await tester.pumpWidget(
         _host(

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:i_can_code/extensions/app_localizations_extension.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
@@ -7,9 +8,18 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
-/// What the last run produced: the program's output, then its verdict. The
+/// What the last run produced: its verdict, then the program's output. The
 /// three outcomes are drawn differently — a traceback in the code face, a failed
 /// check as a sentence, a pass as a single word.
+///
+/// **The verdict comes first**, because it is the answer to what the student
+/// pressed the button to ask, and the output below it is the evidence. A long or
+/// runaway output would otherwise push the answer off the screen — and the
+/// output is capped at 256 KB, so it can be very long indeed.
+///
+/// All three outcomes share that one slot. Moving only the failures up would put
+/// the banner in a different place depending on the answer, which makes a reader
+/// hunt for the one thing they are looking for.
 class OutputPanel extends StatelessWidget {
 
   final AttemptResult result;
@@ -22,14 +32,16 @@ class OutputPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (result.output.trim().isNotEmpty) _buildOutput(context),
-        if (result.output.trim().isNotEmpty && _hasVerdict) const SizedBox(height: 16),
         if (_hasVerdict) _buildVerdict(context),
+        if (_hasVerdict && _hasOutput) const SizedBox(height: 16),
+        if (_hasOutput) _buildOutput(context),
       ],
     );
   }
 
   bool get _hasVerdict => result.passed || result.programError != null || result.checkMessage != null;
+
+  bool get _hasOutput => result.output.trim().isNotEmpty;
 
   Widget _buildOutput(BuildContext context) {
     final theme = context.theme;
@@ -97,9 +109,19 @@ class OutputPanel extends StatelessWidget {
     if (result.checkMessage case final String message) {
       // Markdown, not text: a validator's message is authored alongside the
       // prose and uses the same `code` spans to name a function.
+      //
+      // A construct a step refused arrives as a name rather than as the English
+      // sentence the check library also built, so it can be said here in the
+      // reader's own language. An author who wrote their own message has already
+      // written it in the lesson's language, and it is used as it stands.
+      final text = switch (result.disallowedConstruct) {
+        final String construct => context.localizations.checkNotAllowed(construct),
+        null => message,
+      };
+
       return VerdictBanner(
         background: tokens.colors.warningSurface,
-        child: LessonProse(markdown: message, fontSize: 17, paragraphSpacing: 0),
+        child: LessonProse(markdown: text, fontSize: 17, paragraphSpacing: 0),
       );
     }
 

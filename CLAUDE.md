@@ -303,6 +303,17 @@ They cover three different windows and are not interchangeable:
 
 `tool/try_lesson.dart` drives the same harness from the command line, so a lesson can be checked without the app.
 
+**A validator can read the code as a tree, not only as a string.** `kCheckLibrary` (`lib/services/python/python_check_library.dart`) is a Python module carried into the run beside the student's source and exec'd into the validator's scope, which is how a validator gets `program.calls("print").with_args(42)` in place of `"print(" in code` — a check that passes for `s = "print(42)"` and cannot tell `print(42)` from `print("42")`. `docs/lesson-format.md` is the author-facing spec, and the names in the library's `__all__` are the contract: adding one means documenting it there.
+
+Two things it deliberately is not:
+
+- **Not a dependency.** It is the standard library's own `ast` and nothing else — `ast.pyc` is already inside `assets/python/python314.zip` and `_ast` is built into CPython — so there is no package to vendor, no asset to declare and no worker change behind it. It is a Dart `const` rather than a file under `assets/` so that `buildProgram` stays static and synchronous, which is what lets `try_lesson.dart` and the widget-free tests drive the real thing.
+- **Not a second way to check output.** The tree sees what was *written*, so it reaches a branch that never ran and never sees a value that was computed: `x = 40 + 2` then `print(x)` is a call to `print` with a variable. Check the value in `output`, the shape in `program`. A spy on the running `print` would answer the other half and is the thing to reach for if that half is ever needed.
+
+**A step fences off what it has not taught with `allow_only`, not `disallow`.** `program.allow_only("call")` is a whole early print step's check: calls, and nothing else. A ban has to name everything a student might reach for and misses whatever the language grows next, while an allowlist is a sentence about what the step has taught and stays true. Both take the student's message, and **without one the app says it instead, in the reader's language.** That works because the refusal reaches Dart as the construct's *name* rather than as a sentence: `NotAllowed` carries `icc_construct` out through the verdict into `AttemptResult.disallowedConstruct`, and `AppLocalizationsExtension.checkNotAllowed` phrases it. A Python keyword is the same word everywhere and is set as code, so only the handful with no keyword to quote — call, assignment, comprehension, f-string, bare expression, type alias — need a string per locale, and `test/services/python_check_library_test.dart` runs the library to hold `kPhrasedConstructs` against its own `_PHRASES`. The exception's own text stays the English sentence, because `tool/try_lesson.dart` has no localizations to reach for. Note `match` is a **soft** keyword: `keyword.iskeyword` says no about it, which is why `_is_keyword` asks `issoftkeyword` too. Depth hides nothing and costs nothing: the tree is walked iteratively, and CPython's parser refuses over-nested source before any check runs.
+
+`with_args` is **exact** in its positional arguments, and that is the whole design. Every pattern language that matches one argument at a time gets this wrong — pedal's `print(__exp__)` matches `print("Hallo", naam)` twice — and an author writing "called with one thing" then gets something else. `with_any_args` is the loose one, and it says so.
+
 ### Vocabulary
 
 Four words, fixed. Drifting off them is what made the folders disagree with the code once already.

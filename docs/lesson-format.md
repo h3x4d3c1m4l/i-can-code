@@ -308,6 +308,7 @@ names already bound:
 | --- | --- | --- |
 | `code` | `str` | Exactly what the student typed |
 | `output` | `str` | Their program's standard output, **with trailing whitespace stripped** |
+| `program` | `Program` | The same source, read as a tree. See *Reading the code* below |
 
 It reports a failure by raising, and the exception message is what the student
 sees:
@@ -325,6 +326,201 @@ Falling off the end without raising means the step passed.
 check written as `output == "42"` would otherwise never pass — the trap every
 author would hit on their first validator. Interior newlines are untouched, so
 `"42\n3.14"` still tests two lines.
+
+### Reading the code, not just the output
+
+`code` is a string, so the obvious check is `"print(" in code` — and that check
+passes for `s = "print(42)"`, fails for `print ( 42 )`, and cannot tell `print(42)`
+from `print("42")`. `program` reads the same source as a **tree**, so it answers
+about the code the student actually wrote.
+
+```python
+if not program.calls("print"):
+    raise Exception("Gebruik de `print`-functie.")
+if not program.calls("print").with_args(42):
+    raise Exception("Print het getal 42, zonder aanhalingstekens.")
+if not program.calls("print").times(2):
+    raise Exception("Gebruik twee losse `print`-regels.")
+if not program.uses("for"):
+    raise Exception("Gebruik een `for`-lus.")
+```
+
+Nothing here runs the student's code — the run already happened, and `output` is
+what it produced. So the tree **sees a branch that never executed** and **never
+sees a value that was computed**: in `x = 40 + 2` then `print(x)`, `program` sees
+a call to `print` with a variable, not with `42`. Check the value in `output`;
+check the shape in `program`.
+
+#### What you can ask
+
+| Question | Answers |
+| --- | --- |
+| `program.calls(name)` | Every call to `name`, anywhere — inside a loop or a function body included |
+| `program.assigns(name)` | Every assignment with `=`, or with `name` omitted, every assignment at all |
+| `program.uses(construct)` | `True`/`False` for one construct, or one group, of the table below |
+| `program.allow_only(*constructs)` | Raises when anything **else** was written. See *Fencing off what a step has not taught* |
+| `program.disallow(*constructs)` | Raises when any of these **was** written |
+
+A name is matched **whole**. `calls("math.sqrt")` finds `math.sqrt(x)` and
+`calls("sqrt")` finds the bare `sqrt(x)` that `from math import sqrt` leaves —
+neither finds the other. A **leading dot** is the method on any receiver, so
+`calls(".upper")` finds `naam.upper()` and `"hallo".upper()` alike.
+
+All three **raise** on a construct they do not know rather than answering
+`False`, so a typo is a loud failure in `try_lesson.dart` instead of a step no
+student can pass.
+
+#### Narrowing what came back
+
+`calls()` and `assigns()` return a **query**, which is truthy while anything still
+matches and can be narrowed further:
+
+| Narrowed by | Means |
+| --- | --- |
+| `.with_args(*args, **keywords)` | **Exactly** these positional arguments, and at least these keywords |
+| `.with_any_args(*args)` | These arguments, in this order, among however many others |
+| `.to(value)` | *(assignments)* Assigned this value |
+| `.times(n)`, `.at_least(n)`, `.at_most(n)` | How many are left. These answer `True`/`False`, so they end a chain |
+
+`with_args` is exact on purpose: `with_args(anything)` reads as "called with one
+thing", not "called with that among others" — which is `with_any_args(anything)`.
+That distinction is the one every pattern language gets wrong, and getting it
+wrong makes `print("Hallo", naam)` count as a call with one argument.
+
+#### Fencing off what a step has not taught
+
+A step one page into `print` wants calls and nothing else — no `if`, no `def`, no
+loop. `allow_only` says exactly that, and keeps saying it as Python grows:
+
+```python
+program.allow_only("call")
+```
+
+That is the whole check. It raises on the first thing the student wrote that is
+not a call, and falls through when there is nothing.
+
+Widen it by naming more:
+
+```python
+program.allow_only("call", "assignment")           # calls, and storing a result
+program.allow_only("call", "assignment", "if")     # ... and a branch
+```
+
+`disallow` is the other direction, for a step that has taught most things and is
+banning one:
+
+```python
+program.disallow("loops")
+program.disallow("import", "class")
+```
+
+**Prefer `allow_only` in an early lesson.** A ban has to name everything a student
+might reach for, and misses whatever the language grows next; an allowlist is a
+sentence about what the step has taught, and stays true.
+
+##### What may be named
+
+| Construct | Written as |
+| --- | --- |
+| `call` | A line that is a call — `print(42)`. A call *inside* something else is part of that thing, not this |
+| `assignment` | `x = 1`, `x: int = 1`, `x += 1` |
+| `if` | `if`, `elif`, and the `a if b else c` form |
+| `for`, `while`, `comprehension` | The three ways to repeat |
+| `break`, `continue`, `return`, `pass` | |
+| `def`, `lambda`, `class`, `yield` | |
+| `import` | `import x` and `from x import y` |
+| `try`, `raise`, `assert` | |
+| `with`, `global`, `nonlocal`, `del`, `await`, `match` | |
+| `f-string` | `f"Hallo {naam}"` |
+| `type-alias` | `type Punt = tuple[int, int]` |
+
+And these **groups**, each standing for the constructs under it:
+
+| Group | Stands for |
+| --- | --- |
+| `loops` | `for`, `while`, `comprehension` |
+| `branches` | `if`, `match` |
+| `jumps` | `break`, `continue`, `return` |
+| `functions` | `def`, `lambda`, `return` |
+| `control-flow` | `branches` + `loops` + `jumps` without `return`, plus `try` |
+
+A **bare expression** — a stray `42`, a module docstring — is always allowed and
+can never be named. It is not something a lesson teaches, and tripping over a
+docstring would read to a student as the checker being broken.
+
+**Depth is not a hiding place.** The whole tree is read, so a banned construct is
+found however deep it sits — inside a function that is never called, in a branch
+that never runs, at the bottom of a stack of `with` blocks. Nothing here recurses
+either, so there is no depth at which the check itself gives out: CPython's own
+parser refuses first, at 100 levels of indentation and around 200 nested
+parentheses, and that arrives as a program error before any check runs.
+
+##### The message the student reads
+
+Both take a `message`, and it is used exactly as written — it is authored in the
+lesson's own language, alongside the prose:
+
+```python
+program.allow_only("call", message="Gebruik in deze opdracht alleen `print`.")
+program.disallow("loops", message="Los dit nog even zonder lus op.")
+```
+
+**Leave it out and the app says it instead**, in the reader's language rather than
+the file's:
+
+> In deze opdracht mag je geen `if` gebruiken.
+>
+> You may not use `if` in this exercise.
+
+That works because the refusal travels to Dart as the construct's **name** and
+not as a sentence. A Python keyword is the same word in every language, so it is
+set as code; the handful of constructs with no keyword to quote — a call, an
+assignment, a comprehension, an f-string, a bare expression, a type alias — have
+a string per locale. The strings are `lessonScreen_checkNotAllowed` and
+`lessonScreen_construct*` in `lib/l10n/`, and
+`test/services/python_check_library_test.dart` holds them against the library's
+own list so a new construct cannot reach a student as a bare English word.
+
+A fallback is not a translation, though: it says *that* something is not allowed
+and never *why*, or what to do instead. **Write the message on any step a student
+is likely to trip over** — the fallback is there so a step is never wordless, not
+so a step can go unwritten.
+
+When several things are wrong, the student reads about the **first one they
+wrote**, not whichever the checker happened to reach first.
+
+#### Matchers
+
+An argument is compared as a literal unless it is one of these:
+
+| Matcher | Matches |
+| --- | --- |
+| `anything` | Any argument at all |
+| `a_string` | Text, f-string or not — `"hoi"` and `f"Hallo {naam}"` both |
+| `a_number` | A whole number or a decimal. `True` is not a number |
+| `a_variable` / `a_variable("naam")` | Any name being read, or that one |
+| `a_call("round")` | A call used as an argument — the `round(...)` in `print(round(x, 2))` |
+
+A literal is compared by **type as well as value**, so `with_args(42)` rejects
+`print("42")` and `print(42.0)`. A negative literal reads as the number:
+`with_args(-1)` matches `print(-1)`.
+
+```python
+if not program.calls("input").with_args(a_string):
+    raise Exception("Geef `input` een vraag mee, zodat de gebruiker weet wat te doen.")
+if not program.calls("print").with_args(a_string, a_variable("naam")):
+    raise Exception("Print een groet met daarachter de naam.")
+if not program.assigns("naam").to(a_call("input")):
+    raise Exception("Bewaar het antwoord van `input` in `naam`.")
+```
+
+#### It is the standard library and nothing more
+
+`program` is built on Python's own `ast`, which ships inside
+`assets/python/python314.zip`. There is no third-party package behind it and
+nothing to add to `pubspec.yaml`. The source is `kCheckLibrary` in
+`lib/services/python/python_check_library.dart`; the names it binds are the ones
+in its `__all__`, and `ast` itself is **not** among them.
 
 ### "Hidden" means hidden from the UI, not secret
 

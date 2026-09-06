@@ -115,8 +115,13 @@ void main() {
       final validators = lesson.sections.map((s) => s.validator).nonNulls;
 
       expect(validators, isNotEmpty);
-      expect(validators.every((v) => !v.contains('&quot;')), isTrue);
-      expect(validators.first, contains('"print("'));
+      // What `encodeHtml: false` buys: the markdown package would otherwise hand
+      // CPython `print(&quot;hi&quot;)`, which fails at runtime rather than here.
+      // Both quote forms, because a validator uses whichever the message needs.
+      expect(validators.every((v) => !v.contains('&quot;') && !v.contains('&#39;')), isTrue);
+      expect(validators.first, contains('"'));
+      expect(validators.first, contains("'"));
+      expect(validators.any((v) => v.contains(r'\n')), isTrue, reason: 'nor is a backslash eaten');
     });
 
     test('rejects a section with no id', () {

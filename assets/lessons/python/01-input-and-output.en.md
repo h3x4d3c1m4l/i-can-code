@@ -43,8 +43,12 @@ Now write a line of code yourself to "print" a piece of text. Choose your own me
 ```
 
 ```python-validator
-if "print(" not in code:
+program.allow_only("call")
+
+if not program.calls("print"):
     raise Exception("Use the `print` function to output text.")
+if not program.calls("print").with_any_args(a_string):
+    raise Exception('Put your message in quotation marks, for example `print("Hello")`.')
 if not output:
     raise Exception("Use the `print` function with a non-empty text.")
 ```
@@ -71,14 +75,18 @@ print(...)
 ```
 
 ```python-validator
-if "print(" not in code:
+program.allow_only("call")
+
+if not program.calls("print"):
     raise Exception("Use the `print` function.")
-if '"42"' in code or "'42'" in code or '"3.14"' in code or "'3.14'" in code:
+if program.calls("print").with_any_args("42") or program.calls("print").with_any_args("3.14"):
     raise Exception("Numbers are written without quotation marks.")
-if "3,14" in code.replace(" ", ""):
+if program.calls("print").with_args(3, 14):
     raise Exception("Python uses a dot as the decimal separator, not a comma: write 3.14.")
+if not program.calls("print").times(2):
+    raise Exception("Use 2 separate `print` lines for this: 42 first, then 3.14.")
 if output != "42\n3.14":
-    raise Exception("`print` 42 first, then 3.14. Use 2 separate `print` lines for this.")
+    raise Exception("`print` 42 first, then 3.14.")
 ```
 
 ## What belongs together?

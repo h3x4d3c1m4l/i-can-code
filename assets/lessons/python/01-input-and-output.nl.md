@@ -43,8 +43,12 @@ Schrijf nu zelf een regel code om een stukje tekst te "printen". Kies zelf de bo
 ```
 
 ```python-validator
-if "print(" not in code:
+program.allow_only("call")
+
+if not program.calls("print"):
     raise Exception("Gebruik de `print`-functie om tekst uit te voeren.")
+if not program.calls("print").with_any_args(a_string):
+    raise Exception('Zet je boodschap tussen aanhalingstekens, bijvoorbeeld `print("Hallo")`.')
 if not output:
     raise Exception("Gebruik de `print`-functie met een niet-lege tekst.")
 ```
@@ -71,14 +75,18 @@ print(...)
 ```
 
 ```python-validator
-if "print(" not in code:
+program.allow_only("call")
+
+if not program.calls("print"):
     raise Exception("Gebruik de `print`-functie.")
-if '"42"' in code or "'42'" in code or '"3.14"' in code or "'3.14'" in code:
+if program.calls("print").with_any_args("42") or program.calls("print").with_any_args("3.14"):
     raise Exception("Getallen schrijf je zonder aanhalingstekens.")
-if "3,14" in code.replace(" ", ""):
+if program.calls("print").with_args(3, 14):
     raise Exception("Python gebruikt een punt als decimaalteken, geen komma: schrijf 3.14.")
+if not program.calls("print").times(2):
+    raise Exception("Gebruik hiervoor 2 losse `print`-regels: eerst 42, daarna 3.14.")
 if output != "42\n3.14":
-    raise Exception("`print` eerst 42, daarna 3.14. Gebruik hiervoor 2 losse `print`-regels.")
+    raise Exception("`print` eerst 42, daarna 3.14.")
 ```
 
 ## Wat hoort bij elkaar?
