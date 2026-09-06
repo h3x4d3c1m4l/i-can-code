@@ -157,23 +157,41 @@ class AppButton extends StatelessWidget {
     };
   }
 
-  /// The label with its glyph, or the glyph alone. Centred either way, so an
-  /// icon-only button stretched to a taller sibling keeps its glyph in the
+  /// The label, the glyph, or both — and **always at the same height**.
+  ///
+  /// A button's height must not depend on what is in it: a row puts a back
+  /// chevron beside a word, and [AppButtonRow] wraps, so there is nothing above
+  /// to equalise them afterwards the way an `IntrinsicHeight` once did. The two
+  /// invisible children settle it — the label face's own line height, and the
+  /// glyph's box — and neither is a measurement guessed at here: the first is
+  /// asked of the font through the ambient [DefaultTextStyle], the second is
+  /// [_iconSize] itself. Both are zero-wide, so neither can widen the button.
+  ///
+  /// Centred, so a button next to a taller neighbour keeps its content in the
   /// middle.
   Widget _buildContent(Color foreground, {required bool enabled}) {
     final glyph = icon == null
         ? null
         : Icon(icon, size: _iconSize, color: foreground.withValues(alpha: enabled ? 1 : 0.6));
 
-    if (child == null) return Center(child: glyph);
-    if (glyph == null) return child!;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        if (iconSide == AppButtonIconSide.leading) ...[glyph, const SizedBox(width: _iconGap)],
-        child!,
-        if (iconSide == AppButtonIconSide.trailing) ...[const SizedBox(width: _iconGap), glyph],
+        const Text(''),
+        const SizedBox(height: _iconSize),
+        if (child == null)
+          glyph!
+        else if (glyph == null)
+          child!
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (iconSide == AppButtonIconSide.leading) ...[glyph, const SizedBox(width: _iconGap)],
+              child!,
+              if (iconSide == AppButtonIconSide.trailing) ...[const SizedBox(width: _iconGap), glyph],
+            ],
+          ),
       ],
     );
   }

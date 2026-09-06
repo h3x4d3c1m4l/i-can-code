@@ -1,21 +1,22 @@
 import 'package:flutter/widgets.dart';
 
-/// A row of buttons, every one of them the height of the tallest.
+/// A row of buttons that **wraps rather than overflows**.
 ///
-/// An icon-only [AppButton] would otherwise come out shorter than a labelled
-/// one beside it: its content is a 20px glyph where the other's is a line of
-/// text, and that line's height belongs to the font rather than to any number
-/// this app states. Padding the glyph to match would be guessing at Inter's
-/// metrics, and would drift the moment the type scale moved.
+/// A step's controls are the back chevron, Run and Volgende, and three of them
+/// do not fit the narrower of the lesson's two columns: at the `lg` breakpoint
+/// that column is 462px against a row that wants ~490. The row used to be a
+/// [Row], which reports an overflow and paints the yellow bars over whatever
+/// was last in it.
 ///
-/// [IntrinsicHeight] measures the tallest child and
-/// [CrossAxisAlignment.stretch] gives that height to the rest, so they agree
-/// whatever the font does. It costs an extra layout pass over its children,
-/// which is why this is a row of buttons and not something to reach for by
-/// default.
+/// [Wrap] can do that because every [AppButton] is already the same height
+/// whatever is in it — an icon-only one carries an empty [Text] in the label's
+/// own style, so the font settles the height rather than any number stated here.
+/// A [Wrap] gives its children no shared height, so that has to be true of the
+/// buttons themselves; it was an [IntrinsicHeight] around a [Row] that made it
+/// true before, and that could only ever equalise one line.
 class AppButtonRow extends StatelessWidget {
 
-  /// The design's gap between two buttons.
+  /// The design's gap between two buttons, and between two lines of them.
   static const double gap = 16;
 
   final List<Widget> children;
@@ -23,19 +24,6 @@ class AppButtonRow extends StatelessWidget {
   const AppButtonRow({required this.children, super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (index, child) in children.indexed) ...[
-            if (index > 0) const SizedBox(width: gap),
-            child,
-          ],
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Wrap(spacing: gap, runSpacing: gap, children: children);
 
 }

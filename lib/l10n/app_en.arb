@@ -26,8 +26,12 @@
   "@initializationScreen_retry": {},
   "catalogScreen_title": "Pick a topic",
   "@catalogScreen_title": {},
-  "lessonScreen_run": "Run code & check",
+  "lessonScreen_run": "Check code",
   "@lessonScreen_run": {},
+  "lessonScreen_stop": "Stop",
+  "@lessonScreen_stop": {
+    "description": "What the Run button becomes while a program is in flight. Kept short: it shares a button with lessonScreen_run, which is laid out behind it and holds the width."
+  },
   "lessonScreen_running": "Running…",
   "@lessonScreen_running": {},
   "lessonScreen_output": "Output",

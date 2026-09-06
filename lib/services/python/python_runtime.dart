@@ -72,6 +72,11 @@ abstract class PythonRuntime {
 
   /// Stops a running program. MUST NOT depend on the program cooperating — it
   /// is the only thing that ends `while True:`.
+  ///
+  /// A [run] in flight resolves rather than hanging, but with nothing worth
+  /// reading: whatever the program had printed died with the process holding it,
+  /// so a caller that stopped on purpose should drop that answer rather than
+  /// show it as a verdict.
   Future<void> cancel();
 
   void dispose();

@@ -16,6 +16,7 @@ import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
@@ -265,7 +266,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           _pastGutter(
             AppButtonRow(
               children: [
-                ..._buildBack(context, lesson),
+                _buildBack(context, lesson),
                 if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
               ],
             ),
@@ -344,13 +345,13 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       const SizedBox(height: 16),
       AppButtonRow(
         children: [
-          ..._buildBack(context, lesson),
-          AppButton(
-            tone: AppButtonTone.neutral,
-            icon: FLucideIcons.play,
-            busy: viewModel.running,
-            onPress: viewModel.running ? null : () => controller.run(section, editor.text),
-            child: Text(context.localizations.lessonScreen_run),
+          _buildBack(context, lesson),
+          RunButton(
+            running: viewModel.running,
+            runLabel: context.localizations.lessonScreen_run,
+            stopLabel: context.localizations.lessonScreen_stop,
+            onRun: () => controller.run(section, editor.text),
+            onStop: controller.stop,
           ),
           if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
         ],
@@ -371,23 +372,27 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
 
   Widget _buildContinue(BuildContext context, Lesson lesson) {
     return AppButtonRow(
-      children: [..._buildBack(context, lesson), _buildNext(context, lesson)],
+      children: [_buildBack(context, lesson), _buildNext(context, lesson)],
     );
   }
 
-  /// The way back, or nothing at all on the first step — a control that cannot
-  /// do anything is worse than no control.
+  /// The way back: the step before this one, or — on the first step — out of the
+  /// lesson to its catalog.
   ///
-  /// A list rather than a nullable widget so a caller can spread it into a row
-  /// without a `if (back != null)` at every one.
-  List<Widget> _buildBack(BuildContext context, Lesson lesson) => [
-    if (controller.canGoBack)
-      AppButton.icon(
-        icon: FLucideIcons.chevronLeft,
-        semanticsLabel: context.localizations.lessonScreen_back,
-        onPress: () => controller.previous(lesson.stepCount),
-      ),
-  ];
+  /// Always drawn. It used to be left out on the first step, where there was no
+  /// step to go back to; that made it the one place in the app with no way back,
+  /// which in zen mode means no way back at all short of the browser's own
+  /// button.
+  Widget _buildBack(BuildContext context, Lesson lesson) => AppButton.icon(
+    icon: FLucideIcons.chevronLeft,
+    // Named for where it actually goes. From the first step that is the
+    // catalog, and `lessonScreen_finish` is already the sentence about that
+    // same destination — there is no text in an icon button to fall back on.
+    semanticsLabel: viewModel.step == 0
+        ? context.localizations.lessonScreen_finish(languageLabel(viewModel.lesson.entry.language))
+        : context.localizations.lessonScreen_back,
+    onPress: () => controller.previous(lesson.stepCount),
+  );
 
   /// The way on. The chevron is trailing, so it points out of the button in the
   /// direction it goes; the last step ends in a tick instead, because it opens

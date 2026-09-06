@@ -42,7 +42,8 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   Set<PairHalf> _picked = {};
 
-  /// A run is in flight, which disables Run so a second cannot start.
+  /// A run is in flight, which turns Run into Stop — the one thing that can be
+  /// asked of a program that is already going.
   @readonly
   bool _running = false;
 
@@ -187,6 +188,18 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// which has nothing to check.
   @action
   void markPassed() => _passed = {..._passed, _step};
+
+  /// Ends a run that was stopped — by the student, or by their leaving the step
+  /// it belongs to.
+  ///
+  /// Clears the verdict rather than writing one: there is nothing to say about a
+  /// program that was not allowed to finish, and what it had printed died with
+  /// the worker that was holding it.
+  @action
+  void stopRun() {
+    _running = false;
+    _attempt = null;
+  }
 
   @action
   void finishRun(AttemptResult result) {

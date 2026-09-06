@@ -102,9 +102,13 @@ class WebPythonRuntime implements PythonRuntime {
 
   @override
   Future<PythonResult> run(String code, {String stdin = ''}) async {
-    if (_pending != null) {
-      return const PythonResult.failure('A program is already running.');
-    }
+    // A run still in flight is ended, never refused. Refusing is what left a
+    // student who walked away from a `sleep(3000)` with a runtime that answered
+    // "a program is already running" to every attempt afterwards, and nothing
+    // they could press to clear it. The worker is disposable by design, so
+    // superseding one run with the next costs a restart and nothing else.
+    if (_pending != null) await cancel();
+
     try {
       await ready();
     } on Object catch (error) {

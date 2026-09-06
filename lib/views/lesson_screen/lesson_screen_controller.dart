@@ -21,6 +21,14 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
   bool _disposed = false;
 
+  /// Identifies the run in flight, so an answer that arrives after it was
+  /// abandoned belongs to nobody.
+  ///
+  /// A stopped run still resolves — the runtime completes it rather than leaving
+  /// it hanging — and by then the student may be two steps further on. Without
+  /// this, that answer would land on whatever step is showing.
+  int _runToken = 0;
+
   LessonScreenController({required super.viewModel, required super.contextAccessor}) {
     // `/resume` and stale ids are resolved by the view model, so the address
     // still needs rewriting. After the first frame, because the accessor's
@@ -37,11 +45,27 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   Future<void> run(LessonSection section, String code) async {
     if (viewModel.running) return;
 
+    final token = ++_runToken;
     viewModel.startRun();
     final result = await _runner.attempt(code: code, validator: section.validator);
-    if (_disposed) return;
+    if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
     if (result.passed) await _remember(section);
+  }
+
+  /// Ends the run in flight — at the student's asking, or on their way out of
+  /// the step it belongs to.
+  ///
+  /// The interpreter is terminated rather than asked to stop: `while True:`, or
+  /// the `sleep(3000)` a student meant as milliseconds, never gets round to
+  /// answering. Its verdict is dropped rather than shown, so stopping reads as
+  /// the button going back to Run and not as a program that failed.
+  Future<void> stop() async {
+    if (!viewModel.running) return;
+
+    _runToken++;
+    viewModel.stopRun();
+    await _runtime.cancel();
   }
 
   /// Picks one tile of a match-pairs board, and records the step the moment its
@@ -92,21 +116,21 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// Leaves an optional step without completing it.
   Future<void> skip(int stepCount) => _advance(stepCount);
 
-  /// Back one step, or off the end page onto the last step.
+  /// Back one step — off the end page onto the last step, and off the **first**
+  /// step out of the lesson altogether, to its catalog.
   ///
   /// Records nothing on the way: moving backwards is reading, not progress.
-  /// [canGoBack] is what decides whether it is offered, so this has nowhere to
-  /// go only if it is called anyway.
+  ///
+  /// There is always somewhere behind the reader, which is why this no longer
+  /// has a case that does nothing. The first step used to be the one place with
+  /// no way back at all — and in zen mode, where the trail is put away, that
+  /// left the catalog unreachable without the browser's own Back button.
   Future<void> previous(int stepCount) async {
     if (viewModel.completed) return goTo(stepCount - 1);
-    if (viewModel.step == 0) return;
+    if (viewModel.step == 0) return openLanguage(viewModel.lesson.entry.language);
 
     await goTo(viewModel.step - 1);
   }
-
-  /// Whether there is a step behind this one. False on the very first step,
-  /// where a back button would be a control that does nothing.
-  bool get canGoBack => viewModel.completed || viewModel.step > 0;
 
   /// Moves one step on, or shows the lesson's end page after the last one.
   Future<void> _advance(int stepCount) async {
@@ -117,6 +141,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
     // The end page rather than the catalog: it is where the way on to the next
     // lesson lives, and where a finished lesson is actually acknowledged.
+    await stop();
     viewModel.complete();
   }
 
@@ -125,6 +150,9 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// `replace` rather than `push`, so Back leaves the lesson instead of walking
   /// it backwards a step at a time.
   Future<void> goTo(int step) async {
+    // Before the move, not after: `LessonScreenViewModel.goTo` clears `running`
+    // itself, and [stop] would then find nothing left to stop.
+    await stop();
     viewModel.goTo(step);
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 
@@ -198,6 +226,11 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   @override
   void dispose() {
     _disposed = true;
+    // The catch-all behind the stops on the moves this controller makes itself:
+    // a lesson can also be left by the trail, the browser's Back button or the
+    // settings menu, and a program left running would hold the runtime for
+    // whatever screen comes next.
+    unawaited(stop());
     super.dispose();
   }
 

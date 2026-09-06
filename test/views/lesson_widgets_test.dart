@@ -24,6 +24,7 @@ import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
@@ -1033,10 +1034,50 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // A glyph is shorter than a line of text, and that line's height belongs
-      // to the font. The row is what makes them agree.
+      // Every button is the same height whatever is in it — the row no longer
+      // equalises them, because a wrapping row cannot.
       final sizes = tester.widgetList<AppButton>(find.byType(AppButton)).map((b) => tester.getSize(find.byWidget(b)));
       expect(sizes.map((size) => size.height).toSet(), hasLength(1), reason: 'heights: $sizes');
+    });
+
+    testWidgets('a row wraps rather than overflowing when the buttons do not fit', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          // Aligned, so the box may actually be narrower than the host: a
+          // SizedBox cannot shrink under a tight incoming constraint.
+          Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              // Wide enough for any one of them, too narrow for all three —
+              // the lesson's own case in the narrower of its two columns.
+              width: 400,
+              child: AppButtonRow(
+              children: [
+                  AppButton.icon(icon: FLucideIcons.chevronLeft, semanticsLabel: 'Vorige stap', onPress: () {}),
+                  AppButton(onPress: () {}, child: const Text('Controleer code')),
+                  AppButton(onPress: () {}, child: const Text('Volgende')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A Row reported an overflow here and painted the yellow bars over
+      // whatever was last in it, which is what a lesson's third button did in
+      // the narrower of the two columns.
+      expect(tester.takeException(), isNull);
+
+      final boxes = tester
+          .widgetList<AppButton>(find.byType(AppButton))
+          .map((button) => tester.getRect(find.byWidget(button)))
+          .toList();
+
+      expect(boxes.every((box) => box.width <= 400), isTrue, reason: 'boxes: $boxes');
+      expect(boxes.map((box) => box.top).toSet().length, greaterThan(1), reason: 'it broke into lines');
+      // The lines still agree with each other: every button is one height.
+      expect(boxes.map((box) => box.height).toSet(), hasLength(1), reason: 'boxes: $boxes');
     });
 
     testWidgets('keeps its width when it starts working', (tester) async {
@@ -1055,6 +1096,67 @@ void main() {
 
       expect(tester.getSize(find.byType(AppButton)), idle, reason: 'the button must not jump when pressed');
       expect(find.byType(FCircularProgress), findsOneWidget);
+    });
+  });
+
+  group('RunButton', () {
+    Widget button({required bool running, VoidCallback? onRun, VoidCallback? onStop}) => _host(
+      Align(
+        child: RunButton(
+          running: running,
+          runLabel: 'Draai code & controleer',
+          stopLabel: 'Stoppen',
+          onRun: onRun ?? () {},
+          onStop: onStop ?? () {},
+        ),
+      ),
+    );
+
+    testWidgets('keeps its size when the run becomes a stop', (tester) async {
+      await tester.pumpWidget(button(running: false));
+      await tester.pumpAndSettle();
+      final idle = tester.getSize(find.byType(AppButton));
+
+      await tester.pumpWidget(button(running: true));
+      await tester.pump();
+
+      // Both labels stay laid out, so the shorter one cannot shrink the button
+      // out from under the pointer that just pressed it.
+      expect(tester.getSize(find.byType(AppButton)), idle);
+    });
+
+    testWidgets('swaps the play mark for a stop, and the handler with it', (tester) async {
+      var ran = 0;
+      var stopped = 0;
+
+      await tester.pumpWidget(button(running: false, onRun: () => ran++, onStop: () => stopped++));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(FLucideIcons.play), findsOneWidget);
+      await tester.tap(find.byType(AppButton));
+      await tester.pumpAndSettle();
+      expect((ran, stopped), (1, 0));
+
+      await tester.pumpWidget(button(running: true, onRun: () => ran++, onStop: () => stopped++));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(FLucideIcons.square), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.play), findsNothing, reason: 'a running program cannot be started');
+      await tester.tap(find.byType(AppButton));
+      await tester.pumpAndSettle();
+      expect((ran, stopped), (1, 1));
+    });
+
+    testWidgets('is named for a screen reader by the label that is showing', (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(button(running: true));
+      await tester.pumpAndSettle();
+
+      // The run label is still laid out to hold the width open, but only one of
+      // the two may be read out.
+      expect(find.bySemanticsLabel('Stoppen'), findsOneWidget);
+      expect(find.bySemanticsLabel('Draai code & controleer'), findsNothing);
+
+      handle.dispose();
     });
   });
 
