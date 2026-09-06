@@ -66,6 +66,28 @@
   "@lessonScreen_predictWrong": {
     "description": "A wrong prediction still completes the step: seeing the difference is the point, and this is not a graded answer."
   },
+  "lessonScreen_orderBank": "Available lines",
+  "@lessonScreen_orderBank": {
+    "description": "Heads the lines an order-lines step has not been given a place yet, distractors among them."
+  },
+  "lessonScreen_orderProgram": "Your program",
+  "@lessonScreen_orderProgram": {
+    "description": "Heads the lines the student has arranged, which is what gets run."
+  },
+  "lessonScreen_orderEmpty": "Drag a line here, or tap one.",
+  "@lessonScreen_orderEmpty": {
+    "description": "Stands in for the arranged program while it is still empty. Names both ways in, since an empty board shows neither."
+  },
+  "lessonScreen_orderUp": "Move line up",
+  "@lessonScreen_orderUp": {
+    "description": "A custom semantics action on an arranged line. Lines are reordered by dragging, which no screen reader or keyboard can do, so this is that same move said in words."
+  },
+  "lessonScreen_orderDown": "Move line down",
+  "@lessonScreen_orderDown": {},
+  "lessonScreen_orderRemove": "Put the line back",
+  "@lessonScreen_orderRemove": {
+    "description": "Returns an arranged line to the available ones. Not \"delete\": nothing is lost, it goes back to where it came from."
+  },
   "lessonScreen_optional": "Deep dive",
   "@lessonScreen_optional": {
     "description": "Badge under the title of a step the student may skip."

@@ -375,6 +375,21 @@ Four things that shape it:
 
 The optional `explanation` block is shown under the answer and to everyone, right or wrong. It is the feedback half of a practice test, and a student who guessed right has learned no more about *why* than one who did not.
 
+**A step may be checked without being typed.** `SectionKind.orderLines` shuffles the program's own lines for the student to arrange — declared `type: order-lines`, filled from a `<lang>-order` block plus optional `<lang>-distractors`. It is the one kind where `isAssignment` and `usesValidator` come apart: it runs a program, so it needs a validator, but the student assembles that program rather than writing it, so it has no editor and no assignment block. `usesValidator` exists for exactly that one case.
+
+**What is checked is the assembled program, never the arrangement.** The placed lines are joined and handed to the ordinary `LessonScreenController.run`, so an order that is different but correct passes — and the validator an author would write for the same task as an `exercise` works here unchanged. Comparing against the block instead would fail a right answer for being a different right answer.
+
+Four things in `LineOrderingBoard` (`lib/views/lesson_screen/components/`):
+
+- **The deal refuses the author's own order**, which is the answer. `bankOrder()` seeds a `Random` from the section's `id` — so the board survives its own rebuilds, one per move — and rotates a deal that came back sorted. The widget test brute-forces 200 seeds per length, because the guard only fires on the deals that would have landed sorted and a single seed is unlikely to be one of them.
+- **Dragged, with a tap and a semantics action beside it.** A line is dropped into any gap, which is what ordering actually is. `ReorderableListView` is **Material**, and its widgets-layer cousin wants a viewport of its own that would fight the step's own scroll view, so the board is `LongPressDraggable` and `DragTarget` directly. Tapping an available line still appends it, and a placed line still carries the × that puts it back.
+- **A plain `Draggable` loses to the page it sits in.** Its recogniser competes in the gesture arena with the scroll view every step is wrapped in, and **on touch the scroll wins** — the page slides and the line stays put. `LineOrderingBoard.dragDelay` (150ms) settles the arena first: far under `kLongPressTimeout`'s 500ms, which reads as a stall on a mouse, and far enough over zero that a finger starting to scroll is scrolling. The widget test found this, not a browser: `tester.startGesture` simulates touch, and on desktop a mouse is not in `ScrollBehavior.dragDevices` at all — so the bug was invisible to the one device the developer was using.
+- **A drag reaches no keyboard and no screen reader**, so every placed line carries `customSemanticsActions` for moving it up and down. Those are the two arrow buttons that used to stand in the row, kept as actions once the buttons themselves were dropped. Removing the buttons without them would have made the step unusable without a mouse, silently.
+- **Both positions of a move are counted before the move.** A drop names a gap in the program the student can *see*, not one in the program left after their line is lifted out of it, so `moveLine` corrects by one when the line travels downwards. Without it every drag down lands one place short.
+- **Indentation travels with the line.** The parser keeps leading whitespace and drops blank lines, so the student arranges a program rather than also having to indent it. Choosing the indent as well is a second axis this deliberately does not have.
+
+**The best distractor is one the output cannot catch.** `print("42")` beside `print(42)` prints the same characters, so only `program.calls("print").with_any_args("42")` tells them apart — which is what `kCheckLibrary` is for, and how the step in lesson 01 is built.
+
 Flutter's asset globbing is **not recursive**, so every asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared.
 
 ### Running Python

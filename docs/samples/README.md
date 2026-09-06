@@ -16,6 +16,7 @@ fvm dart run tool/try_lesson.dart docs/samples/predict-output.md 0   # see the a
 | [exercise.md](exercise.md) | `exercise` | The two-column form, with a fuller validator |
 | [match-pairs.md](match-pairs.md) | `match-pairs` | A `pairs` block — the board is the check |
 | [predict-output.md](predict-output.md) | `predict-output` | A `<lang>-predict` block and its optional `explanation` |
+| [order-lines.md](order-lines.md) | `order-lines` | A `<lang>-order` block, its `<lang>-distractors`, and a validator that runs what was built |
 
 **These are documentation, not content.** They live here rather than under
 `assets/lessons/`, which is the only directory the app discovers, so nothing here

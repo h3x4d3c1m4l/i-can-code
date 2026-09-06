@@ -52,16 +52,18 @@ void main(List<String> args) {
   }
 
   final section = lesson.sections[index];
-  // A predict-output step runs too — the lesson's own program rather than the
-  // student's, which is exactly what an author needs to see: its output is the
-  // answer key, and the file states none.
-  if (!section.kind.isAssignment && section.kind != SectionKind.predictOutput) {
+  // Two more kinds run, and neither has a starter block. A predict-output step
+  // runs the lesson's own program — its output is the answer key, and the file
+  // states none. An order-lines step runs the author's own order, which is what
+  // proves the intended answer actually passes the validator beside it.
+  const runnable = {SectionKind.predictOutput, SectionKind.orderLines};
+  if (!section.kind.isAssignment && !runnable.contains(section.kind)) {
     _bail('Section $index ("${section.title}") is ${section.kind.name} — there is nothing to run.');
     return;
   }
 
-  final code = _readCode(args) ?? section.starter ?? section.program!;
-  _report(section, code);
+  final code = _readCode(args) ?? section.starter ?? section.program ?? section.lines.join('\n');
+  _report(section, code, args);
 }
 
 void _listSections(Lesson lesson) {
@@ -75,6 +77,9 @@ void _listSections(Lesson lesson) {
       final kind when kind.isAssignment => '',
       SectionKind.matchPairs => '   (${section.pairs.length} pairs)',
       SectionKind.predictOutput => '   (predict its output)',
+      SectionKind.orderLines =>
+        '   (${section.lines.length} lines'
+            '${section.distractors.isEmpty ? '' : ' + ${section.distractors.length} distractors'})',
       _ => '   (nothing to run)',
     };
     final optional = section.optional ? '  [verdieping]' : '';
@@ -99,7 +104,7 @@ String? _readCode(List<String> args) {
   return null;
 }
 
-void _report(LessonSection section, String code) {
+void _report(LessonSection section, String code, List<String> args) {
   final run = Process.runSync(
     'python3',
     ['-c', PythonAttemptRunner.buildProgram(code: code, validator: section.validator)],
@@ -124,6 +129,8 @@ void _report(LessonSection section, String code) {
       ..writeln(_indent(error.trimRight()));
   } else if (result.checkMessage case final String message) {
     stdout.writeln('FAILED  — "$message"');
+  } else if (section.kind == SectionKind.orderLines && _readCode(args) == null) {
+    stdout.writeln('PASSED  — the author\'s own order, which is what the student has to rebuild');
   } else if (section.kind == SectionKind.predictOutput) {
     // There is no validator here, so "passed" only means the program ran. What
     // an author is checking is the output above: it is what the student's

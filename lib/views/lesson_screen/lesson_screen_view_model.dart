@@ -61,6 +61,15 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   String? _prediction;
 
+  /// The lines a student has arranged on an order-lines board, per step, as
+  /// indices into that section's pool of lines.
+  ///
+  /// Per step for the reason [_matchedPairs] is, and **not** seeded from
+  /// [ProgressStore]: a finished lesson opens on an empty board that can be
+  /// played again, with the way on already offered.
+  @readonly
+  Map<int, List<int>> _arrangedLines = {};
+
   /// A run is in flight, which turns Run into Stop — the one thing that can be
   /// asked of a program that is already going.
   @readonly
@@ -138,6 +147,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// What has been typed into the step being shown, on a predict-output step.
   String get typedPrediction => _predictions[_step] ?? '';
 
+  /// The lines already placed on the step being shown, in the student's order.
+  List<int> get arranged => _arrangedLines[_step] ?? const [];
+
   /// Two tiles are picked, which can only mean they do not belong together: a
   /// pair that matched cleared them both. They stay showing until the next tap,
   /// which starts the pick over rather than adding a third tile to it.
@@ -202,6 +214,39 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
 
   @action
   void setCode(String code) => _code = {..._code, _step: code};
+
+  /// Takes one line of an order-lines board out of the available ones and puts
+  /// it into the assembled program at [position].
+  ///
+  /// [position] counts the program as it stands, so `arranged.length` appends —
+  /// which is what tapping an available line does.
+  @action
+  void placeLine(int line, int position) =>
+      _arrangedLines = {..._arrangedLines, _step: [...arranged]..insert(position.clamp(0, arranged.length), line)};
+
+  /// Puts the line at [position] back among the available ones.
+  @action
+  void unplaceLine(int position) =>
+      _arrangedLines = {..._arrangedLines, _step: [...arranged]..removeAt(position)};
+
+  /// Moves the line at [from] to [to], **both counted before the move**.
+  ///
+  /// That is what a drop between two lines means: the student picks a gap in the
+  /// program they can see, not one in the program that is left once their line
+  /// has been lifted out of it. Taking the line out first shifts every gap below
+  /// it up by one, which is the `to > from` correction here — without it, every
+  /// drag downwards lands one place short.
+  @action
+  void moveLine(int from, int to) {
+    if (from < 0 || from >= arranged.length) return;
+
+    final target = (to > from ? to - 1 : to).clamp(0, arranged.length - 1);
+    if (target == from) return;
+
+    final lines = [...arranged];
+    lines.insert(target, lines.removeAt(from));
+    _arrangedLines = {..._arrangedLines, _step: lines};
+  }
 
   @action
   void setPrediction(String prediction) => _predictions = {..._predictions, _step: prediction};

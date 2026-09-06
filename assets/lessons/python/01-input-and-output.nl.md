@@ -134,3 +134,44 @@ Je weet nu wat `print` met tekst en met getallen doet. Zet de stukjes bij elkaar
 Twee `print`-regels onder elkaar
 … geven twee regels uitvoer.
 ```
+
+## Zet het programma in elkaar
+
+```metadata
+type: order-lines
+id: order-answer
+emoji: "🔀"
+```
+
+Hieronder staan de regels van een programma door elkaar. Zet ze in de goede volgorde, zodat er dit verschijnt:
+
+```text
+Het antwoord is:
+42
+Klaar!
+```
+
+Let op: er ligt één regel tussen die er niet in hoort. Twee regels lijken op elkaar — kijk goed naar de aanhalingstekens.
+
+```python-order
+print("Het antwoord is:")
+print(42)
+print("Klaar!")
+```
+
+```python-distractors
+print("42")
+```
+
+```python-validator
+program.allow_only("call")
+
+if not program.calls("print"):
+    raise Exception("Gebruik de `print`-functie.")
+if program.calls("print").with_any_args("42"):
+    raise Exception("Er zit een regel bij met `\"42\"` tussen aanhalingstekens. Getallen schrijf je zonder.")
+if not program.calls("print").times(3):
+    raise Exception("Je programma bestaat uit precies 3 regels.")
+if output != "Het antwoord is:\n42\nKlaar!":
+    raise Exception("Zet ze zo neer dat er eerst `Het antwoord is:` komt, dan `42`, dan `Klaar!`.")
+```

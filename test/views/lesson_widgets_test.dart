@@ -21,6 +21,7 @@ import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_grou
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
@@ -657,9 +658,13 @@ void main() {
 
   group('the step heading', () {
     // One size for every kind, so the steps read as one sequence.
+    //
+    // Built here rather than looked up in the fixture lesson: this is about the
+    // heading, not about which kinds a lesson happens to use, and searching the
+    // lesson made a new SectionKind fail here for the wrong reason.
     for (final kind in SectionKind.values) {
       testWidgets('${kind.name} uses the shared title size', (tester) async {
-        final section = lesson.sections.firstWhere((s) => s.kind == kind);
+        final section = LessonSection(id: kind.name, title: 'Een kop', kind: kind, prose: '', emoji: '🔮');
 
         await tester.pumpWidget(_host(SectionHeading(section: section)));
         await tester.pumpAndSettle();
@@ -1289,6 +1294,227 @@ void main() {
 
       expect(find.byKey(const ValueKey('step0')), findsNothing);
       expect(tester.getTopLeft(find.byKey(const ValueKey('step1'))).dx, rest);
+    });
+  });
+
+  group('bankOrder', () {
+    test('deals every line once', () {
+      expect(bankOrder('order-countdown', 5), unorderedEquals([0, 1, 2, 3, 4]));
+    });
+
+    test('the same section deals the same board', () {
+      // The board is rebuilt on every move; a fresh shuffle each time would
+      // move the lines under the reader's hand mid-puzzle.
+      expect(bankOrder('order-countdown', 6), bankOrder('order-countdown', 6));
+    });
+
+    test('never comes back in the author\'s own order, which is the answer', () {
+      // Brute-forced over many seeds rather than one: the guard only fires on
+      // the deals that would have landed sorted, and a single seed is unlikely
+      // to be one of them.
+      for (var count = 2; count <= 8; count++) {
+        for (var seed = 0; seed < 200; seed++) {
+          expect(
+            bankOrder('seed-$seed', count),
+            isNot([for (var index = 0; index < count; index++) index]),
+            reason: 'seed-$seed at $count lines',
+          );
+        }
+      }
+    });
+  });
+
+  group('LineOrderingBoard', () {
+    const pool = ['for count in range(3, 0, -1):', '    print(count)', 'print("Go!")'];
+
+    /// [_host] plus an [Overlay], which is where a [Draggable] puts the tile it
+    /// is carrying. The app has one above the router; a bare widget test does
+    /// not, and starting a drag without one throws.
+    Widget board({
+      List<int> arranged = const [],
+      void Function(int, int)? onPlace,
+      void Function(int, int)? onMove,
+      void Function(int)? onRemove,
+    }) => _host(
+      Overlay(
+        initialEntries: [
+          OverlayEntry(
+            // The host's scroll view leaves the height unbounded, so the entry
+            // is what sizes the overlay.
+            canSizeOverlay: true,
+            builder: (context) => LineOrderingBoard(
+              seed: 'order-countdown',
+              pool: pool,
+              arranged: arranged,
+              onPlace: onPlace ?? (_, _) {},
+              onRemove: onRemove ?? (_) {},
+              onMove: onMove ?? (_, _) {},
+            ),
+          ),
+        ],
+      ),
+    );
+
+    /// Every custom semantics action label anywhere in the tree.
+    ///
+    /// Walked rather than looked up on one node: a custom action sits on the
+    /// tile's own `Semantics`, which is not the node the line's text makes.
+    Set<String> customActions(WidgetTester tester) {
+      final labels = <String>{};
+
+      void visit(SemanticsNode node) {
+        for (final id in node.getSemanticsData().customSemanticsActionIds ?? const <int>[]) {
+          final action = CustomSemanticsAction.getAction(id);
+          if (action?.label case final String label) labels.add(label);
+        }
+        node.visitChildren((child) {
+          visit(child);
+          return true;
+        });
+      }
+
+      // Walked over every pipeline owner: the root one holds no semantics of
+      // its own, they live on the child owner the render view brings.
+      void visitOwner(PipelineOwner owner) {
+        if (owner.semanticsOwner?.rootSemanticsNode case final SemanticsNode root) visit(root);
+        owner.visitChildren(visitOwner);
+      }
+
+      visitOwner(tester.binding.rootPipelineOwner);
+      return labels;
+    }
+
+    testWidgets('every line is on the board, once', (tester) async {
+      await tester.pumpWidget(board());
+      await tester.pumpAndSettle();
+
+      for (final line in pool) {
+        expect(find.text(line), findsOneWidget, reason: line);
+      }
+      expect(find.text('Sleep hier een regel naartoe, of tik er een aan.'), findsOneWidget);
+    });
+
+    testWidgets('a placed line leaves the available ones and is not drawn twice', (tester) async {
+      await tester.pumpWidget(board(arranged: const [2]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('print("Go!")'), findsOneWidget);
+      expect(find.text('Sleep hier een regel naartoe, of tik er een aan.'), findsNothing);
+    });
+
+    testWidgets('tapping an available line appends it', (tester) async {
+      final placed = <(int, int)>[];
+      await tester.pumpWidget(board(arranged: const [0], onPlace: (line, at) => placed.add((line, at))));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('    print(count)'));
+      await tester.pumpAndSettle();
+
+      // The line's index in the pool, and the end of the program as it stands.
+      expect(placed, [(1, 1)]);
+    });
+
+    testWidgets('a line dropped between two others lands in that gap', (tester) async {
+      final moves = <(int, int)>[];
+      await tester.pumpWidget(
+        board(arranged: const [0, 1, 2], onMove: (from, to) => moves.add((from, to))),
+      );
+      await tester.pumpAndSettle();
+
+      // The zones in tree order: the bank's own target, then one above each
+      // placed line and one below the last. Index 1 is the gap above the first
+      // line, which is what "the top of the program" means.
+      final zones = find.byType(DragTarget<DraggedLine>);
+      // Its centre while it is still closed. A zone grows downward from a
+      // fixed top once the line is over it, so a point in the closed strip
+      // stays inside the open one — and the margin around it is not hit-tested,
+      // which a point measured off the top edge would land in.
+      final gap = tester.getCenter(zones.at(1));
+
+      final gesture = await tester.startGesture(tester.getCenter(find.text('print("Go!")')));
+      // Held before it moves: the board asks for that so a finger scrolling the
+      // page does not take the line with it.
+      await tester.pump(LineOrderingBoard.dragDelay + const Duration(milliseconds: 50));
+      await gesture.moveTo(gap);
+      await tester.pumpAndSettle();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moves, [(2, 0)], reason: 'both positions are counted before the move');
+    });
+
+    testWidgets('a line dropped back on the available ones is put back', (tester) async {
+      final removed = <int>[];
+      await tester.pumpWidget(board(arranged: const [0, 1], onRemove: removed.add));
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(tester.getCenter(find.text(pool[1])));
+      await tester.pump(LineOrderingBoard.dragDelay + const Duration(milliseconds: 50));
+      await gesture.moveTo(tester.getCenter(find.text(pool[2])));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(removed, [1]);
+    });
+
+    testWidgets('the line being carried keeps the width of the row it came from', (tester) async {
+      // A `feedback` is mounted in the Overlay under loose constraints, so
+      // without a width handed to it the line shrinks to a stub around its own
+      // text the moment it is picked up.
+      await tester.pumpWidget(board(arranged: const [0]));
+      await tester.pumpAndSettle();
+
+      // Measured before the drag: once it starts the line is on the board twice,
+      // as the ghost it left behind and as the tile in flight.
+      final start = tester.getCenter(find.text(pool[1]));
+
+      final gesture = await tester.startGesture(start);
+      await tester.pump(LineOrderingBoard.dragDelay + const Duration(milliseconds: 50));
+      await gesture.moveTo(start - const Offset(0, 30));
+      await tester.pump();
+
+      expect(
+        tester.getSize(find.byKey(LineOrderingBoard.draggedLineKey)).width,
+        tester.getSize(find.byType(LineOrderingBoard)).width,
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a placed line keeps the two moves a drag cannot reach', (tester) async {
+      // Dragging is a pointer gesture and reaches no keyboard and no screen
+      // reader. These actions are what the two arrow buttons used to be.
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(board(arranged: const [0, 1]));
+      await tester.pumpAndSettle();
+
+      expect(customActions(tester), containsAll(['Regel omhoog', 'Regel omlaag']));
+
+      // Disposed here rather than in a tearDown, which runs after the test
+      // framework has already checked for leaked handles.
+      handle.dispose();
+    });
+
+    testWidgets('the ends have nothing to move past, so they offer no such action', (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(board(arranged: const [0]));
+      await tester.pumpAndSettle();
+
+      expect(customActions(tester), isEmpty);
+      handle.dispose();
+    });
+
+    testWidgets('the arrow buttons are gone, and only the way back remains', (tester) async {
+      await tester.pumpWidget(board(arranged: const [0, 1]));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Regel omhoog'), findsNothing);
+      expect(find.bySemanticsLabel('Regel omlaag'), findsNothing);
+      expect(find.bySemanticsLabel('Regel terugleggen'), findsNWidgets(2));
     });
   });
 

@@ -16,6 +16,7 @@ import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_grou
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
@@ -132,6 +133,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                       SectionKind.exercise => _buildExercise(context, lesson, section),
                       SectionKind.matchPairs => _buildMatchPairs(context, lesson, section),
                       SectionKind.predictOutput => _buildPredictOutput(context, lesson, section),
+                      SectionKind.orderLines => _buildOrderLines(context, lesson, section),
                     },
             ),
           );
@@ -360,6 +362,73 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             _pastGutter(
               PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// An order-lines step: prose, a board of the program's own lines, and the
+  /// button that runs whatever was assembled.
+  ///
+  /// The reading measure, the way a match-pairs step takes it: there is no
+  /// editor here, so the step is read rather than worked in.
+  ///
+  /// **What is checked is the program the student built**, run through the
+  /// section's ordinary validator — never the arrangement against the author's
+  /// own order, which would fail a different-but-correct answer.
+  Widget _buildOrderLines(BuildContext context, Lesson lesson, LessonSection section) {
+    // The program's lines first, its distractors after, so an index means the
+    // same thing here as it does in `LessonScreenViewModel.arranged`.
+    final pool = [...section.lines, ...section.distractors];
+    final assembled = viewModel.arranged.map((index) => pool[index]).join('\n');
+    final attempt = viewModel.attempt;
+
+    return _Page(
+      maxWidth: _readingWidth,
+      padding: _readingPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _pastGutter(_buildHeading(lesson, section)),
+          const SizedBox(height: 30),
+          LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
+          const SizedBox(height: 24),
+          _pastGutter(
+            LineOrderingBoard(
+              // The section's id, not its position: the board has to come back
+              // the same way after a step away, and stand the same in either
+              // translation.
+              seed: section.id,
+              pool: pool,
+              arranged: viewModel.arranged,
+              onPlace: viewModel.placeLine,
+              onRemove: viewModel.unplaceLine,
+              onMove: viewModel.moveLine,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _pastGutter(
+            AppButtonRow(
+              children: [
+                _buildBack(context, lesson),
+                RunButton(
+                  running: viewModel.running,
+                  runLabel: context.localizations.lessonScreen_run,
+                  stopLabel: context.localizations.lessonScreen_stop,
+                  // An empty program runs cleanly and prints nothing, which a
+                  // validator would report as a mistake the student has not
+                  // made yet.
+                  onRun: viewModel.arranged.isEmpty ? null : () => controller.run(section, assembled),
+                  onStop: controller.stop,
+                ),
+                if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
+              ],
+            ),
+          ),
+          if (attempt != null) ...[
+            const SizedBox(height: 16),
+            _pastGutter(OutputPanel(result: attempt)),
           ],
         ],
       ),

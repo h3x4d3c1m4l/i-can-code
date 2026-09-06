@@ -83,6 +83,13 @@ void main() {
           } else {
             expect(section.pairs, isEmpty, reason: '${section.title} is not a board');
           }
+          if (section.kind == SectionKind.orderLines) {
+            expect(section.lines.length, greaterThanOrEqualTo(2), reason: '${section.title} has nothing to arrange');
+            expect(section.validator, isNotNull, reason: '${section.title} is checked by running what was built');
+          } else {
+            expect(section.lines, isEmpty, reason: '${section.title} is not an ordering step');
+            expect(section.distractors, isEmpty, reason: '${section.title} is not an ordering step');
+          }
           if (section.kind == SectionKind.predictOutput) {
             expect(
               section.program?.trim(),
@@ -428,6 +435,102 @@ void main() {
         () => Lesson.parse(
           '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: predict-output\nid: s\n```\n\n'
           '```python-predict\nprint(1)\n```\n\n```explanation\n\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('reads an `<lang>-order` block, and its distractors', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n'
+        '## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\nprose\n\n'
+        '```python-order\nfor i in range(2):\n    print(i)\n```\n\n'
+        '```python-distractors\nprint("nope")\n```\n\n'
+        '```python-validator\npass\n```\n',
+      );
+
+      final section = lesson.sections.single;
+
+      expect(section.kind, SectionKind.orderLines);
+      // Leading whitespace is kept: the indentation belongs to the line and
+      // travels with it, so the student arranges rather than also indenting.
+      expect(section.lines, ['for i in range(2):', '    print(i)']);
+      expect(section.distractors, ['print("nope")']);
+      // Checked by running what was built, so it has a validator — but nothing
+      // to type in, so no editor and no starter block.
+      expect(section.kind.usesValidator, isTrue);
+      expect(section.kind.isAssignment, isFalse);
+      expect(section.starter, isNull);
+      expect(section.validator, 'pass');
+      // Neither block reaches the reader as prose.
+      expect(section.prose, 'prose');
+    });
+
+    test('drops the blank lines between the code, which are not tiles', () {
+      final lesson = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+        '```python-order\nprint(1)\n\n\nprint(2)\n```\n\n```python-validator\npass\n```\n',
+      );
+
+      expect(lesson.sections.single.lines, ['print(1)', 'print(2)']);
+    });
+
+    test('rejects an order-lines step with no order block', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+          '```python-validator\npass\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects an order-lines step with no validator, which nothing could check', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+          '```python-order\nprint(1)\nprint(2)\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a single line to order, which is already in order', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+          '```python-order\nprint(1)\n```\n\n```python-validator\npass\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects an order block on a section of another type', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\n'
+          '```python-order\nprint(1)\nprint(2)\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects an ordering step that also asks for typed code', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+          '```python-order\nprint(1)\nprint(2)\n```\n\n```python-assignment\n```\n'
+          '```python-validator\npass\n```\n',
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects a validator on a step with nothing to check', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\n'
+          '```python-validator\npass\n```\n',
         ),
         throwsA(isA<FormatException>()),
       );

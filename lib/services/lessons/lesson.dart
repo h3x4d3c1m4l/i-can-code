@@ -26,7 +26,17 @@ enum SectionKind {
   /// interpreter** — the program is run and its output compared to the
   /// prediction — so a lesson cannot state one that drifts from the code beside
   /// it.
-  predictOutput;
+  predictOutput,
+
+  /// Put the lines in order: the program's own lines, shuffled, for the student
+  /// to arrange into a working one.
+  ///
+  /// The rung between reading a worked example and writing code from nothing —
+  /// the syntax is given, so what is being practised is the shape of the
+  /// program. Checked by **running what was assembled** through the section's
+  /// ordinary validator, never by comparing it against the order in the file,
+  /// so an arrangement that is different but correct still passes.
+  orderLines;
 
   /// Whether the student writes and runs code here.
   ///
@@ -35,12 +45,20 @@ enum SectionKind {
   /// have the parser demand an editor for a step that has none.
   bool get isAssignment => this == SectionKind.quickExercise || this == SectionKind.exercise;
 
+  /// Whether the step carries hidden checks.
+  ///
+  /// Wider than [isAssignment] by exactly one: [orderLines] runs a program and
+  /// is checked like an exercise, but the student assembles it rather than
+  /// typing it, so it has no editor and no starter block.
+  bool get usesValidator => isAssignment || this == SectionKind.orderLines;
+
   static SectionKind parse(String value) => switch (value) {
     'info' => SectionKind.info,
     'quick-exercise' => SectionKind.quickExercise,
     'exercise' => SectionKind.exercise,
     'match-pairs' => SectionKind.matchPairs,
     'predict-output' => SectionKind.predictOutput,
+    'order-lines' => SectionKind.orderLines,
     _ => throw FormatException('Unknown section type "$value".'),
   };
 
@@ -131,6 +149,23 @@ class LessonSection {
   /// from a dead end into the point of the step.
   final String? explanation;
 
+  /// The lines a [SectionKind.orderLines] step is assembled from, **in the
+  /// order the author wrote them** — which is the one order the board never
+  /// deals. Empty on every other kind.
+  ///
+  /// Each keeps its own leading whitespace: the indentation belongs to the line
+  /// and travels with it, so the student arranges a program rather than also
+  /// having to indent it.
+  final List<String> lines;
+
+  /// Lines that belong to no correct program — they are on the board to be left
+  /// there. Optional, and empty on every kind but [SectionKind.orderLines].
+  ///
+  /// They need nothing of the board: a distractor that is used makes the
+  /// assembled program wrong, and the validator says so the way it would about
+  /// any other mistake.
+  final List<String> distractors;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -143,6 +178,8 @@ class LessonSection {
     this.pairs = const [],
     this.program,
     this.explanation,
+    this.lines = const [],
+    this.distractors = const [],
   });
 
 }
@@ -210,6 +247,8 @@ class Lesson {
     List<LessonPair>? pairs;
     String? program;
     String? explanation;
+    List<String>? ordered;
+    List<String>? distractors;
 
     void flush() {
       if (sectionTitle == null) return;
@@ -222,10 +261,16 @@ class Lesson {
       if (sectionKind!.isAssignment && starter == null) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} but has no assignment block.');
       }
-      if (!sectionKind!.isAssignment && (starter != null || validator != null)) {
-        throw FormatException(
-          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an assignment or validator block.',
-        );
+      if (!sectionKind!.isAssignment && starter != null) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries an assignment block.');
+      }
+      // Wider than the editor: an order-lines step runs a program and is
+      // checked like an exercise, but has nothing to type in.
+      if (sectionKind!.usesValidator && validator == null) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} but has no validator block.');
+      }
+      if (!sectionKind!.usesValidator && validator != null) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries a validator block.');
       }
       if (sectionKind == SectionKind.matchPairs) {
         if (pairs == null) {
@@ -250,6 +295,21 @@ class Lesson {
       } else if (program != null) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries a predict block.');
       }
+      if (sectionKind == SectionKind.orderLines) {
+        if (ordered == null) {
+          throw FormatException('Section "$sectionTitle" is an order-lines step but has no order block.');
+        }
+        // One line is already in order, so there is nothing to arrange.
+        if (ordered!.length < 2) {
+          throw FormatException(
+            'Section "$sectionTitle" has ${ordered!.length} line(s) to order; arranging needs at least 2.',
+          );
+        }
+      } else if (ordered != null || distractors != null) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an order or distractors block.',
+        );
+      }
       // Optional where it belongs, refused everywhere else: it is shown with the
       // answer to a prediction, and no other kind has an answer to show it with.
       if (sectionKind != SectionKind.predictOutput && explanation != null) {
@@ -270,6 +330,8 @@ class Lesson {
           pairs: pairs ?? const [],
           program: program,
           explanation: explanation,
+          lines: ordered ?? const [],
+          distractors: distractors ?? const [],
         ),
       );
       sectionKind = null;
@@ -282,6 +344,8 @@ class Lesson {
       pairs = null;
       program = null;
       explanation = null;
+      ordered = null;
+      distractors = null;
     }
 
     final lines = source.replaceAll('\r\n', '\n').split('\n');
@@ -333,6 +397,10 @@ class Lesson {
             validator = body.join('\n');
           case _BlockRole.predict:
             program = body.join('\n');
+          case _BlockRole.order:
+            ordered = _codeLines(body);
+          case _BlockRole.distractors:
+            distractors = _codeLines(body);
           case _BlockRole.explanation:
             if (sectionTitle == null) {
               throw const FormatException('An `explanation` block belongs to a section, not to the lesson.');
@@ -418,6 +486,15 @@ class Lesson {
     return pairs;
   }
 
+  /// One tile per line of an order or distractors block.
+  ///
+  /// Blank lines are dropped — a blank line is a gap in the source, not a tile —
+  /// and trailing whitespace with them. **Leading whitespace is kept**: the
+  /// indentation belongs to the line and travels with it, so a student arranges
+  /// a program rather than also having to indent it.
+  static List<String> _codeLines(List<String> body) =>
+      body.map((line) => line.trimRight()).where((line) => line.isNotEmpty).toList();
+
   static String? _readEmoji(YamlMap meta, String owner) {
     final emoji = meta['emoji'];
     if (emoji == null) return null;
@@ -430,7 +507,7 @@ class Lesson {
 
 }
 
-enum _BlockRole { metadata, assignment, validator, predict, explanation, pairs, sample }
+enum _BlockRole { metadata, assignment, validator, predict, order, distractors, explanation, pairs, sample }
 
 /// An opening code fence, with its role read off the language it declares:
 /// ```` ```python-assignment ````. Stripping the `-assignment` / `-validator`
@@ -471,6 +548,8 @@ class _Fence {
       ('-assignment', _BlockRole.assignment),
       ('-validator', _BlockRole.validator),
       ('-predict', _BlockRole.predict),
+      ('-order', _BlockRole.order),
+      ('-distractors', _BlockRole.distractors),
     ]) {
       if (declared.endsWith(suffix)) {
         return _Fence(

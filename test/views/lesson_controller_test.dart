@@ -71,6 +71,14 @@ class _HeldRuntime implements PythonRuntime {
 const List<LessonSection> _sections = [
   LessonSection(id: 'first', title: 'Eerste', kind: SectionKind.exercise, prose: '', starter: ''),
   LessonSection(id: 'guess', title: 'Raden', kind: SectionKind.predictOutput, prose: '', program: 'print(42)'),
+  LessonSection(
+    id: 'arrange',
+    title: 'Ordenen',
+    kind: SectionKind.orderLines,
+    prose: '',
+    lines: ['a', 'b', 'c'],
+    validator: 'pass',
+  ),
   LessonSection(id: 'last', title: 'Laatste', kind: SectionKind.exercise, prose: '', starter: ''),
 ];
 
@@ -118,6 +126,75 @@ void main() {
 
     return (controller, viewModel);
   }
+
+  /// A view model sitting on the order-lines step, with an empty board.
+  LessonScreenViewModel arranging() => LessonScreenViewModel(
+    contextAccessor: BuildContextAccessor(),
+    lessonId: 'loops',
+    sectionId: 'arrange',
+  );
+
+  test('lines are placed where they are dropped, and put back one at a time', () {
+    final viewModel = arranging()
+      ..placeLine(2, 0)
+      ..placeLine(0, 0);
+
+    expect(viewModel.arranged, [0, 2], reason: 'the second went in above the first');
+
+    viewModel.unplaceLine(0);
+    expect(viewModel.arranged, [2], reason: 'the position is removed, not the line number');
+  });
+
+  test('a position past the end appends, which is what a tap asks for', () {
+    final viewModel = arranging()
+      ..placeLine(1, 0)
+      ..placeLine(2, 99);
+
+    expect(viewModel.arranged, [1, 2]);
+  });
+
+  test('both positions of a move are counted before it', () {
+    // What a drop between two lines means: the student picks a gap in the
+    // program they can see, not one in the program left after their line has
+    // been lifted out of it.
+    final viewModel = arranging()
+      ..placeLine(0, 0)
+      ..placeLine(1, 1)
+      ..placeLine(2, 2)
+      // The last line into the gap at the very top.
+      ..moveLine(2, 0);
+
+    expect(viewModel.arranged, [2, 0, 1]);
+
+    // The first line into the gap below the last — without the correction it
+    // would land one place short, in the middle.
+    viewModel.moveLine(0, 3);
+    expect(viewModel.arranged, [0, 1, 2]);
+  });
+
+  test('a move that changes nothing changes nothing', () {
+    // Dropping a line back into one of the two gaps it already touches. The
+    // board refuses the drop; this is the second line of defence.
+    final viewModel = arranging()
+      ..placeLine(0, 0)
+      ..placeLine(1, 1)
+      ..moveLine(1, 1)
+      ..moveLine(1, 2)
+      ..moveLine(5, 0);
+
+    expect(viewModel.arranged, [0, 1]);
+  });
+
+  test('what is arranged belongs to its own step', () {
+    final viewModel = arranging()
+      ..placeLine(1, 0)
+      ..goTo(0);
+
+    expect(viewModel.arranged, isEmpty, reason: 'a different step has its own board');
+
+    viewModel.goTo(2);
+    expect(viewModel.arranged, [1], reason: 'stepping away and back finds the board as it was left');
+  });
 
   /// A controller sitting on the predict-output step, with nothing yet asked.
   (LessonScreenController, LessonScreenViewModel) predicting() {

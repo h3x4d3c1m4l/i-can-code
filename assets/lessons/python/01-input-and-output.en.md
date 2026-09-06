@@ -134,3 +134,44 @@ You now know what `print` does with text and with numbers. Put together the part
 Two `print` lines below one another
 … produce two lines of output.
 ```
+
+## Put the program together
+
+```metadata
+type: order-lines
+id: order-answer
+emoji: "🔀"
+```
+
+The lines of a program are jumbled below. Put them in the right order, so that this appears:
+
+```text
+The answer is:
+42
+Done!
+```
+
+Watch out: one line does not belong. Two of them look alike — read the quotation marks carefully.
+
+```python-order
+print("The answer is:")
+print(42)
+print("Done!")
+```
+
+```python-distractors
+print("42")
+```
+
+```python-validator
+program.allow_only("call")
+
+if not program.calls("print"):
+    raise Exception("Use the `print` function.")
+if program.calls("print").with_any_args("42"):
+    raise Exception("One of the lines has `\"42\"` in quotation marks. Numbers are written without them.")
+if not program.calls("print").times(3):
+    raise Exception("Your program is exactly 3 lines.")
+if output != "The answer is:\n42\nDone!":
+    raise Exception("Order them so that `The answer is:` comes first, then `42`, then `Done!`.")
+```

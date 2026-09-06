@@ -97,6 +97,8 @@ if "print(" not in code:
 | `<lang>-assignment` | What the editor opens with. May be empty. |
 | `<lang>-validator` | The hidden checks. Never shown. |
 | `<lang>-predict` | The program a `predict-output` step asks about. See below. |
+| `<lang>-order` | The lines an `order-lines` step is assembled from, in the right order. |
+| `<lang>-distractors` | Lines that belong to no correct program. Optional. |
 | `explanation` | Why that program's output is what it is. Shown after the answer. |
 | `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
@@ -124,15 +126,23 @@ a position survives none of that.
 | `exercise` | The design's **two columns**: prose left, editor and output right. |
 | `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
 | `predict-output` | Prose, a program, and a box to say what it prints before it runs. No editor — see below. |
+| `order-lines` | Prose, then the program's own lines shuffled, to be put in order. No editor — see below. |
 
 Which blocks a section may carry follows from its type:
 
-| `type` | Assignment and validator | `pairs` | `<lang>-predict` | `explanation` |
-| --- | --- | --- | --- | --- |
-| `info` | Must not | Must not | Must not | Must not |
-| `quick-exercise`, `exercise` | Must carry both | Must not | Must not | Must not |
-| `match-pairs` | Must not | Must carry one | Must not | Must not |
-| `predict-output` | Must not | Must not | Must carry one | May carry one |
+| `type` | Assignment | Validator | `pairs` | `<lang>-predict` | `explanation` | `<lang>-order` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `info` | Must not | Must not | Must not | Must not | Must not | Must not |
+| `quick-exercise`, `exercise` | Must carry one | Must carry one | Must not | Must not | Must not | Must not |
+| `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not |
+| `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not |
+| `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one |
+
+`order-lines` is the one type that is checked without being typed: it runs a
+program, so it needs a validator, but the student assembles that program rather
+than writing it, so it has no editor and no assignment block. That split is
+`SectionKind.isAssignment` (has an editor) against `SectionKind.usesValidator`
+(is checked).
 
 `Lesson.parse` throws a `FormatException` naming the section when any of those
 is broken.
@@ -310,6 +320,90 @@ learned no more about *why* than the one who did not.
 It is refused on every other type: it is shown with the answer to a prediction,
 and no other kind has an answer to show it with. An empty one is a
 `FormatException`, the same as an empty program.
+
+## `<lang>-order` — put the lines in order
+
+An `order-lines` section carries the program's own lines, which the student
+arranges into a working one. The rung between reading a worked example and
+writing code from nothing: the syntax is given, so what is being practised is the
+shape of the program.
+
+````markdown
+## Zet het programma in elkaar
+
+```metadata
+type: order-lines
+id: order-answer
+emoji: "🔀"
+```
+
+Zet de regels in de goede volgorde.
+
+```python-order
+print("Het antwoord is:")
+print(42)
+print("Klaar!")
+```
+
+```python-distractors
+print("42")
+```
+
+```python-validator
+program.allow_only("call")
+
+if program.calls("print").with_any_args("42"):
+    raise Exception("Getallen schrijf je zonder aanhalingstekens.")
+if output != "Het antwoord is:\n42\nKlaar!":
+    raise Exception("Eerst `Het antwoord is:`, dan `42`, dan `Klaar!`.")
+```
+````
+
+### What is checked is the program, never the order
+
+The assembled lines are run through the section's ordinary validator, exactly the
+way a typed answer is. **The arrangement is never compared against the block.**
+An order that is different but correct passes, which is the whole reason it is
+checked this way — and the validator you would write for the same task as an
+`exercise` works here unchanged.
+
+Write the block **in the right order**. That order is the one the board never
+deals: the shuffle is derived from the section's `id`, and a deal that came back
+sorted is rotated, so a student cannot read the answer off the board.
+
+The student drags a line into any gap, taps an available one to append it, or
+uses the move-up and move-down semantics actions a screen reader offers. None of
+that changes what you write here.
+
+- **At least two lines.** One line is already in order.
+- **Blank lines are dropped** — a blank line is a gap in the source, not a tile.
+- **Leading whitespace is kept.** The indentation belongs to the line and travels
+  with it, so the student arranges a program rather than also having to indent
+  it. Write the block exactly as the finished program looks.
+
+### `<lang>-distractors` — lines that belong to no answer
+
+Optional, and only on this type. They sit among the available lines to be left
+there, and they need nothing of the board: a distractor that is used makes the
+assembled program wrong, and the validator says so the way it would about any
+other mistake.
+
+The best distractor is one the **output cannot catch**. `print("42")` beside
+`print(42)` prints the same characters, so only a check on the tree —
+`program.calls("print").with_any_args("42")` — can tell them apart. That is the
+kind of distinction a lesson is trying to teach, and `docs/samples/order-lines.md`
+plus the step shipped in lesson 01 are both built this way.
+
+### Checking a step you have written
+
+`tool/try_lesson.dart` runs an `order-lines` step with **the author's own order**
+when given no `--code`, which is what proves the intended answer actually passes
+the validator beside it:
+
+```bash
+fvm dart run tool/try_lesson.dart <lesson.md> <n>
+fvm dart run tool/try_lesson.dart <lesson.md> <n> --code 'print(2)\nprint(1)'
+```
 
 ## `pairs` — a match-the-pairs board
 
