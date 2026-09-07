@@ -7,6 +7,7 @@ import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_view_model.dart';
@@ -44,6 +45,9 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       // first Run. Reading progress needs the course loaded, and swallows its
       // own failures.
       await GetIt.I<ProgressStore>().load(course);
+      // Beside it, and just as harmlessly: an unreadable schedule leaves a
+      // lesson with no entry, which reads as due rather than as never again.
+      await GetIt.I<RecallStore>().load(course);
       if (_disposed) return;
 
       await _step(InitializationStep.startingRuntime, GetIt.I<PythonRuntime>().ready);

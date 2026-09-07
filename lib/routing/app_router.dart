@@ -8,6 +8,12 @@ import 'package:i_can_code/routing/bootstrap_guard.dart';
 /// Reserved: a lesson must not name a section this. `lesson_test.dart` holds it.
 const String resumeSection = 'resume';
 
+/// The segment that opens a language's refresher rather than a lesson of it.
+///
+/// Reserved the same way and for the same reason: it sits where a lesson id
+/// does, so **no lesson may be called this**.
+const String refreshPath = 'refresh';
+
 /// One step of a lesson, as a route. **Build a [LessonRoute] through here
 /// rather than directly**, because of the key.
 ///
@@ -53,6 +59,9 @@ class AppRouter extends RootStackRouter {
     //
     // Hence the redirect to a reserved section id: an unknown id already means
     // "resume" to the screen, which rewrites the address to where it lands.
+    // Above the redirect below, which matches on segment count alone and would
+    // otherwise read "refresh" as the id of a lesson nobody has.
+    AutoRoute(page: RecallRoute.page, path: '/:languageSlug/$refreshPath'),
     RedirectRoute(path: '/:languageSlug/:lessonId', redirectTo: '/:languageSlug/:lessonId/$resumeSection'),
     AutoRoute(page: LessonRoute.page, path: '/:languageSlug/:lessonId/:sectionId'),
   ];

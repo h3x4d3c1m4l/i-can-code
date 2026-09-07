@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
@@ -54,6 +55,21 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                     ),
                   ),
                   const SizedBox(height: 40),
+                  // Above the lessons, and only when something is actually
+                  // waiting. It is an offer, never a gate: nothing below it is
+                  // locked behind doing this first, and there is no countdown
+                  // on it when nothing is due — the card is simply absent.
+                  if (viewModel.dueItems case final List<RecallItem> due when due.isNotEmpty) ...[
+                    CatalogCard(
+                      label: '\u21bb',
+                      emoji: '🔁',
+                      title: context.localizations.recallScreen_title,
+                      subtitle: context.localizations.catalogScreen_recallBody(due.length),
+                      meta: '${due.length}',
+                      onTap: controller.openRefresher,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                   for (final (index, courseLesson) in lessons.indexed) ...[
                     if (index > 0) const SizedBox(height: 16),
                     Builder(

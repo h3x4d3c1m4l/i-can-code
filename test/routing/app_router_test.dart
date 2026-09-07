@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/routing/app_router.gr.dart';
 
 void main() {
   // `config()` builds a router delegate, which needs a binding.
@@ -21,6 +22,7 @@ void main() {
       '/learn-python',
       '/learn-python/input-and-output',
       '/learn-python/input-and-output/print-yourself',
+      '/learn-python/$refreshPath',
     ]) {
       expect(matcher.match(path), isNotNull, reason: path);
     }
@@ -36,6 +38,17 @@ void main() {
     // survives a replace. Equal within a lesson, different across lessons.
     expect(first.args!.key, later.args!.key);
     expect(first.args!.key, isNot(other.args!.key));
+  });
+
+  test('the refresher wins over the lesson it sits beside', () {
+    // auto_route matches on segment count alone, so `/learn-python/refresh` and
+    // `/learn-python/<lesson>` are the same shape. The table's order is what
+    // keeps "refresh" from being read as the id of a lesson nobody has — and
+    // that is why no lesson may be called it.
+    final matched = AppRouter().matcher.match('/learn-python/$refreshPath');
+
+    expect(matched, hasLength(1), reason: 'the refresher, not a redirect into a lesson');
+    expect(matched!.single.name, RecallRoute.name);
   });
 
   test('a lesson without a section resolves to the resume marker', () {

@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
@@ -85,7 +86,11 @@ const List<LessonSection> _sections = [
 void main() {
   late _HeldRuntime runtime;
 
+  /// A clock the refresher's ladder is measured against, moved by hand.
+  var clock = DateTime(2026, 3, 1, 9);
+
   setUp(() {
+    clock = DateTime(2026, 3, 1, 9);
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     runtime = _HeldRuntime();
@@ -102,6 +107,7 @@ void main() {
         ),
       )
       ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<RecallStore>(RecallStore(now: () => clock))
       ..registerSingleton<PythonRuntime>(runtime)
       ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(runtime));
   });
@@ -247,6 +253,32 @@ void main() {
 
     expect(viewModel.attempt, isNull, reason: 'a stopped run reports no verdict');
     expect(viewModel.prediction, isNull, reason: 'the prediction belongs to the verdict it was asked for');
+  });
+
+  test('finishing a lesson puts it on the refresher ladder a day out', () async {
+    // Not straight back on the pile: a check taken minutes after reading
+    // measures working memory, and one a day later measures what was kept.
+    final accessor = BuildContextAccessor();
+    final viewModel = LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'first');
+    final controller = LessonScreenController(viewModel: viewModel, contextAccessor: accessor);
+    final lesson = GetIt.I<Course>().lessons.single;
+    final recall = GetIt.I<RecallStore>();
+
+    // Every step of the lesson, so the last one is what finishes it.
+    for (final section in _sections) {
+      viewModel.goTo(_sections.indexOf(section));
+      unawaited(controller.run(section, 'print(1)'));
+      await pumpEventQueue();
+      runtime.finish(passed: true);
+      await pumpEventQueue();
+    }
+
+    expect(GetIt.I<ProgressStore>().isFinished(lesson), isTrue);
+    expect(recall.entryFor(lesson)?.rung, 0);
+    expect(recall.isDue(lesson), isFalse, reason: 'a day out, not now');
+
+    clock = clock.add(const Duration(days: 1));
+    expect(recall.isDue(lesson), isTrue);
   });
 
   test('Stop ends the run and leaves no verdict behind', () async {

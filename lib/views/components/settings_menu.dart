@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
@@ -151,7 +152,12 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
       ),
     );
 
-    if (confirmed ?? false) await progress.clear();
+    if (!(confirmed ?? false)) return;
+
+    await progress.clear();
+    // A refresher for a lesson nobody has done any more is not worth keeping,
+    // and leaving one behind would offer a lesson the student has just reset.
+    await GetIt.I<RecallStore>().clear();
   }
 
   /// Each language named in itself, which is what a reader scans for.

@@ -8,6 +8,7 @@ import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
@@ -18,6 +19,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   final PythonAttemptRunner _runner = GetIt.I<PythonAttemptRunner>();
   final PythonRuntime _runtime = GetIt.I<PythonRuntime>();
   final ProgressStore _progress = GetIt.I<ProgressStore>();
+  final RecallStore _recall = GetIt.I<RecallStore>();
 
   bool _disposed = false;
 
@@ -200,7 +202,12 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     final wasFinished = _progress.isFinished(viewModel.lesson);
     await _progress.markFinished(viewModel.lesson, section.id);
 
-    if (!wasFinished && _progress.isFinished(viewModel.lesson)) viewModel.noteLessonFinished();
+    if (wasFinished || !_progress.isFinished(viewModel.lesson)) return;
+
+    viewModel.noteLessonFinished();
+    // A day out, not straight back on the pile: a check taken minutes after
+    // reading measures working memory rather than what was retained.
+    await _recall.schedule(viewModel.lesson);
   }
 
   /// Opens the next lesson in this language, or the catalog when this was the

@@ -414,7 +414,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                 _buildBack(context, lesson),
                 RunButton(
                   running: viewModel.running,
-                  runLabel: context.localizations.lessonScreen_run,
+                  // Not "check code": nothing was written here, it was ordered.
+                  runLabel: context.localizations.lessonScreen_orderCheck,
                   stopLabel: context.localizations.lessonScreen_stop,
                   // An empty program runs cleanly and prints nothing, which a
                   // validator would report as a mistake the student has not

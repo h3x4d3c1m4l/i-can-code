@@ -53,6 +53,12 @@ void main() {
         );
 
         expect(
+          lesson.id,
+          isNot(refreshPath),
+          reason: '"$refreshPath" is the address of a language\'s refresher, which sits where a lesson id does',
+        );
+
+        expect(
           lesson.sections.map((s) => s.id).toSet(),
           hasLength(lesson.sections.length),
           reason: 'saved progress keys on section ids, so they must be unique within a lesson',

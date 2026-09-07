@@ -7,6 +7,7 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/progress/recall_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
@@ -59,7 +60,8 @@ void main() {
       // The cog's light/dark group reads it.
       ..registerSingleton<ThemeModeController>(ThemeModeController())
       // The cog reads it to decide whether to offer "reset progress".
-      ..registerSingleton<ProgressStore>(ProgressStore());
+      ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<RecallStore>(RecallStore());
   });
 
   tearDown(GetIt.I.reset);

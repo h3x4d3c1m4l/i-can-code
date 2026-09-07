@@ -6,7 +6,12 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 /// The lesson's progress, sized to sit in the header beside the settings cog.
 ///
 /// One fixed-width segment per step rather than a full-width bar, which would
-/// push the cog around as the lesson's length changed. Segments are tappable.
+/// push the cog around as the lesson's length changed.
+///
+/// Segments are tappable where there is somewhere to go — a lesson, whose steps
+/// can be revisited in any order. With no [onTap] the bar is a plain indicator:
+/// no press, no hover, and nothing a screen reader announces as a button, which
+/// is what a refresher needs. A no-op callback would leave all three lying.
 class StepProgressBar extends StatelessWidget {
 
   /// How wide one step is drawn.
@@ -15,13 +20,14 @@ class StepProgressBar extends StatelessWidget {
   final int stepCount;
   final int current;
   final Set<int> passed;
-  final ValueChanged<int> onTap;
+  /// Null draws the bar as an indicator rather than a row of buttons.
+  final ValueChanged<int>? onTap;
 
   const StepProgressBar({
     required this.stepCount,
     required this.current,
     required this.passed,
-    required this.onTap,
+    this.onTap,
     super.key,
   });
 
@@ -38,9 +44,9 @@ class StepProgressBar extends StatelessWidget {
             // Keyed so a test can address one segment: `FTappable` resolves to
             // a private widget and cannot be found by type.
             key: ValueKey(step),
-            semanticsButton: true,
+            semanticsButton: onTap != null,
             semanticsLabel: '${step + 1} / $stepCount',
-            onPress: () => onTap(step),
+            onPress: onTap == null ? null : () => onTap!(step),
             builder: (context, states, _) => SizedBox(
               // The bar is 6px tall, too thin to click, so the gesture area is
               // padded out around it.

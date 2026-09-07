@@ -8,6 +8,23 @@
   "initializationScreen_failed": "De app kon niet starten",
   "initializationScreen_retry": "Opnieuw proberen",
   "catalogScreen_title": "Kies een onderwerp",
+  "catalogScreen_recallBody": "{count, plural, =1{1 stap uit een les die je al af hebt.} other{{count} stappen uit lessen die je al af hebt.}}",
+  "@catalogScreen_recallBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "recallScreen_title": "Opfrisser",
+  "recallScreen_intro": "Deze stap deed je eerder. Kijk of je hem nog kunt — dit keer zonder startcode.",
+  "recallScreen_introPredict": "Deze stap deed je eerder. Weet je nog wat dit programma toont?",
+  "recallScreen_step": "{done} van {total}",
+  "@recallScreen_step": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "recallScreen_done": "Opfrisser gedaan",
+  "recallScreen_score": "{done} van de {total} meteen goed.",
+  "@recallScreen_score": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "recallScreen_empty": "Er staat nu niets klaar om op te frissen. Kom morgen terug.",
   "lessonScreen_run": "Controleer code",
   "lessonScreen_stop": "Stoppen",
   "lessonScreen_running": "Bezig…",
@@ -27,6 +44,7 @@
   "lessonScreen_orderUp": "Regel omhoog",
   "lessonScreen_orderDown": "Regel omlaag",
   "lessonScreen_orderRemove": "Regel terugleggen",
+  "lessonScreen_orderCheck": "Controleer volgorde",
   "lessonScreen_optional": "Verdieping",
   "lessonScreen_skip": "Overslaan",
   "lessonScreen_complete": "Afronden",

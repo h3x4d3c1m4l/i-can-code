@@ -232,6 +232,7 @@ Two things follow:
 ```text
 /                                              the language picker
 /learn-python                                  that language's lessons
+/learn-python/refresh                          the refresher for that language
 /learn-python/input-and-output                 resume: wherever you left off
 /learn-python/input-and-output/print-yourself  one step, named by its section id
 ```
@@ -242,7 +243,7 @@ The step is a **`LessonSection.id`, never a position** — the same reason progr
 
 `test/routing/app_router_test.dart` builds the router, which is the only place that validation happens. Add to it when you touch the table — a green analyze and a green build prove nothing here.
 
-`/:languageSlug` is a catch-all, so `/initialization` must stay declared above it.
+`/:languageSlug` is a catch-all, so `/initialization` must stay declared above it. `/:languageSlug/refresh` sits where a lesson id does and is declared **above** the lesson redirect for the same reason, which makes `refresh` a **reserved lesson id** — `lesson_test.dart` holds it, the way it holds `resume` for sections.
 
 ### Progress
 
@@ -254,6 +255,69 @@ Two things it is deliberately not:
 - **Not a record.** Every read and write swallows its own failure — a browser that refuses storage (private mode, storage disabled) must not keep the app from starting. Nothing may depend on progress being correct.
 
 Keyed on `LessonSection.id`, never on a step's position, so a tick survives the author reordering a lesson. See `docs/lesson-format.md`.
+
+### Coming back a day later
+
+`RecallStore` (`lib/services/progress/`) says when a finished lesson is worth
+asking about again, and `RecallScreen` asks. It sits beside `ProgressStore`,
+keyed `recall.<language>.<lessonId>` and holding `{due, rung}`.
+
+**The day is not a round number somebody liked.** A check taken minutes after
+reading measures working memory; one taken a day later measures what was
+retained — Toppino & Cohen (2009) found no difference between tested and
+re-studied material after minutes and a clear one after days. Cepeda et al.
+(2008) put the best spacing at 10–20% of how long you want to keep something,
+which is **12 to 24 hours to still know it a week later**. The ladder is 1 day
+then 3, and stops.
+
+There is no 7-day rung. It is where the evidence points next, but **Safari and
+iOS delete all script-writable storage after 7 days without a visit** — the
+student it would be aimed at is exactly the one whose schedule is already gone.
+Left out rather than shipped as something that quietly never fires.
+
+Four rules it exists to keep:
+
+- **Nothing locks, and there is no countdown.** The day decides when the app
+  *asks*, never when the student *may*. The catalog card is simply absent when
+  nothing is due, rather than greyed out with a timer on it — an app that is
+  otherwise entirely open should not grow one closed door.
+- **A missing or unreadable entry fails open.** No entry means *due*, so storage
+  that was cleared, refused or written before this existed offers a refresher
+  rather than silently never offering one again. That is the failure nobody
+  would ever notice, which is why it is the one the default guards against.
+- **A refresher takes nothing away.** A miss moves the lesson back a rung and
+  brings it round sooner. Progress stays monotonic; a tick earned is never lost,
+  and `Next` is offered on every item whether it passed or not.
+- **It cannot remind anybody.** No backend, no login, no push — see *Progress*.
+  The card appears when the student comes back of their own accord, and that is
+  the whole of the mechanism.
+
+**A refresher asks only for the steps whose answer the student produces**
+(`recallSession`): the two that ask for code, and `predictOutput`. Dunlosky et
+al. (2013) are unambiguous that a generative answer beats filling a blank, which
+beats recognising — a board of tiles is the bottom of that ladder, and
+`orderLines` is left out for the same reason though it is a near thing, since its
+lines are handed over. Items are **interleaved** round-robin across the due
+lessons rather than blocked one lesson at a time, worth about 43% more accuracy a
+week on.
+
+A written step comes back with an **empty editor** rather than its starter block:
+the scaffolding is what is being taken away, which is the fading the same
+literature asks for.
+
+**A prediction only counts when it is right**, which is the one place a step
+means something different here than inside a lesson. There, seeing the answer
+*is* the exercise and a wrong guess still completes the step; here the question
+is not "have you met this?" but "do you still know it?", and that answer is what
+moves the ladder. Being wrong still costs nothing beyond a rung — the output and
+the author's explanation are shown either way, and `Next` is always offered.
+`RecallScreenViewModel.finishRun` therefore takes `passed` from the controller
+rather than reading it off the `AttemptResult`, because the two kinds of item
+mean different things by it.
+
+`RecallStore.schedule` is called from `LessonScreenController._remember`, at the
+same moment the confetti is earned — the transition into "finished", not the last
+step. `RecallStore.clear` runs beside `ProgressStore.clear` in the settings menu.
 
 ### The end of a lesson
 

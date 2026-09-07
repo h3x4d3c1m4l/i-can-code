@@ -15,6 +15,17 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
   }
 
+  /// Opens this language's refresher.
+  ///
+  /// Pushed rather than replacing, so the browser's Back button comes straight
+  /// back to the catalog it was started from.
+  Future<void> openRefresher() async {
+    if (!contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(
+      RecallRoute(languageSlug: languageSlug(viewModel.language)),
+    );
+  }
+
   /// Opens a lesson where the student left off — its first unfinished step, or
   /// the beginning if there is none.
   Future<void> openLesson(CourseLesson lesson) async {

@@ -26,6 +26,38 @@
   "@initializationScreen_retry": {},
   "catalogScreen_title": "Pick a topic",
   "@catalogScreen_title": {},
+  "catalogScreen_recallBody": "{count, plural, =1{1 step from a lesson you have finished.} other{{count} steps from lessons you have finished.}}",
+  "@catalogScreen_recallBody": {
+    "description": "Under the refresher card on the catalog. Says where the steps come from, so it does not read as new material.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "recallScreen_title": "Refresher",
+  "@recallScreen_title": {
+    "description": "A short run through steps from finished lessons, offered a day later. Not \"test\" or \"quiz\": nothing here is graded and nothing can be lost."
+  },
+  "recallScreen_intro": "You did this step before. See whether you still can \u2014 this time without the starter code.",
+  "@recallScreen_intro": {
+    "description": "Above each item. Names the one thing that is different from the first time: the scaffolding is gone."
+  },
+  "recallScreen_introPredict": "You did this step before. Do you still know what this program shows?",
+  "@recallScreen_introPredict": {
+    "description": "The intro on a predict-output item. Its counterpart names the missing starter code, which a predict step never had."
+  },
+  "recallScreen_step": "{done} of {total}",
+  "@recallScreen_step": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "recallScreen_done": "Refresher done",
+  "@recallScreen_done": {},
+  "recallScreen_score": "{done} of {total} right first time.",
+  "@recallScreen_score": {
+    "description": "On the end page. A miss costs nothing: it only brings the lesson round again sooner.",
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "recallScreen_empty": "Nothing to refresh just now. Come back tomorrow.",
+  "@recallScreen_empty": {
+    "description": "Shown when the refresher is opened with nothing due — by an old link, or after finishing everything."
+  },
   "lessonScreen_run": "Check code",
   "@lessonScreen_run": {},
   "lessonScreen_stop": "Stop",
@@ -84,6 +116,10 @@
   },
   "lessonScreen_orderDown": "Move line down",
   "@lessonScreen_orderDown": {},
+  "lessonScreen_orderCheck": "Check order",
+  "@lessonScreen_orderCheck": {
+    "description": "Runs the assembled program on an order-lines step. Not \"check code\": the student arranged the lines rather than writing them, and the button should name what they actually did."
+  },
   "lessonScreen_orderRemove": "Put the line back",
   "@lessonScreen_orderRemove": {
     "description": "Returns an arranged line to the available ones. Not \"delete\": nothing is lost, it goes back to where it came from."
