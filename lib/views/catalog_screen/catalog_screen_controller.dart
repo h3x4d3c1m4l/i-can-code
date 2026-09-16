@@ -15,6 +15,16 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
   }
 
+  /// Opens this language's interactive console. Not a lesson: nothing in it is
+  /// checked and nothing is recorded, which is why it sits under its own
+  /// heading rather than at the end of the list.
+  Future<void> openRepl() async {
+    if (!contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(
+      ReplRoute(languageSlug: languageSlug(viewModel.language)),
+    );
+  }
+
   /// Opens a lesson where the student left off — its first unfinished step, or
   /// the beginning if there is none.
   Future<void> openLesson(CourseLesson lesson) async {

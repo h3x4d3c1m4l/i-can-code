@@ -214,5 +214,41 @@
   "resetProgress_confirm": "Reset",
   "@resetProgress_confirm": {},
   "common_cancel": "Cancel",
-  "@common_cancel": {}
+  "@common_cancel": {},
+  "replScreen_title": "{language} console",
+  "@replScreen_title": {
+      "placeholders": {
+          "language": {
+              "type": "String"
+          }
+      }
+  },
+  "replScreen_subtitle": "Try things out one line at a time. Nothing here is checked, and nothing is kept.",
+  "@replScreen_subtitle": {},
+  "replScreen_starting": "Starting the interpreter…",
+  "@replScreen_starting": {},
+  "replScreen_restart": "Restart",
+  "@replScreen_restart": {},
+  "replScreen_hint": "Enter runs the line · ↑ brings back an earlier one · Ctrl-D exits",
+  "@replScreen_hint": {},
+  "replScreen_exited": "The interpreter has stopped (exit code {code}).",
+  "@replScreen_exited": {
+      "placeholders": {
+          "code": {
+              "type": "int"
+          }
+      }
+  },
+  "replScreen_stopped": "Stopped. The interpreter was restarted, so everything you had defined is gone.",
+  "@replScreen_stopped": {},
+  "replScreen_failed": "The interpreter could not be started.",
+  "@replScreen_failed": {},
+  "replScreen_unavailableTitle": "This browser cannot do this",
+  "@replScreen_unavailableTitle": {},
+  "replScreen_unavailableBody": "An interactive prompt needs this page to be cross-origin isolated, which is not happening here — usually private browsing, or a site not loaded over https. The lessons themselves still work.",
+  "@replScreen_unavailableBody": {},
+  "catalogScreen_extra": "Extra",
+  "@catalogScreen_extra": {},
+  "catalogScreen_extraFreePlay": "Free play",
+  "@catalogScreen_extraFreePlay": {}
 }

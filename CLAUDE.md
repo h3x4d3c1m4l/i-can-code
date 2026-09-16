@@ -225,7 +225,16 @@ Every one of them serves `Cross-Origin-Opener-Policy: same-origin` and `Cross-Or
 Two things follow:
 
 - `require-corp` makes the browser refuse any cross-origin subresource that does not opt in with its own CORP/CORS header. Everything the app loads is bundled — the fonts included, which is part of why they were bundled — so nothing is at risk today. **Add a CDN script or a remote font and it will fail to load under these configurations only.** The "no isolation" configuration exists to rule the headers in or out when something stops loading.
-- `flutter build web` serves nothing, so a **deployed** build is only isolated if its host sets the same two headers. Isolation is a property of the response, not of the bundle. Anything that comes to depend on `SharedArrayBuffer` needs a fallback for when it is absent.
+- `flutter build web` serves nothing, so a **deployed** build is only isolated if its host sets the same two headers. Isolation is a property of the response, not of the bundle.
+
+GitHub Pages cannot send a header, and the interactive console *does* depend on `SharedArrayBuffer`, so `web/coi-serviceworker.js` re-issues every response with the two headers from a service worker. It is a **no-op wherever they already arrive** — it returns early while `crossOriginIsolated` is true, which is every configuration above — so it does nothing at all from the IDE.
+
+Two things about it:
+
+- It is **vendored and stays unmodified**. The app's own adjustments go in the two `<script>` blocks around it in `web/index.html`. One of those is a workaround: upstream reloads only when it finds an already-*active* worker, and on a first visit the registration resolves while the worker is still installing — so the page would stay un-isolated until someone reloaded by hand. Waiting on `serviceWorker.ready` and reloading once is the fix.
+- `credentialless` is forced off, so the deployed site lands on exactly the `require-corp` the dev server serves. A subresource that breaks in only one of the two environments is the whole reason to keep them identical.
+
+No service worker means no console — private browsing, storage disabled, no https. `PythonRepl.isSupported` reports that and the screen says so rather than disappearing.
 
 ### Addresses
 
@@ -234,7 +243,10 @@ Two things follow:
 /learn-python                                  that language's lessons
 /learn-python/input-and-output                 resume: wherever you left off
 /learn-python/input-and-output/print-yourself  one step, named by its section id
+/learn-python/repl                             the interactive console
 ```
+
+`repl` sits where a lesson id goes, so it is **reserved**: a lesson must not use it, and `lesson_test.dart` holds that. Its route is declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read it as a lesson called "repl".
 
 The step is a **`LessonSection.id`, never a position** — the same reason progress keys on it. A pasted or bookmarked link still opens the step it named after the author reorders the lesson, and an id the lesson no longer has resolves like the bare form rather than showing nothing.
 
@@ -338,7 +350,7 @@ A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunn
 
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
-**Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table.
+**Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing.
 
 ### Lessons
 
@@ -401,6 +413,24 @@ Flutter's asset globbing is **not recursive**, so every asset directory is liste
 **The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `languageLabel()`, the same name without the number.
 
 The student's source is carried into that program as **base64 of JSON**, never interpolated. Interpolation needs escaping their code can always defeat — a triple quote, a stray backslash — and base64's alphabet contains no quote, so the payload cannot terminate the literal holding it. `test/services/python_attempt_runner_test.dart` runs the wrapper through the machine's own `python3` (skipped when absent), so the capture, traceback trimming and `output` stripping are tested without a browser.
+
+### Running Python interactively
+
+The console under *Extra* is the **real** CPython REPL: one `python -i -u` process that lives for the whole session, parked between lines. `x = 1` on one line is still there on the next because it is the same interpreter, not because anything is replayed.
+
+Three pieces make that work, and none of them is optional:
+
+- **`web/python/stdin_channel.js`** — a `SharedArrayBuffer` ring. CPython's `fd_read` is synchronous, so the worker has to *block* inside it, and `Atomics.wait` is the only primitive that parks a thread without unwinding it. The page MUST be the writer and the worker the reader: `Atomics.wait` throws on the main thread, and a parked worker never reaches its event loop, so a `postMessage` to it would never be read. Same arrangement as swiftwasm/uwasi and cryptool-org/wasm-webterm.
+- **`web/python/python_repl_worker.js`** — starts the interpreter and then never returns. It can be sent exactly one message, `start`, and never another. Output still leaves by `postMessage`, batched, and flushed just before each read so a prompt never sits in a buffer while the student waits.
+- **`lib/services/terminal/line_editor.dart`** — the line discipline. A tty driver echoes, edits and hands over whole lines; CPython's basic REPL counts on that and does none of it. This is that half, including the `\n` -> `\r\n` translation (`cookOutput`) without which every line steps across the screen.
+
+`-i` is what forces the interactive loop even though stdin is not a terminal — without it CPython reads stdin to the end and runs it as a script. `PYTHON_BASIC_REPL=1` keeps the 3.13+ PyREPL out of it; that wants termios and would fall back anyway, but asking outright means the behaviour does not depend on how the probe happens to fail.
+
+**`stdioIsTerminal` is what turns the colour on, not `TERM`.** wasi-libc's `isatty()` answers no for a character device that is *seekable*, and the shim hands out every right by default — so CPython saw a redirected file and dropped its colourised tracebacks. The REPL worker withholds `FD_SEEK` and `FD_TELL`, and **`python_worker.js` deliberately does not**: the lesson screen renders its output as plain text, where the same escape codes are only noise.
+
+**Nothing can interrupt a running program.** wasm has no signals, so Ctrl-C at a fresh prompt throws away the typed line — all a line discipline can do — and anywhere else, busy or part way through a block, restarts the interpreter and says so. No `KeyboardInterrupt` is ever printed, because Python never raised one. The controller tells the two cases apart by reading the last prompt off the screen, which is where a terminal has always got it.
+
+The terminal itself is **xterm** (`TerminalView`), so the escape codes CPython emits are handled by a real emulator rather than by the subset we happened to think of. Its sixteen ANSI colours live in `lib/theme/terminal_palette.dart`, deliberately *not* in `AppSemanticColors`: those are roles a caller picks by meaning, and these are numbered slots the running program picks from. One palette covers all four schemes because every preset's code surface is dark, and `test/theme/terminal_palette_test.dart` holds that to WCAG AA.
 
 ### Localization
 

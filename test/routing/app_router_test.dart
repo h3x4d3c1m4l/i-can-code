@@ -19,6 +19,7 @@ void main() {
       '/',
       '/initialization',
       '/learn-python',
+      '/learn-python/$replLesson',
       '/learn-python/input-and-output',
       '/learn-python/input-and-output/print-yourself',
     ]) {
@@ -36,6 +37,16 @@ void main() {
     // survives a replace. Equal within a lesson, different across lessons.
     expect(first.args!.key, later.args!.key);
     expect(first.args!.key, isNot(other.args!.key));
+  });
+
+  test('the console has its own address, ahead of the lesson addresses', () {
+    // Declared above the lesson routes, so it must win the two-segment match
+    // rather than being read as a lesson called "repl".
+    final matched = AppRouter().matcher.match('/learn-python/$replLesson');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'ReplRoute');
+    expect(matched.single.params.getString('languageSlug'), 'learn-python');
   });
 
   test('a lesson without a section resolves to the resume marker', () {

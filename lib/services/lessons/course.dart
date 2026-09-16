@@ -175,6 +175,14 @@ String? languageEmoji(String language) => switch (language) {
   _ => null,
 };
 
+/// Whether this language has an interactive console to offer beside its
+/// lessons, which is what puts an "Extra" section on its catalog.
+///
+/// A fact about the runtime, not about the lessons: it is true where a language
+/// has a REPL the app can host, and a language whose lessons exist without one
+/// simply has no Extra section.
+bool languageHasRepl(String language) => language == 'python';
+
 /// The URL segment a language's pages live under: `python` -> `learn-python`.
 /// MUST stay in step with [languageFromSlug], which is its inverse.
 String languageSlug(String language) => 'learn-$language';

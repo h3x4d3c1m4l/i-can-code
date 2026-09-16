@@ -3,6 +3,59 @@
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
+  <script>
+    /*
+      Cross-origin isolation, for a host that cannot send the headers itself.
+
+      First in the document on purpose. The service worker below cannot control
+      the page that registered it, so the very first visit reloads once — and
+      that reload has to happen before Flutter starts pulling down the engine
+      and the 20 MB of Python assets, not after.
+
+      `credentialless` is forced off so the deployed site lands on exactly the
+      `require-corp` the dev server already serves. Everything here is bundled
+      and same-origin, so the stricter of the two costs nothing, and a
+      subresource that breaks in only one of the two environments is the whole
+      reason to keep them identical.
+
+      Does nothing when the headers already arrive: the script returns early
+      while `crossOriginIsolated` is true, which is every configuration in
+      .vscode/launch.json.
+    */
+    window.coi = { coepCredentialless: () => false, quiet: true };
+  </script>
+  <script src="coi-serviceworker.js"></script>
+  <script>
+    /*
+      The nudge the script above is missing.
+
+      Its registration callback reloads only when it finds an already-*active*
+      worker, and on a first visit the registration resolves while the worker is
+      still installing — so it registers, reloads nothing, and the page stays
+      un-isolated until someone presses reload by hand. Verified against
+      Chrome 153 on a clean profile.
+
+      `serviceWorker.ready` settles once a worker controls this scope, which is
+      exactly the moment the check upstream is looking for. The sessionStorage
+      flag is what stops a worker that never activates from turning this into a
+      reload loop, and storage being refused only costs the reload.
+    */
+    if (window.crossOriginIsolated === false && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(function () {
+        if (window.crossOriginIsolated) return;
+        try {
+          if (sessionStorage.getItem('coiReloadedForIsolation')) return;
+          sessionStorage.setItem('coiReloadedForIsolation', '1');
+        } catch (e) {
+          return;
+        }
+        window.location.reload();
+      }).catch(function () {
+        /* No worker to wait for. The console screen says why it cannot run. */
+      });
+    }
+  </script>
+
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="I Can Code — learn to program, in your browser.">

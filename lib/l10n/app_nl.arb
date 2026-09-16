@@ -89,5 +89,31 @@
   "resetProgress_title": "Voortgang wissen?",
   "resetProgress_body": "Je vinkjes verdwijnen en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",
   "resetProgress_confirm": "Wissen",
-  "common_cancel": "Annuleren"
+  "common_cancel": "Annuleren",
+  "replScreen_title": "{language}-console",
+  "@replScreen_title": {
+      "placeholders": {
+          "language": {
+              "type": "String"
+          }
+      }
+  },
+  "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd en niets bewaard.",
+  "replScreen_starting": "De interpreter wordt gestart…",
+  "replScreen_restart": "Herstarten",
+  "replScreen_hint": "Enter voert de regel uit · ↑ haalt een eerdere regel terug · Ctrl-D sluit af",
+  "replScreen_exited": "De interpreter is gestopt (afsluitcode {code}).",
+  "@replScreen_exited": {
+      "placeholders": {
+          "code": {
+              "type": "int"
+          }
+      }
+  },
+  "replScreen_stopped": "Gestopt. De interpreter is opnieuw gestart, dus alles wat je had gedefinieerd is weg.",
+  "replScreen_failed": "De interpreter kon niet worden gestart.",
+  "replScreen_unavailableTitle": "Dit werkt niet in deze browser",
+  "replScreen_unavailableBody": "Een interactieve prompt vereist dat deze pagina cross-origin geïsoleerd is. Dat lukt hier niet — meestal komt dat door privémodus of doordat de site niet via https geladen is. De lessen zelf werken gewoon.",
+  "catalogScreen_extra": "Extra",
+  "catalogScreen_extraFreePlay": "Vrij oefenen"
 }

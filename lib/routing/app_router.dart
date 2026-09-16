@@ -8,6 +8,13 @@ import 'package:i_can_code/routing/bootstrap_guard.dart';
 /// Reserved: a lesson must not name a section this. `lesson_test.dart` holds it.
 const String resumeSection = 'resume';
 
+/// The lesson id the interactive console sits on.
+///
+/// Reserved for the same reason and in the same place: it occupies a language's
+/// second address segment, where a lesson id would otherwise go, so a lesson
+/// with this id would be unreachable. `lesson_test.dart` holds it.
+const String replLesson = 'repl';
+
 /// One step of a lesson, as a route. **Build a [LessonRoute] through here
 /// rather than directly**, because of the key.
 ///
@@ -45,6 +52,10 @@ class AppRouter extends RootStackRouter {
     // Before the catch-all below, which would otherwise claim it.
     AutoRoute(page: InitializationRoute.page, path: '/initialization'),
     AutoRoute(page: CatalogRoute.page, path: '/:languageSlug'),
+    // Above the lesson addresses below, which it would otherwise match as a
+    // lesson called "repl". Same arrangement as /initialization above the
+    // language catch-all, and the reason [replLesson] is a reserved id.
+    AutoRoute(page: ReplRoute.page, path: '/:languageSlug/$replLesson'),
     // A lesson's bare address means "wherever I left off". auto_route matches on
     // an exact segment count, so that cannot be an optional segment below — and
     // **a page may appear only once**, so a second AutoRoute is out too

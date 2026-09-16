@@ -53,6 +53,12 @@ void main() {
         );
 
         expect(
+          lesson.id,
+          isNot(replLesson),
+          reason: '"$replLesson" is the address of the interactive console, which sits where a lesson id goes',
+        );
+
+        expect(
           lesson.sections.map((s) => s.id).toSet(),
           hasLength(lesson.sections.length),
           reason: 'saved progress keys on section ids, so they must be unique within a lesson',

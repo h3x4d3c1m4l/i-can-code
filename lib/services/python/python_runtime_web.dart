@@ -1,26 +1,12 @@
 import 'dart:async';
 import 'dart:js_interop';
 
+import 'package:i_can_code/services/python/python_assets_web.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:web/web.dart' as web;
 
-/// Where Flutter serves the declared assets from. The doubled `assets/` is not a
-/// typo: the build copies `assets/python/...` under its own `assets/` root.
-const String _wasmPath = 'assets/assets/python/python.wasm';
-const String _stdlibPath = 'assets/assets/python/python314.zip';
-
 /// Copied verbatim from `web/python/` into the build output.
 const String _workerPath = 'python/python_worker.js';
-
-/// Resolves a path against the *document*, so the worker gets absolute URLs.
-///
-/// Load-bearing: a relative URL fetched inside a worker resolves against the
-/// worker script's location, not the page, so it would miss and the dev server
-/// would answer the 404 with index.html — which the wasm compiler reports as
-/// `expected magic word 00 61 73 6d, found 3c 21 44 4f` (`<!DO`).
-///
-/// Going through `baseURI` also survives a deploy under `--base-href`.
-String _absoluteUrl(String path) => Uri.parse(web.document.baseURI).resolve(path).toString();
 
 PythonRuntime createPythonRuntime() => WebPythonRuntime();
 
@@ -52,7 +38,7 @@ class WebPythonRuntime implements PythonRuntime {
   Future<void> _start() {
     final completer = Completer<void>();
     final worker = web.Worker(
-      _absoluteUrl(_workerPath).toJS,
+      absoluteUrl(_workerPath).toJS,
       web.WorkerOptions(type: 'module'),
     );
     _worker = worker;
@@ -87,8 +73,8 @@ class WebPythonRuntime implements PythonRuntime {
       }.toJS
       ..postMessage({
         'type': 'init',
-        'wasmUrl': _absoluteUrl(_wasmPath),
-        'stdlibUrl': _absoluteUrl(_stdlibPath),
+        'wasmUrl': absoluteUrl(pythonWasmPath),
+        'stdlibUrl': absoluteUrl(pythonStdlibPath),
       }.jsify());
 
     return completer.future;

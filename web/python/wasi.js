@@ -31,6 +31,14 @@ const FILETYPE_CHARACTER_DEVICE = 2;
 
 const PREOPENTYPE_DIR = 0;
 
+// wasi-libc's isatty() answers yes only for a character device that is *not*
+// seekable, so these two rights are what decide it. Withholding them is the
+// only way to tell CPython it is talking to a terminal.
+const RIGHTS_ALL = 0xFFFFFFFFFFFFFFFFn;
+const RIGHTS_FD_SEEK = 1n << 2n;
+const RIGHTS_FD_TELL = 1n << 5n;
+const RIGHTS_TERMINAL = RIGHTS_ALL & ~(RIGHTS_FD_SEEK | RIGHTS_FD_TELL);
+
 // poll_oneoff's two fixed-size records, and the one subscription flag that
 // matters: whether a clock timeout is a point in time or a duration.
 const SUBSCRIPTION_SIZE = 48;
@@ -63,14 +71,29 @@ export class Wasi {
    * @param {object}   options.env         environment variables
    * @param {Map<string, Uint8Array>} options.files  absolute path -> contents
    * @param {Uint8Array} options.stdin     pre-filled standard input
+   * @param {{read: (max: number) => Uint8Array}} options.stdinReader
+   *        Standard input as a stream instead of a buffer. Its `read` MAY block
+   *        the whole thread — that is the point of it, and is what lets CPython
+   *        sit at a REPL prompt — and MUST return an empty array for end of
+   *        input. Wins over `stdin` when both are given.
+   * @param {boolean} options.stdioIsTerminal
+   *        Makes `isatty()` true for the three standard streams.
+   *
+   *        Off by default, and MUST stay off for anything whose output is shown
+   *        as plain text: CPython colourises tracebacks when stderr is a
+   *        terminal, and those escape codes are only an improvement in front of
+   *        something that can render them.
    * @param {(kind: 'stdout'|'stderr', bytes: Uint8Array) => void} options.onOutput
    */
-  constructor({ args, env, files, stdin, onOutput }) {
+  constructor({ args, env, files, stdin, stdinReader, stdioIsTerminal, onOutput }) {
     this.args = args;
     this.env = env;
     this.files = files;
+    this.stdinReader = stdinReader ?? null;
+    this.stdioIsTerminal = stdioIsTerminal === true;
     this.stdinBytes = stdin ?? new Uint8Array(0);
     this.stdinOffset = 0;
+    this.stdinAtEof = false;
     this.onOutput = onOutput;
     this.memory = null;
     this.exitCode = null;
@@ -206,10 +229,20 @@ export class Wasi {
 
         fd_read: (fd, iovsPtr, iovsLen, readPtr) => {
           let read = 0;
-          for (let i = 0; i < iovsLen && this.hasInput(fd); i++) {
+          for (let i = 0; i < iovsLen; i++) {
             const ptr = this.view.getUint32(iovsPtr + i * 8, true);
             const len = this.view.getUint32(iovsPtr + i * 8 + 4, true);
-            read += this.readInto(fd, ptr, len);
+            if (len === 0) continue;
+            if (!this.hasInput(fd)) break;
+
+            const got = this.readInto(fd, ptr, len);
+            read += got;
+
+            // A short read is a complete read — `read(2)` has always been
+            // allowed to return less than asked. Stopping here is what keeps a
+            // *blocking* stdin from parking a second time on the next iovec
+            // after it has already produced the line CPython was waiting for.
+            if (got < len) break;
           }
           this.view.setUint32(readPtr, read, true);
           return ERRNO_SUCCESS;
@@ -260,12 +293,17 @@ export class Wasi {
         fd_fdstat_get: (fd, statPtr) => {
           const entry = this.fds.get(fd);
           if (!entry) return ERRNO_BADF;
+
+          // Grant every right; the filesystem is read-only by construction, so
+          // there is nothing a generous rights mask can actually reach. The one
+          // exception is the pair that makes a stream seekable, which is how
+          // isatty() tells a terminal from a redirected file.
+          const rights = this.stdioIsTerminal && fd <= 2 ? RIGHTS_TERMINAL : RIGHTS_ALL;
+
           this.view.setUint8(statPtr, entry.type);
           this.view.setUint16(statPtr + 2, 0, true); // flags
-          // Grant every right; the filesystem is read-only by construction, so
-          // there is nothing a generous rights mask can actually reach.
-          this.view.setBigUint64(statPtr + 8, 0xFFFFFFFFFFFFFFFFn, true);
-          this.view.setBigUint64(statPtr + 16, 0xFFFFFFFFFFFFFFFFn, true);
+          this.view.setBigUint64(statPtr + 8, rights, true);
+          this.view.setBigUint64(statPtr + 16, rights, true);
           return ERRNO_SUCCESS;
         },
         fd_fdstat_set_flags: ok,
@@ -340,8 +378,11 @@ export class Wasi {
               const deadline = flags & SUBCLOCKFLAGS_ABSTIME ? ms : Date.now() + ms;
               earliest = earliest === null ? deadline : Math.min(earliest, deadline);
             } else {
-              // Our streams never block: stdin is a fixed buffer and stdout
-              // cannot fill up, so an fd subscription is ready immediately.
+              // Reported ready immediately. stdout cannot fill up, and stdin
+              // is either a fixed buffer or a reader whose own read blocks —
+              // so nothing is gained by claiming it is not ready yet, and
+              // CPython's interactive loop reaches stdin through fd_read
+              // rather than through a poll anyway.
               readyNow = true;
             }
             events.push({ userdata, kind });
@@ -423,10 +464,23 @@ export class Wasi {
   }
 
   hasInput(fd) {
-    return fd === 0 ? this.stdinOffset < this.stdinBytes.length : true;
+    if (fd !== 0) return true;
+    // A reader always "has" input: asking it is what blocks, and it reports the
+    // end of the stream by handing back nothing.
+    if (this.stdinReader) return !this.stdinAtEof;
+    return this.stdinOffset < this.stdinBytes.length;
   }
 
   readInto(fd, ptr, len) {
+    if (fd === 0 && this.stdinReader) {
+      const chunk = this.stdinReader.read(len);
+      if (chunk.length === 0) {
+        this.stdinAtEof = true;
+        return 0;
+      }
+      this.bytes.set(chunk, ptr);
+      return chunk.length;
+    }
     if (fd === 0) {
       const slice = this.stdinBytes.subarray(this.stdinOffset, this.stdinOffset + len);
       this.bytes.set(slice, ptr);

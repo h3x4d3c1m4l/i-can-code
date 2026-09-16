@@ -26,6 +26,32 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
     );
   }
 
+  /// Everything this language offers beside the course itself.
+  ///
+  /// Under its own heading on purpose: the cards above are a path with progress
+  /// on it, and this is not part of that path. Nothing here is checked and
+  /// nothing is recorded.
+  Widget _buildExtra(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 48),
+        Text(context.localizations.catalogScreen_extra, style: context.appTheme.text.h2),
+        const SizedBox(height: 16),
+        CatalogCard(
+          // A prompt, in the code face the tile already uses. The lessons above
+          // are numbered and this is not one of them, so it does not get a
+          // number.
+          label: '>_',
+          title: context.localizations.replScreen_title(languageLabel(viewModel.language)),
+          subtitle: context.localizations.replScreen_subtitle,
+          meta: context.localizations.catalogScreen_extraFreePlay,
+          onTap: controller.openRepl,
+        ),
+      ],
+    );
+  }
+
   Widget _buildContent() {
     return Observer(
       builder: (context) {
@@ -79,6 +105,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                       },
                     ),
                   ],
+                  if (languageHasRepl(viewModel.language)) _buildExtra(context),
                 ],
               ),
             ),
