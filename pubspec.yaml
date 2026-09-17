@@ -65,6 +65,10 @@ flutter:
     # Flutter's asset globbing is NOT recursive: every directory must be listed.
     - assets/lessons/
     - assets/lessons/python/
+    # The MicroPython hex a flashed program is built into. Fetched rather than
+    # committed, so this directory holds only a README until `just
+    # fetch-microbit-firmware` has run; see docs/rust-core-build.md.
+    - assets/microbit/
 
   fonts:
     - family: Figtree

@@ -138,6 +138,50 @@ class MicrobitOutput extends MicrobitEvent {
 
 }
 
+/// How much of the board's flash the new program would change, worked out
+/// before anything is written.
+///
+/// Arrives once per flash, ahead of the first [MicrobitFlashProgress].
+class MicrobitFlashPlan extends MicrobitEvent {
+
+  /// Pages the board does not already hold.
+  final int changed;
+
+  /// Pages the board has in all.
+  final int total;
+
+  const MicrobitFlashPlan(this.changed, this.total);
+
+}
+
+/// The board could not say which pages differ, so every page is written.
+///
+/// Not a failure: the flash goes ahead.
+class MicrobitFlashPlanUnknown extends MicrobitEvent {
+
+  /// Untranslated, for whoever is debugging.
+  final String message;
+
+  const MicrobitFlashPlanUnknown(this.message);
+
+}
+
+/// How far a flash has got, between 0 and 1.
+class MicrobitFlashProgress extends MicrobitEvent {
+
+  final double fraction;
+
+  const MicrobitFlashProgress(this.fraction);
+
+}
+
+/// The board has been written and has restarted into the new program.
+class MicrobitFlashed extends MicrobitEvent {
+
+  const MicrobitFlashed();
+
+}
+
 /// The board was let go of, by request or because the cable came out. The
 /// session is still running and can connect again.
 class MicrobitDisconnected extends MicrobitEvent {
@@ -202,7 +246,10 @@ abstract class MicrobitLink {
   ///
   /// Returns once the request is queued. The outcome arrives on [events] as
   /// [MicrobitConnected] or [MicrobitFailed].
-  Future<void> connect();
+  ///
+  /// [interrupt] breaks into MicroPython's prompt once the board is up. A
+  /// caller that wants the board's own program to run MUST leave it false.
+  Future<void> connect({bool interrupt = false});
 
   /// Sends [text] to the target's UART, verbatim.
   ///
@@ -210,12 +257,24 @@ abstract class MicrobitLink {
   /// the screen here; MicroPython echoes, and that echo arrives as output.
   void write(String text);
 
+  /// Writes `mainPy` to the board as its `main.py`.
+  ///
+  /// Returns once the request is queued. Progress and the outcome arrive on
+  /// [events] as [MicrobitFlashProgress], [MicrobitFlashed] or [MicrobitFailed].
+  ///
+  /// The board reboots into the new program, so anything typed at the old one is
+  /// gone.
+  Future<void> flash(String mainPy);
+
   /// Starts the board over with a hard reset, so it boots and runs `main.py`
   /// again.
   ///
   /// The boot output arrives on [events]. This is also what produces a
   /// connection's first output, since MicroPython says nothing unasked.
-  Future<void> restart();
+  ///
+  /// [interrupt] is what it is on [connect]: a REPL wants the prompt, a program
+  /// wants to run.
+  Future<void> restart({bool interrupt = false});
 
   /// Lets the board go without ending the session.
   Future<void> disconnect();

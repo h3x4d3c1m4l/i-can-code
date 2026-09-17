@@ -251,15 +251,15 @@
   "@catalogScreen_extra": {},
   "catalogScreen_extraFreePlay": "Free play",
   "@catalogScreen_extraFreePlay": {},
-  "microbitScreen_title": "Try {language} freely (micro:bit)",
-  "@microbitScreen_title": {
+  "microbitReplScreen_title": "Try {language} freely (micro:bit)",
+  "@microbitReplScreen_title": {
       "placeholders": {
           "language": {
               "type": "String"
           }
       }
   },
-  "microbitScreen_subtitle": "Try things out one line at a time on a real micro:bit. Nothing here is checked.",
+  "microbitReplScreen_subtitle": "Try things out one line at a time on a real micro:bit. Nothing here is checked.",
   "microbitScreen_connect": "Connect a micro:bit",
   "microbitScreen_connectTitle": "Plug in your micro:bit",
   "microbitScreen_connectBody": "Connect the board to this computer with a USB cable and click below. The browser will then ask you which board you mean.",
@@ -276,20 +276,19 @@
   "microbitScreen_deviceUnnamed": "micro:bit",
   "microbitScreen_deviceSerial": "Serial number",
   "microbitScreen_deviceFirmware": "Firmware",
-  "microbitScreen_deviceProtocol": "CMSIS-DAP",
   "microbitScreen_deviceV1": "micro:bit V1",
   "microbitScreen_deviceV2": "micro:bit V2",
   "microbitScreen_idFromWire": "Board id read from the board itself",
   "microbitScreen_idFromDescriptor": "Board id from the USB descriptor",
   "catalogScreen_extraHardware": "Real hardware",
   "microbitScreen_deviceFlash": "Flash",
-  "microbitScreen_replHint": "You are typing straight into MicroPython on the board. Enter runs the line · Ctrl-C interrupts a running program",
+  "microbitReplScreen_hint": "You are typing straight into MicroPython on the board. Enter runs the line · Ctrl-C interrupts a running program",
   "microbitScreen_deviceDetails": "Details about this board",
   "microbitScreen_deviceBoardId": "Board id",
   "microbitScreen_deviceIdSource": "Source",
   "microbitScreen_restart": "Restart",
   "replScreen_crumb": "Free play (browser)",
-  "microbitScreen_crumb": "Free play (micro:bit)",
+  "microbitReplScreen_crumb": "Free play (micro:bit)",
   "microbitScreen_connectedTo": "Connected to {board}",
   "microbitScreen_deviceName": "Device",
   "@microbitScreen_connectedTo": {
@@ -298,5 +297,47 @@
               "type": "String"
           }
       }
-  }
+  },
+  "microbitScreen_flash": "Write to the board",
+  "microbitScreen_flashHint": "main.py",
+  "microbitScreen_flashing": "Writing… {percent}%",
+  "@microbitScreen_flashing": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitScreen_flashingPages": "Writing… {percent}% ({changed} of {total} pages differ)",
+  "@microbitScreen_flashingPages": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          },
+          "changed": {
+              "type": "int"
+          },
+          "total": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitScreen_flashingPagesUnknown": "Writing… {percent}% (the board could not say what differs)",
+  "@microbitScreen_flashingPagesUnknown": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitProgramScreen_title": "Your own program on the micro:bit",
+  "@microbitProgramScreen_title": {
+      "description": "The page where a student writes a program and puts it on the board. Names no language, unlike the REPL title: the board runs MicroPython while the student writes Python, and that distinction does not belong in a heading."
+  },
+  "microbitProgramScreen_subtitle": "Write a program, put it on the board and watch what it does. Nothing here is checked.",
+  "@microbitProgramScreen_subtitle": {},
+  "microbitProgramScreen_crumb": "Own program",
+  "@microbitProgramScreen_crumb": {},
+  "microbitProgramScreen_hint": "Your program starts as soon as it is on the board. What it prints appears below, and what you type goes to it",
+  "@microbitProgramScreen_hint": {}
 }

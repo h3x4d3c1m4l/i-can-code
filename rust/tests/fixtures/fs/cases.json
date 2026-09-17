@@ -1,0 +1,64 @@
+{
+  "empty": {
+    "files": [],
+    "usedBytes": 0
+  },
+  "one-chunk": {
+    "files": [
+      {
+        "filename": "main.py",
+        "content": "from microbit import *\ndisplay.scroll(\"hi\")\n"
+      }
+    ],
+    "usedBytes": 55
+  },
+  "exact-chunk": {
+    "files": [
+      {
+        "filename": "main.py",
+        "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ],
+    "usedBytes": 130
+  },
+  "chunk-plus-one": {
+    "files": [
+      {
+        "filename": "main.py",
+        "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ],
+    "usedBytes": 131
+  },
+  "many-chunks": {
+    "files": [
+      {
+        "filename": "main.py",
+        "content": "print(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\nprint(\"line\")\n"
+      }
+    ],
+    "usedBytes": 437
+  },
+  "two-files": {
+    "files": [
+      {
+        "filename": "main.py",
+        "content": "import helper\nhelper.go()\n"
+      },
+      {
+        "filename": "helper.py",
+        "content": "def go():\n    print(\"helping\")\n"
+      }
+    ],
+    "usedBytes": 80
+  },
+  "long-name": {
+    "files": [
+      {
+        "filename": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.py",
+        "content": "pass\n"
+      }
+    ],
+    "usedBytes": 112
+  }
+}

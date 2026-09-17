@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 
@@ -96,6 +97,13 @@ class AppButton extends StatelessWidget {
   /// stays laid out and merely turns invisible.
   final bool busy;
 
+  /// How far the work has got, between 0 and 1, drawn as a fill that grows
+  /// across the button. Null when the button is not working.
+  ///
+  /// The label stays readable, unlike under [busy]: a measured wait says how
+  /// much longer, so there is no reason to take the words away as well.
+  final double? progress;
+
   /// What a screen reader announces. Null on a labelled button, which reads its
   /// own label.
   final String? semanticsLabel;
@@ -107,8 +115,10 @@ class AppButton extends StatelessWidget {
     this.iconSide = AppButtonIconSide.leading,
     this.tone = AppButtonTone.primary,
     this.busy = false,
+    this.progress,
     super.key,
-  }) : semanticsLabel = null;
+  }) : semanticsLabel = null,
+       assert(progress == null || !busy, 'a button says how far it has got, or that it is working, not both');
 
   /// A button that is only a glyph — the back chevron beside "Volgende".
   ///
@@ -128,6 +138,7 @@ class AppButton extends StatelessWidget {
     super.key,
   }) : child = null,
        busy = false,
+       progress = null,
        iconSide = AppButtonIconSide.leading;
 
   /// What the button is filled with in [states].
@@ -196,6 +207,36 @@ class AppButton extends StatelessWidget {
     );
   }
 
+  /// The fill that says how far [progress] has got.
+  ///
+  /// Clipped to the button's own shape, so a full bar has the button's corners
+  /// rather than square ones. Tinted with the foreground rather than given a
+  /// colour of its own, which is what lets one rule cover all three tones,
+  /// including the outlined one that has no fill to darken.
+  ///
+  /// It grows into each new value instead of jumping: a partial flash reports
+  /// five times in two seconds, and five steps read as a stutter. Short enough
+  /// that the fill has arrived before the next report does, or it lags behind
+  /// what the button is saying.
+  Widget _buildProgress(BuildContext context, Color foreground) {
+    return ClipPath(
+      clipper: ShapeBorderClipper(shape: squircle(kControlCornerRadius)),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: progress!.clamp(0, 1)),
+        duration: context.motion(const Duration(milliseconds: 180)),
+        curve: Curves.easeOut,
+        builder: (context, fraction, _) => Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FractionallySizedBox(
+            widthFactor: fraction,
+            heightFactor: 1,
+            child: ColoredBox(color: foreground.withValues(alpha: 0.22)),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
@@ -225,10 +266,15 @@ class AppButton extends StatelessWidget {
                 : BorderSide.none,
           ),
         ),
-        child: Padding(
-          // The design's own measurements: 38 across, 19 down.
-          padding: this.child == null ? _iconPadding : _labelPadding,
-          child: child,
+        child: Stack(
+          children: [
+            if (progress != null) Positioned.fill(child: _buildProgress(context, foreground)),
+            Padding(
+              // The design's own measurements: 38 across, 19 down.
+              padding: this.child == null ? _iconPadding : _labelPadding,
+              child: child,
+            ),
+          ],
         ),
       ),
       child: DefaultTextStyle(

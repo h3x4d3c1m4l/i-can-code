@@ -61,7 +61,13 @@ void main() {
         expect(
           lesson.id,
           isNot(microbitLesson),
-          reason: '"$microbitLesson" is the address of the micro:bit screen, which sits where a lesson id goes',
+          reason: '"$microbitLesson" is where a program is put on a board, and it sits where a lesson id goes',
+        );
+
+        expect(
+          lesson.id,
+          isNot(microbitReplLesson),
+          reason: '"$microbitReplLesson" is the board\'s own prompt, and it sits where a lesson id goes',
         );
 
         expect(

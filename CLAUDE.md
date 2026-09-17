@@ -250,10 +250,13 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/input-and-output                 resume: wherever you left off
 /learn-python/input-and-output/print-yourself  one step, named by its section id
 /learn-python/repl                             the interactive console
-/learn-python/microbit                         the micro:bit screen
+/learn-python/microbit                         a program of your own, on a board
+/learn-python/microbit-repl                    MicroPython's own prompt, on a board
 ```
 
-`repl` and `microbit` sit where a lesson id goes, so both are **reserved**: a lesson must not use either, and `lesson_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons called "repl" and "microbit".
+`repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `lesson_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons by those names.
+
+**The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
 
 The step is a **`LessonSection.id`, never a position** — the same reason progress keys on it. A pasted or bookmarked link still opens the step it named after the author reorders the lesson, and an id the lesson no longer has resolves like the bare form rather than showing nothing.
 

@@ -7,6 +7,9 @@ import 'package:re_highlight/styles/atom-one-dark.dart';
 
 /// The dark card the student writes in: a filename strip, the runtime's status,
 /// and the editor itself.
+///
+/// Shared by a lesson's exercises and the micro:bit screen. Only the status
+/// line differs between them.
 class CodeEditorCard extends StatefulWidget {
 
   final CodeLineEditingController controller;

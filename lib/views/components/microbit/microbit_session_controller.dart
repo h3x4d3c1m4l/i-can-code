@@ -6,9 +6,15 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/services/terminal/line_editor.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
-import 'package:i_can_code/views/microbit_screen/microbit_screen_view_model.dart';
+import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 
-class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewModel> {
+/// The board half of both micro:bit screens: permission, the session's events,
+/// and the terminal they land on.
+///
+/// One class for two screens because they differ in what they offer rather than
+/// in how they talk to a board. [interrupt] is that difference: a REPL wants the
+/// prompt, a program wants to run.
+class MicrobitSessionController extends ScreenControllerBase<MicrobitSessionViewModel> {
 
   /// What MicroPython prints when its REPL starts. Everything a restart printed
   /// before this is the interrupt that got there, not the board's own output.
@@ -33,7 +39,13 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
   /// the marker falls across two reads.
   String _tail = '';
 
-  MicrobitScreenController({required super.viewModel, required super.contextAccessor}) {
+  /// Whether to break into MicroPython's prompt every time the board starts.
+  ///
+  /// True on a REPL, where the prompt is the point. False where the board's own
+  /// program is: a Ctrl-C would stop it a moment after it started.
+  final bool interrupt;
+
+  MicrobitSessionController({required super.viewModel, required super.contextAccessor, required this.interrupt}) {
     // No line discipline in between: MicroPython echoes, edits and keeps
     // history itself, so the console's would double every character. Ctrl-C
     // rides along and raises a real `KeyboardInterrupt`.
@@ -46,12 +58,18 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
   /// earlier visit. The permission outlives the page.
   Future<void> _start() async {
 
+    // Before anything is asked of the link, so a failure on the way up is seen
+    // rather than arriving before anyone is listening.
+    _subscription = _link.events.listen(_onEvent);
+
     if (!_link.isSupported || !await _link.transportAvailable()) {
-      if (!_disposed) viewModel.setStatus(MicrobitStatus.unavailable);
+      // "This browser cannot" is only true when nothing else has spoken: a core
+      // that would not load has already said so, in its own words.
+      if (!_disposed && viewModel.status != MicrobitStatus.failed) {
+        viewModel.setStatus(MicrobitStatus.unavailable);
+      }
       return;
     }
-
-    _subscription = _link.events.listen(_onEvent);
 
     final devices = await _link.listDevices();
     if (_disposed) return;
@@ -90,7 +108,7 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
   /// Hands the board to the session, which holds it from here on.
   Future<void> _open() async {
     viewModel.setStatus(MicrobitStatus.connecting);
-    await _link.connect();
+    await _link.connect(interrupt: interrupt);
   }
 
   void _onEvent(MicrobitEvent event) {
@@ -105,6 +123,18 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
         viewModel.setConnected(info);
       case MicrobitOutput(:final text):
         _write(text);
+      case MicrobitFlashPlan(:final changed, :final total):
+        viewModel.setFlashPlan(changed, total);
+      case MicrobitFlashPlanUnknown(:final message):
+        viewModel.setFlashPlanUnknown(message);
+      case MicrobitFlashProgress(:final fraction):
+        viewModel.setFlashing(fraction);
+      case MicrobitFlashed():
+        // The board reboots into the new program, so what the old one printed
+        // belongs to something that no longer exists.
+        _clearTerminal();
+        _expectBanner();
+        viewModel.setFlashed();
       case MicrobitDisconnected():
         // Nothing on the terminal belongs to anything any more: the interpreter
         // that printed it is gone, and a reconnect resets the board.
@@ -120,12 +150,21 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
     viewModel.terminal.setCursor(0, 0);
   }
 
+  /// Writes what is in the editor to the board.
+  Future<void> flash() async {
+    // The last flash's plan was about a program that has already been written.
+    viewModel
+      ..clearFlashPlan()
+      ..setFlashing(0);
+    await _link.flash(viewModel.code.text);
+  }
+
   /// Starts the board over with a hard reset, which also prints the boot banner
   /// that tells the reader something is listening.
   Future<void> restart() async {
     _clearTerminal();
     _expectBanner();
-    await _link.restart();
+    await _link.restart(interrupt: interrupt);
   }
 
   /// Puts board output on the terminal.
@@ -161,8 +200,13 @@ class MicrobitScreenController extends ScreenControllerBase<MicrobitScreenViewMo
     viewModel.terminal.write(cookOutput(text));
   }
 
+  /// Watches for the banner, if one is coming at all.
+  ///
+  /// Only an interrupted start prints one: MicroPython says nothing on its way
+  /// into a program, so a screen that lets the program run would spend this
+  /// budget on the program's own output.
   void _expectBanner() {
-    _bannerBudget = _bannerChunks;
+    _bannerBudget = interrupt ? _bannerChunks : 0;
     _tail = '';
   }
 

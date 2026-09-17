@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:i_can_code/services/microbit/microbit_firmware.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/services/microbit/microbit_usb_web.dart';
 import 'package:i_can_code/src/rust/api/microbit.dart' as core;
@@ -17,9 +18,24 @@ MicrobitLink createMicrobitLink() => WebMicrobitLink();
 /// wait for it nor see it fail.
 class WebMicrobitLink implements MicrobitLink {
 
+  /// Numbers the sessions this page has started.
+  ///
+  /// The core's command queue is shared by every link on the page, so a stop has
+  /// to name the session it means. Two screens are alive at once whenever one
+  /// replaces the other.
+  static int _sessions = 0;
+
   final StreamController<MicrobitEvent> _events = StreamController<MicrobitEvent>.broadcast();
 
-  Future<void>? _starting;
+  /// Which session this link runs, and the only one its stop may end.
+  final int _sessionId = ++_sessions;
+
+  /// Loading the core, shared by every link on the page.
+  ///
+  /// Static because the core is loaded once per page and `RustLib.init()` throws
+  /// on a second call. Two screens hold a link at the same time whenever one
+  /// replaces the other.
+  static Future<void>? _starting;
   StreamSubscription<core_types.MicrobitEvent>? _session;
   bool _disposed = false;
 
@@ -42,11 +58,9 @@ class WebMicrobitLink implements MicrobitLink {
 
   @override
   Future<bool> transportAvailable() async {
-    if (!isSupported) {
+    if (!isSupported || !await _load()) {
       return false;
     }
-
-    await _ensureStarted();
 
     return core.microbitTransportAvailable();
   }
@@ -58,11 +72,9 @@ class WebMicrobitLink implements MicrobitLink {
 
   @override
   Future<List<MicrobitDevice>> listDevices() async {
-    if (!isSupported) {
+    if (!isSupported || !await _load()) {
       return const [];
     }
-
-    await _ensureStarted();
 
     final devices = await core.microbitListDevices();
 
@@ -79,16 +91,19 @@ class WebMicrobitLink implements MicrobitLink {
   }
 
   @override
-  Future<void> connect() async {
+  Future<void> connect({bool interrupt = false}) async {
     if (!isSupported) {
       _emit(const MicrobitFailed(MicrobitFailure.noDevice, 'no USB transport in this browser'));
       return;
     }
 
-    await _ensureStarted();
+    if (!await _load()) {
+      return;
+    }
+
     await _ensureSession();
 
-    await core.microbitSendCommand(command: const core_types.MicrobitCommand.connect());
+    await core.microbitSendCommand(command: core_types.MicrobitCommand.connect(interrupt: interrupt));
   }
 
   @override
@@ -105,12 +120,28 @@ class WebMicrobitLink implements MicrobitLink {
   }
 
   @override
-  Future<void> restart() async {
+  Future<void> flash(String mainPy) async {
+
     if (_session == null) {
       return;
     }
 
-    await core.microbitSendCommand(command: const core_types.MicrobitCommand.restart());
+    // The firmware is read here rather than in the core, which has no way to
+    // reach a Flutter asset.
+    final firmware = await loadMicrobitFirmware();
+
+    await core.microbitSendCommand(
+      command: core_types.MicrobitCommand.flash(firmware: firmware, mainPy: mainPy),
+    );
+  }
+
+  @override
+  Future<void> restart({bool interrupt = false}) async {
+    if (_session == null) {
+      return;
+    }
+
+    await core.microbitSendCommand(command: core_types.MicrobitCommand.restart(interrupt: interrupt));
   }
 
   @override
@@ -131,7 +162,7 @@ class WebMicrobitLink implements MicrobitLink {
       return;
     }
 
-    _session = core.microbitRunSession().listen(
+    _session = core.microbitRunSession(session: BigInt.from(_sessionId)).listen(
       _onCoreEvent,
       // The session reports its own failures as events, so an error here is the
       // bridge giving up rather than the board.
@@ -164,6 +195,14 @@ class WebMicrobitLink implements MicrobitLink {
         );
       case core_types.MicrobitEvent_Serial(:final data):
         _decoder.add(data);
+      case core_types.MicrobitEvent_FlashPlan(:final changed, :final total):
+        _emit(MicrobitFlashPlan(changed, total));
+      case core_types.MicrobitEvent_FlashPlanUnknown(:final message):
+        _emit(MicrobitFlashPlanUnknown(message));
+      case core_types.MicrobitEvent_FlashProgress(:final fraction):
+        _emit(MicrobitFlashProgress(fraction));
+      case core_types.MicrobitEvent_Flashed():
+        _emit(const MicrobitFlashed());
       case core_types.MicrobitEvent_Disconnected():
         _emit(const MicrobitDisconnected());
       case core_types.MicrobitEvent_Failed(:final failure, :final message):
@@ -189,7 +228,24 @@ class WebMicrobitLink implements MicrobitLink {
     }
   }
 
-  /// Loads the core once, however many callers ask.
+  /// Loads the core, and says whether it is there.
+  ///
+  /// False means it is not, and the reason has already gone out as a failure.
+  /// Nothing may call into the core afterwards. A hot restart is the case that
+  /// makes this worth having: the wasm keeps running while Dart starts over, so
+  /// the core refuses to be initialized a second time and every call after that
+  /// would throw into whoever happened to be awaiting it.
+  Future<bool> _load() async {
+    try {
+      await _ensureStarted();
+      return true;
+    } catch (error) {
+      _emit(MicrobitFailed(MicrobitFailure.protocol, 'the core could not be loaded: $error'));
+      return false;
+    }
+  }
+
+  /// Loads the core once for the page, however many links ask.
   ///
   /// `RustLib.init()` throws `StateError` on a second call, so the future is
   /// shared. A failed one is dropped: flutter_rust_bridge only marks itself
@@ -212,7 +268,7 @@ class WebMicrobitLink implements MicrobitLink {
     // Before unsubscribing: the loop checks its queue every pass, so this is
     // what makes it return promptly.
     if (_session != null) {
-      unawaited(core.microbitSendCommand(command: const core_types.MicrobitCommand.stop()));
+      unawaited(core.microbitSendCommand(command: core_types.MicrobitCommand.stop(session: BigInt.from(_sessionId))));
     }
 
     unawaited(_session?.cancel());

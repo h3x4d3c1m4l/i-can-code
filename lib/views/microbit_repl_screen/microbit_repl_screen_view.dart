@@ -3,21 +3,26 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
-import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
+import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
+import 'package:i_can_code/views/components/microbit/microbit_session_controller.dart';
+import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
+import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
-import 'package:i_can_code/views/microbit_screen/components/microbit_board_summary.dart';
-import 'package:i_can_code/views/microbit_screen/components/microbit_notice.dart';
-import 'package:i_can_code/views/microbit_screen/microbit_screen_controller.dart';
-import 'package:i_can_code/views/microbit_screen/microbit_screen_view_model.dart';
 
-class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, MicrobitScreenController> {
+/// MicroPython's own prompt, on the board.
+///
+/// The board's sibling screen writes a program to it; this one talks to the
+/// interpreter that is already there. Separate screens because they want
+/// opposite things of a board: a prompt interrupts whatever is running, and a
+/// program is left alone to run.
+class MicrobitReplScreenView extends ScreenViewBase<MicrobitSessionViewModel, MicrobitSessionController> {
 
-  const MicrobitScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
+  const MicrobitReplScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
 
   @override
   Widget get body {
@@ -30,7 +35,7 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
       crumbs: [
         AppCrumb(languageLabel(viewModel.language), onTap: controller.goToCatalog),
         // The short form: the crumb beside it already names the language.
-        AppCrumb(context.localizations.microbitScreen_crumb),
+        AppCrumb(context.localizations.microbitReplScreen_crumb),
       ],
     );
   }
@@ -38,9 +43,10 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
   Widget _buildContent() {
     return Builder(
       builder: (context) => Observer(
-        builder: (context) => viewModel.status == MicrobitStatus.connected
-            ? _buildSession(context)
-            : _buildNotice(context),
+        builder: (context) => switch (viewModel.status) {
+          MicrobitStatus.connected || MicrobitStatus.flashing => _buildSession(context),
+          _ => _buildNotice(context),
+        },
       ),
     );
   }
@@ -71,10 +77,7 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: MicrobitBoardSummary(
-                        device: viewModel.devices.first,
-                        info: viewModel.boardInfo,
-                      ),
+                      child: MicrobitBoardSummary(device: viewModel.devices.first, info: viewModel.boardInfo),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -88,7 +91,7 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
               ),
               const SizedBox(height: 8),
               Text(
-                context.localizations.microbitScreen_replHint,
+                context.localizations.microbitReplScreen_hint,
                 style: context.appTheme.text.bodySmall.copyWith(color: context.theme.colors.mutedForeground),
               ),
               const SizedBox(height: 16),
@@ -113,7 +116,14 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
             children: [
               _buildHeading(context),
               const SizedBox(height: 28),
-              Observer(builder: _buildState),
+              Observer(
+                builder: (context) => MicrobitStatePanel(
+                  status: viewModel.status,
+                  failureKind: viewModel.failureKind,
+                  failure: viewModel.failure,
+                  onConnect: controller.connect,
+                ),
+              ),
             ],
           ),
         ),
@@ -126,76 +136,15 @@ class MicrobitScreenView extends ScreenViewBase<MicrobitScreenViewModel, Microbi
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          context.localizations.microbitScreen_title(languageLabel(viewModel.language)),
+          context.localizations.microbitReplScreen_title(languageLabel(viewModel.language)),
           style: context.appTheme.text.h1.copyWith(fontSize: 42),
         ),
         const SizedBox(height: 8),
         Text(
-          context.localizations.microbitScreen_subtitle,
+          context.localizations.microbitReplScreen_subtitle,
           style: context.appTheme.text.body.copyWith(fontSize: 19, color: context.theme.colors.mutedForeground),
         ),
       ],
-    );
-  }
-
-  Widget _buildState(BuildContext context) {
-    return switch (viewModel.status) {
-      MicrobitStatus.unavailable => MicrobitNotice(
-        title: context.localizations.microbitScreen_unavailableTitle,
-        body: context.localizations.microbitScreen_unavailableBody,
-      ),
-      MicrobitStatus.failed => _buildFailure(context),
-      MicrobitStatus.noDevice => MicrobitNotice(
-        title: context.localizations.microbitScreen_noDeviceTitle,
-        body: context.localizations.microbitScreen_noDeviceBody,
-        action: _buildConnectButton(context),
-      ),
-      // Handled by _buildSession, which is not inside a scroll view.
-      MicrobitStatus.connected => const SizedBox.shrink(),
-      MicrobitStatus.disconnected || MicrobitStatus.connecting => MicrobitNotice(
-        title: context.localizations.microbitScreen_connectTitle,
-        body: context.localizations.microbitScreen_connectBody,
-        action: _buildConnectButton(context),
-      ),
-    };
-  }
-
-  /// The failure card, worded for the failure that actually happened.
-  ///
-  /// "Something else has it" and "that is not a V2" need different things from
-  /// the reader, and a single "could not connect" would tell them neither.
-  Widget _buildFailure(BuildContext context) {
-    final l10n = context.localizations;
-
-    final (title, body) = switch (viewModel.failureKind) {
-      MicrobitFailure.busy => (l10n.microbitScreen_busyTitle, l10n.microbitScreen_busyBody),
-      MicrobitFailure.unsupportedBoard => (
-        l10n.microbitScreen_wrongBoardTitle,
-        l10n.microbitScreen_wrongBoardBody,
-      ),
-      MicrobitFailure.noDevice => (l10n.microbitScreen_noDeviceTitle, l10n.microbitScreen_noDeviceBody),
-      MicrobitFailure.protocol || null => (l10n.microbitScreen_failedTitle, l10n.microbitScreen_failedBody),
-    };
-
-    return MicrobitNotice(
-      title: title,
-      body: body,
-      // The core's own words, under the explanation. Untranslated on purpose:
-      // it is for whoever is debugging, not for the student.
-      detail: viewModel.failure,
-      action: _buildConnectButton(context),
-    );
-  }
-
-  Widget _buildConnectButton(BuildContext context) {
-    final connecting = viewModel.status == MicrobitStatus.connecting;
-
-    return AppButton(
-      // Straight to the controller, with nothing awaited in between: WebUSB only
-      // opens its picker inside the gesture that reached it.
-      onPress: connecting ? null : controller.connect,
-      busy: connecting,
-      child: Text(context.localizations.microbitScreen_connect),
     );
   }
 

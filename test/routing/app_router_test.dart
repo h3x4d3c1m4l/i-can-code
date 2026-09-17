@@ -50,15 +50,20 @@ void main() {
     expect(matched.single.params.getString('languageSlug'), 'learn-python');
   });
 
-  test('the micro:bit screen has its own address, ahead of the lesson addresses', () {
+  test('both micro:bit screens have their own address, ahead of the lesson addresses', () {
     // Same arrangement as the console above: declared before the lesson routes,
-    // so it wins the two-segment match instead of being read as a lesson called
-    // "microbit".
-    final matched = AppRouter().matcher.match('/learn-python/$microbitLesson');
+    // so they win the two-segment match instead of being read as lessons called
+    // "microbit" and "microbit-repl".
+    final program = AppRouter().matcher.match('/learn-python/$microbitLesson');
+    final repl = AppRouter().matcher.match('/learn-python/$microbitReplLesson');
 
-    expect(matched, hasLength(1));
-    expect(matched!.single.name, 'MicrobitRoute');
-    expect(matched.single.params.getString('languageSlug'), 'learn-python');
+    expect(program, hasLength(1));
+    expect(program!.single.name, 'MicrobitProgramRoute');
+    expect(program.single.params.getString('languageSlug'), 'learn-python');
+
+    expect(repl, hasLength(1));
+    expect(repl!.single.name, 'MicrobitReplRoute');
+    expect(repl.single.params.getString('languageSlug'), 'learn-python');
   });
 
   test('a lesson without a section resolves to the resume marker', () {

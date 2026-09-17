@@ -1,0 +1,6 @@
+The MicroPython firmware goes here, fetched by `just fetch-microbit-firmware`.
+
+It is an upstream release artifact rather than something this repo builds, so it
+is gitignored and pinned by checksum instead. This file keeps the directory
+present, because pubspec.yaml declares it as an asset directory and Flutter
+refuses to build without it.

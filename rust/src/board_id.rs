@@ -15,8 +15,8 @@ pub enum BoardVersion {
 pub struct BoardId(u16);
 
 impl BoardId {
-    /// V2 is four ids. The micro:bit support docs list only 9903 and 9904, so a
-    /// check written from them rejects current V2.21 hardware.
+    /// 9900 is v1.3, 9901 v1.5, 9903 v2.0 (reserved), 9904 v2.0, 9905 v2.20 and
+    /// 9906 v2.21. There is no 9902. See `docs/microbit-usb.md`.
     const V1_IDS: [u16; 2] = [0x9900, 0x9901];
     const V2_IDS: [u16; 4] = [0x9903, 0x9904, 0x9905, 0x9906];
 
@@ -103,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_every_v2_id_including_the_two_the_docs_omit() {
+    fn accepts_every_v2_id() {
         for id in ["9903", "9904", "9905", "9906"] {
             let board = BoardId::parse(id).unwrap_or_else(|| panic!("{id} should be a V2 board"));
             assert_eq!(board.version(), BoardVersion::V2, "{id}");

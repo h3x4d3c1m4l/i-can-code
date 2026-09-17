@@ -86,15 +86,26 @@ pub enum MicrobitFailure {
 /// Queued rather than called, because the session owns the board.
 pub enum MicrobitCommand {
     /// Open the first board this origin can see and report on it.
-    Connect,
+    ///
+    /// `interrupt` breaks into MicroPython's prompt once it is up. A screen
+    /// that wants the board's own program to run leaves it false.
+    Connect { interrupt: bool },
     /// Let go of it. The session stays up and can connect again.
     Disconnect,
     /// Start the board over: a hard reset, so it boots and runs `main.py` again.
-    Restart,
+    Restart { interrupt: bool },
     /// Send bytes to the target's UART, verbatim. What the reader typed.
     Write { data: Vec<u8> },
-    /// End the session.
-    Stop,
+    /// Put `main_py` on the board, built into a copy of `firmware`.
+    ///
+    /// The firmware travels with every flash rather than being held here: the
+    /// session owns no memory between commands, and a megabyte of text once per
+    /// flash is nothing beside the twenty seconds the flash itself takes.
+    Flash { firmware: String, main_py: String },
+    /// End the session with this id. Another session's is ignored, because a
+    /// screen being disposed of shares its queue with the screen that replaced
+    /// it.
+    Stop { session: u64 },
 }
 
 /// What the session says back.
@@ -113,6 +124,23 @@ pub enum MicrobitEvent {
         data: Vec<u8>,
     },
     Disconnected,
+    /// How many of the board's flash pages the new program would change, out of
+    /// how many it has. Worked out before anything is written.
+    FlashPlan {
+        changed: u32,
+        total: u32,
+    },
+    /// The board could not say which pages differ, so the flash writes all of
+    /// them. Not a failure: the write still happens.
+    FlashPlanUnknown {
+        message: String,
+    },
+    /// How far a flash has got, between 0 and 1.
+    FlashProgress {
+        fraction: f32,
+    },
+    /// The board has been written and has restarted into the new program.
+    Flashed,
     Failed {
         failure: MicrobitFailure,
         message: String,

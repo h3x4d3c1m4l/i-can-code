@@ -191,3 +191,23 @@ rather than from taste:
 - **`requestDevice()` exists only in `Window` scope.** `getDevices()` does exist
   in a worker. So Dart asks for permission on the main thread and Rust picks the
   device up with `list_devices()`.
+
+## Hot restart does not reload the core
+
+A Flutter hot restart starts the Dart side over and leaves the wasm where it is:
+the module, its statics and whatever session was running all survive in the
+worker. Two things follow, and neither is a bug to fix in the app.
+
+`RustLib.init()` refuses a second call, so the first thing the screen asks for
+after a hot restart fails. It now says so, as a failure with the core's own words
+under it, instead of leaving the screen waiting.
+
+The session from before the restart also runs on until it notices it has been
+replaced, which takes one poll, and it holds the board until then. `session::open`
+retries a board that is busy for about half a second for exactly this reason.
+Another tab holding it still comes back as busy, because waiting does not fix
+that.
+
+**Restart the dev server rather than hot restarting when working on `rust/`.** A
+rebuilt `web/pkg/` needs that anyway: `flutter run` copies `web/` once, when it
+starts.

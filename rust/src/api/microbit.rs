@@ -64,8 +64,8 @@ pub async fn microbit_list_devices() -> Vec<MicrobitDeviceInfo> {
 ///
 /// The board lives on this function's stack for as long as the session lasts.
 /// Everything else reaches it through [`microbit_send_command`].
-pub async fn microbit_run_session(sink: StreamSink<MicrobitEvent>) {
-    session::run(|event| sink.add(to_event(event)).is_ok()).await;
+pub async fn microbit_run_session(session: u64, sink: StreamSink<MicrobitEvent>) {
+    session::run(session, |event| sink.add(to_event(event)).is_ok()).await;
 }
 
 /// Queues a command for the running session.
@@ -74,11 +74,12 @@ pub async fn microbit_run_session(sink: StreamSink<MicrobitEvent>) {
 /// session's stream.
 pub async fn microbit_send_command(command: MicrobitCommand) {
     session::send(match command {
-        MicrobitCommand::Connect => SessionCommand::Connect,
+        MicrobitCommand::Connect { interrupt } => SessionCommand::Connect { interrupt },
         MicrobitCommand::Disconnect => SessionCommand::Disconnect,
-        MicrobitCommand::Restart => SessionCommand::Restart,
+        MicrobitCommand::Restart { interrupt } => SessionCommand::Restart { interrupt },
         MicrobitCommand::Write { data } => SessionCommand::Write(data),
-        MicrobitCommand::Stop => SessionCommand::Stop,
+        MicrobitCommand::Flash { firmware, main_py } => SessionCommand::Flash { firmware, main_py },
+        MicrobitCommand::Stop { session } => SessionCommand::Stop { session },
     });
 }
 
@@ -89,6 +90,10 @@ fn to_event(event: SessionEvent) -> MicrobitEvent {
         },
         SessionEvent::Serial(data) => MicrobitEvent::Serial { data },
         SessionEvent::Disconnected => MicrobitEvent::Disconnected,
+        SessionEvent::FlashPlan { changed, total } => MicrobitEvent::FlashPlan { changed, total },
+        SessionEvent::FlashPlanUnknown { message } => MicrobitEvent::FlashPlanUnknown { message },
+        SessionEvent::FlashProgress(fraction) => MicrobitEvent::FlashProgress { fraction },
+        SessionEvent::Flashed => MicrobitEvent::Flashed,
         SessionEvent::Failed(error) => {
             let mapped = to_error(error);
             MicrobitEvent::Failed {

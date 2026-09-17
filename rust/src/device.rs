@@ -60,10 +60,8 @@ pub async fn read_flash_layout<T: DapTransport>(debug: &mut ArmDebug<T>) -> Resu
         }
     }
 
-    Err(last_error.unwrap_or(DapError::Transfer {
-        response: 0,
-        completed: 0,
-        total: 2,
+    Err(last_error.unwrap_or(DapError::Timeout {
+        stage: "FICR to report a flash layout",
     }))
 }
 
