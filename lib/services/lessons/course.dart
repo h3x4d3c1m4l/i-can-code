@@ -183,6 +183,13 @@ String? languageEmoji(String language) => switch (language) {
 /// simply has no Extra section.
 bool languageHasRepl(String language) => language == 'python';
 
+/// Whether this language can be put on a micro:bit, which is the other thing an
+/// "Extra" section offers.
+///
+/// True for Python because the board runs MicroPython. A fact about what the
+/// hardware speaks, not about the lessons — the lessons stay browser-only.
+bool languageHasMicrobit(String language) => language == 'python';
+
 /// The URL segment a language's pages live under: `python` -> `learn-python`.
 /// MUST stay in step with [languageFromSlug], which is its inverse.
 String languageSlug(String language) => 'learn-$language';

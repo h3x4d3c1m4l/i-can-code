@@ -12,6 +12,10 @@ import 'package:xterm/xterm.dart';
 /// understood the escape codes we happened to think of would be a console right
 /// up until a lesson printed something in colour.
 ///
+/// Shared by the browser console and the micro:bit screen. Only what is wired to
+/// it differs: the micro:bit needs no line discipline, because MicroPython
+/// echoes for itself.
+///
 /// The rounded corners have to be *clipped* rather than drawn: the terminal
 /// paints its own background edge to edge, so a squircle behind it would never
 /// be seen.

@@ -163,6 +163,9 @@ fail quietly rather than loudly:
   surviving source means something out-compiled or out-deleted the wrong tree,
   and the only symptom is that runs get slow again. The script warns, but a
   warning in fifteen minutes of build output is easy to miss.
-- `just test-rust` — `imports_from_the_standard_library_zip` fails immediately if
-  the bytecode is the wrong version for the interpreter, which is the failure
-  mode to expect if the two ever drift apart.
+- The wasmtime line under *Running it*, with an import in it:
+  `-c "import json, re; print(json.__file__)"`. Bytecode carries a
+  version-specific magic number, so an interpreter and a stdlib zip that have
+  drifted apart fail on the first import rather than at build time. Nothing in
+  `flutter test` covers this — those tests run against the machine's own
+  `python3`, not against the two artifacts that ship.

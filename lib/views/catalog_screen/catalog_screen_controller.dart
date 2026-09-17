@@ -25,6 +25,14 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     );
   }
 
+  /// Opens the micro:bit screen, which is the other thing under "Extra".
+  Future<void> openMicrobit() async {
+    if (!contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(
+      MicrobitRoute(languageSlug: languageSlug(viewModel.language)),
+    );
+  }
+
   /// Opens a lesson where the student left off — its first unfinished step, or
   /// the beginning if there is none.
   Future<void> openLesson(CourseLesson lesson) async {

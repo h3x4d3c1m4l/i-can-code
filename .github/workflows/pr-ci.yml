@@ -17,7 +17,7 @@ jobs:
     if: ${{ github.event.pull_request.draft != true }}
 
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -55,6 +55,58 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      # `rust-toolchain.toml` pins the nightly the wasm build uses, so rustup
+      # installs it, its `rust-src` and the wasm target by itself once cargo runs
+      # inside `rust/`.
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install the pinned nightly
+        run: cd rust && rustup show
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      # Prebuilt binaries. Compiling wasm-bindgen-cli from source takes minutes,
+      # and wasm-pack installing it on demand inherits whatever RUSTFLAGS are set,
+      # which fails on `'+atomics' is not a recognized feature for this target`.
+      #
+      # cargo-expand is what the codegen shells out to when it has to expand a
+      # macro to see a type.
+      - name: Install the wasm toolchain
+        run: |
+          version=$(awk '/^  flutter_rust_bridge:/{f=1} f&&/^    version:/{gsub(/"/,"",$2); print $2; exit}' pubspec.lock)
+          cargo binstall --force -y \
+            cargo-expand \
+            wasm-pack \
+            wasm-bindgen-cli \
+            "flutter_rust_bridge_codegen@$version"
+
+      # Writes lib/src/rust/, rust/src/frb_generated.rs and web/pkg/, none of
+      # which are committed. MUST come before the checks below: `lib.rs` declares
+      # `mod frb_generated`, so the crate does not compile until this has run.
+      - name: Build the Rust core
+        run: just build-rust-core
+
+      # Stable, not the pinned nightly: only the wasm build needs that, and the
+      # crate's own source has to stay stable-clean.
+      - name: Rust format
+        run: cd rust && cargo +stable fmt --check
+
+      - name: Rust clippy
+        run: cd rust && cargo +stable clippy --all-targets -- -D warnings
+
+      - name: Rust test
+        run: cd rust && cargo +stable test
 
       - name: Run code generation
         run: dart run build_runner build

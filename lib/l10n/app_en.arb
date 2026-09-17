@@ -215,7 +215,7 @@
   "@resetProgress_confirm": {},
   "common_cancel": "Cancel",
   "@common_cancel": {},
-  "replScreen_title": "{language} console",
+  "replScreen_title": "Try {language} freely (browser)",
   "@replScreen_title": {
       "placeholders": {
           "language": {
@@ -223,7 +223,7 @@
           }
       }
   },
-  "replScreen_subtitle": "Try things out one line at a time. Nothing here is checked, and nothing is kept.",
+  "replScreen_subtitle": "Try things out one line at a time. Nothing here is checked.",
   "@replScreen_subtitle": {},
   "replScreen_starting": "Starting the interpreter…",
   "@replScreen_starting": {},
@@ -250,5 +250,53 @@
   "catalogScreen_extra": "Extra",
   "@catalogScreen_extra": {},
   "catalogScreen_extraFreePlay": "Free play",
-  "@catalogScreen_extraFreePlay": {}
+  "@catalogScreen_extraFreePlay": {},
+  "microbitScreen_title": "Try {language} freely (micro:bit)",
+  "@microbitScreen_title": {
+      "placeholders": {
+          "language": {
+              "type": "String"
+          }
+      }
+  },
+  "microbitScreen_subtitle": "Try things out one line at a time on a real micro:bit. Nothing here is checked.",
+  "microbitScreen_connect": "Connect a micro:bit",
+  "microbitScreen_connectTitle": "Plug in your micro:bit",
+  "microbitScreen_connectBody": "Connect the board to this computer with a USB cable and click below. The browser will then ask you which board you mean.",
+  "microbitScreen_noDeviceTitle": "No micro:bit found",
+  "microbitScreen_noDeviceBody": "No board was chosen. Check that the cable carries data — a charge-only cable looks exactly the same — and try again.",
+  "microbitScreen_unavailableTitle": "This does not work in this browser",
+  "microbitScreen_unavailableBody": "Driving a micro:bit needs WebUSB, which only Chrome and Edge have. Firefox and Safari cannot do it. The lessons themselves work fine.",
+  "microbitScreen_failedTitle": "Could not connect",
+  "microbitScreen_failedBody": "Something went wrong talking to the board. Unplug the cable, plug it back in and try again.",
+  "microbitScreen_busyTitle": "Something else is holding the board",
+  "microbitScreen_busyBody": "Only one program at a time can use the debug interface. Close other tabs running MakeCode or the Python Editor, and try again.",
+  "microbitScreen_wrongBoardTitle": "This is not a micro:bit V2",
+  "microbitScreen_wrongBoardBody": "This app only works with a micro:bit V2. You can tell a V2 by its gold logo and the notch by the gold edge connector.",
+  "microbitScreen_deviceUnnamed": "micro:bit",
+  "microbitScreen_deviceSerial": "Serial number",
+  "microbitScreen_deviceFirmware": "Firmware",
+  "microbitScreen_deviceProtocol": "CMSIS-DAP",
+  "microbitScreen_deviceV1": "micro:bit V1",
+  "microbitScreen_deviceV2": "micro:bit V2",
+  "microbitScreen_idFromWire": "Board id read from the board itself",
+  "microbitScreen_idFromDescriptor": "Board id from the USB descriptor",
+  "catalogScreen_extraHardware": "Real hardware",
+  "microbitScreen_deviceFlash": "Flash",
+  "microbitScreen_replHint": "You are typing straight into MicroPython on the board. Enter runs the line · Ctrl-C interrupts a running program",
+  "microbitScreen_deviceDetails": "Details about this board",
+  "microbitScreen_deviceBoardId": "Board id",
+  "microbitScreen_deviceIdSource": "Source",
+  "microbitScreen_restart": "Restart",
+  "replScreen_crumb": "Free play (browser)",
+  "microbitScreen_crumb": "Free play (micro:bit)",
+  "microbitScreen_connectedTo": "Connected to {board}",
+  "microbitScreen_deviceName": "Device",
+  "@microbitScreen_connectedTo": {
+      "placeholders": {
+          "board": {
+              "type": "String"
+          }
+      }
+  }
 }

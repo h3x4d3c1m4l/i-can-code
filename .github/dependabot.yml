@@ -10,6 +10,14 @@ updates:
       flutter-dependencies:
         patterns:
           - "*"
+  - package-ecosystem: "cargo"
+    directory: "/rust"
+    schedule:
+      interval: "monthly"
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

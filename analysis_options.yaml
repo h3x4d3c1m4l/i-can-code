@@ -14,6 +14,7 @@ analyzer:
     - '.*/'
     - 'assets/'
     - 'lib/l10n/generated/'
+    - 'lib/src/rust/**'
     - 'build/**'
     - 'web/**'
 

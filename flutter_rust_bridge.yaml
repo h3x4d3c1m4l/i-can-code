@@ -1,0 +1,8 @@
+# flutter_rust_bridge codegen. Run it through `just gen-rust`.
+#
+# `dart_output` is generated and never edited by hand; it is excluded from the
+# analyzer in analysis_options.yaml, the same way the build_runner output is.
+rust_input: crate::api
+rust_root: rust/
+dart_output: lib/src/rust
+dart_entrypoint_class_name: RustLib

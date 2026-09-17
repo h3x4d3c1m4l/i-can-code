@@ -59,6 +59,12 @@ void main() {
         );
 
         expect(
+          lesson.id,
+          isNot(microbitLesson),
+          reason: '"$microbitLesson" is the address of the micro:bit screen, which sits where a lesson id goes',
+        );
+
+        expect(
           lesson.sections.map((s) => s.id).toSet(),
           hasLength(lesson.sections.length),
           reason: 'saved progress keys on section ids, so they must be unique within a lesson',

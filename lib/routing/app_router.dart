@@ -15,6 +15,13 @@ const String resumeSection = 'resume';
 /// with this id would be unreachable. `lesson_test.dart` holds it.
 const String replLesson = 'repl';
 
+/// The lesson id the micro:bit screen sits on.
+///
+/// Reserved exactly as [replLesson] is, for the same reason and held by the same
+/// test: it occupies a language's second address segment, so a lesson with this
+/// id would be unreachable.
+const String microbitLesson = 'microbit';
+
 /// One step of a lesson, as a route. **Build a [LessonRoute] through here
 /// rather than directly**, because of the key.
 ///
@@ -56,6 +63,7 @@ class AppRouter extends RootStackRouter {
     // lesson called "repl". Same arrangement as /initialization above the
     // language catch-all, and the reason [replLesson] is a reserved id.
     AutoRoute(page: ReplRoute.page, path: '/:languageSlug/$replLesson'),
+    AutoRoute(page: MicrobitRoute.page, path: '/:languageSlug/$microbitLesson'),
     // A lesson's bare address means "wherever I left off". auto_route matches on
     // an exact segment count, so that cannot be an optional segment below — and
     // **a page may appear only once**, so a second AutoRoute is out too
