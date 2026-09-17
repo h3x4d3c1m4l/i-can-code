@@ -73,7 +73,7 @@ jobs:
           workspaces: rust -> target
 
       - name: Install just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
