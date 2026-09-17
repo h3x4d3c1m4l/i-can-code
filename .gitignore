@@ -53,6 +53,15 @@ app.*.map.json
 # Python bytecode caches next to the assignment sources
 __pycache__/
 
+# Cargo build output.
+rust/target/
+
+# Everything the Rust core generates. CI builds it, so none of it is committed;
+# see docs/rust-core-build.md.
+lib/src/rust/**/*.dart
+rust/src/frb_generated.rs
+web/pkg/
+
 # Generated code. Rebuilt with `fvm dart run build_runner build`, and the l10n
 # output by `flutter build` itself (pubspec's `generate: true`), so a fresh
 # clone needs one build_runner run before it compiles.

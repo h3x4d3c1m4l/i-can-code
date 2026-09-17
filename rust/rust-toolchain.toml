@@ -1,0 +1,14 @@
+# Pinned to one exact nightly, as a pair with Cargo.lock.
+#
+# `build-web` compiles with `-Z build-std=std,panic_abort`, which is nightly-only,
+# and `-C target-feature=+atomics` is an unstable flag on top of that. An
+# unpinned nightly therefore makes `web/pkg/*.wasm` unreproducible, and would let
+# a future nightly turn the atomics warning into the hard error rust#162235
+# announces without anyone having changed a line. See docs/rust-core-build.md.
+#
+# The crate's own source stays stable-clean — `rust-ci.yml` compiles it with
+# `cargo +stable` to hold that — so only the wasm build needs this toolchain.
+[toolchain]
+channel = "nightly-2026-09-16"
+components = ["rust-src", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]

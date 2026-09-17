@@ -1,0 +1,33 @@
+[package]
+name = "rust_core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+# `cdylib` is what wasm-pack links. `rlib` is what `cargo test` and any future
+# integration test under `tests/` link against. `staticlib` arrives with the
+# first native target and not before.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned exactly: flutter_rust_bridge requires the codegen, the Dart package and
+# this crate to be the same version, so a range here would let one drift.
+flutter_rust_bridge = "=2.13.0"
+# The USB abstraction itself. Deliberately not `cfg`-gated: nusb's own backends
+# are the platform split (WebUSB in the browser, usbfs on Android, WinUSB, IOKit),
+# which is the whole reason the transport is in Rust.
+nusb = "0.2.7"
+
+# Only for `platform::sleep`, which the session loop needs so that polling the
+# board does not become a spin. Split by target because there is no portable
+# async timer: the browser has `setTimeout` and nothing else, and the host has no
+# event loop of its own unless one is brought along.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { version = "0.3", features = ["futures"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["time"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

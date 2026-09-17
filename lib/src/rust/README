@@ -1,0 +1,3 @@
+flutter_rust_bridge writes its Dart output here, and crashes if the directory is
+missing. The output itself is gitignored and regenerated; see
+docs/rust-core-build.md.

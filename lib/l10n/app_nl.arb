@@ -90,7 +90,7 @@
   "resetProgress_body": "Je vinkjes verdwijnen en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",
   "resetProgress_confirm": "Wissen",
   "common_cancel": "Annuleren",
-  "replScreen_title": "{language}-console",
+  "replScreen_title": "Vrij {language} uitproberen (browser)",
   "@replScreen_title": {
       "placeholders": {
           "language": {
@@ -98,7 +98,7 @@
           }
       }
   },
-  "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd en niets bewaard.",
+  "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd.",
   "replScreen_starting": "De interpreter wordt gestart…",
   "replScreen_restart": "Herstarten",
   "replScreen_hint": "Enter voert de regel uit · ↑ haalt een eerdere regel terug · Ctrl-D sluit af",
@@ -115,5 +115,53 @@
   "replScreen_unavailableTitle": "Dit werkt niet in deze browser",
   "replScreen_unavailableBody": "Een interactieve prompt vereist dat deze pagina cross-origin geïsoleerd is. Dat lukt hier niet — meestal komt dat door privémodus of doordat de site niet via https geladen is. De lessen zelf werken gewoon.",
   "catalogScreen_extra": "Extra",
-  "catalogScreen_extraFreePlay": "Vrij oefenen"
+  "catalogScreen_extraFreePlay": "Vrij oefenen",
+  "microbitScreen_title": "Vrij {language} uitproberen (micro:bit)",
+  "@microbitScreen_title": {
+      "placeholders": {
+          "language": {
+              "type": "String"
+          }
+      }
+  },
+  "microbitScreen_subtitle": "Probeer dingen regel voor regel uit op een echte micro:bit. Hier wordt niets gecontroleerd.",
+  "microbitScreen_connect": "Verbind met micro:bit",
+  "microbitScreen_connectTitle": "Sluit je micro:bit aan",
+  "microbitScreen_connectBody": "Steek het bordje met een USB-kabel in deze computer en klik hieronder. De browser vraagt daarna zelf welk bordje je bedoelt.",
+  "microbitScreen_noDeviceTitle": "Geen micro:bit gevonden",
+  "microbitScreen_noDeviceBody": "Er is geen bordje gekozen. Controleer of de kabel data doorgeeft — een kabel die alleen oplaadt ziet er precies hetzelfde uit — en probeer het opnieuw.",
+  "microbitScreen_unavailableTitle": "Dit werkt niet in deze browser",
+  "microbitScreen_unavailableBody": "Een micro:bit aansturen vereist WebUSB, dat alleen Chrome en Edge hebben. Firefox en Safari kunnen het niet. De lessen zelf werken gewoon.",
+  "microbitScreen_failedTitle": "Verbinden lukte niet",
+  "microbitScreen_failedBody": "Er ging iets mis bij het praten met het bordje. Trek de kabel eruit, steek hem er weer in en probeer opnieuw.",
+  "microbitScreen_busyTitle": "Iets anders heeft het bordje vast",
+  "microbitScreen_busyBody": "De debug-interface kan maar door één programma tegelijk gebruikt worden. Sluit andere tabbladen met MakeCode of de Python Editor, en probeer het opnieuw.",
+  "microbitScreen_wrongBoardTitle": "Dit is geen micro:bit V2",
+  "microbitScreen_wrongBoardBody": "Deze app werkt alleen met een micro:bit V2. Een V2 herken je aan het gouden logo en de inkeping bij de gouden randconnector.",
+  "microbitScreen_deviceUnnamed": "micro:bit",
+  "microbitScreen_deviceSerial": "Serienummer",
+  "microbitScreen_deviceFirmware": "Firmware",
+  "microbitScreen_deviceProtocol": "CMSIS-DAP",
+  "microbitScreen_deviceV1": "micro:bit V1",
+  "microbitScreen_deviceV2": "micro:bit V2",
+  "microbitScreen_idFromWire": "Board-id via het bordje zelf uitgelezen",
+  "microbitScreen_idFromDescriptor": "Board-id uit de USB-beschrijving",
+  "catalogScreen_extraHardware": "Echte hardware",
+  "microbitScreen_deviceFlash": "Flash",
+  "microbitScreen_replHint": "Je typt rechtstreeks in MicroPython op het bordje. Enter voert de regel uit · Ctrl-C onderbreekt een lopend programma",
+  "microbitScreen_deviceDetails": "Details over dit bordje",
+  "microbitScreen_deviceBoardId": "Board-id",
+  "microbitScreen_deviceIdSource": "Bron",
+  "microbitScreen_restart": "Herstarten",
+  "replScreen_crumb": "Vrij uitproberen (browser)",
+  "microbitScreen_crumb": "Vrij uitproberen (micro:bit)",
+  "microbitScreen_connectedTo": "Verbonden met {board}",
+  "microbitScreen_deviceName": "Apparaat",
+  "@microbitScreen_connectedTo": {
+      "placeholders": {
+          "board": {
+              "type": "String"
+          }
+      }
+  }
 }

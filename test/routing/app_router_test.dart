@@ -20,6 +20,7 @@ void main() {
       '/initialization',
       '/learn-python',
       '/learn-python/$replLesson',
+      '/learn-python/$microbitLesson',
       '/learn-python/input-and-output',
       '/learn-python/input-and-output/print-yourself',
     ]) {
@@ -46,6 +47,17 @@ void main() {
 
     expect(matched, hasLength(1));
     expect(matched!.single.name, 'ReplRoute');
+    expect(matched.single.params.getString('languageSlug'), 'learn-python');
+  });
+
+  test('the micro:bit screen has its own address, ahead of the lesson addresses', () {
+    // Same arrangement as the console above: declared before the lesson routes,
+    // so it wins the two-segment match instead of being read as a lesson called
+    // "microbit".
+    final matched = AppRouter().matcher.match('/learn-python/$microbitLesson');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'MicrobitRoute');
     expect(matched.single.params.getString('languageSlug'), 'learn-python');
   });
 

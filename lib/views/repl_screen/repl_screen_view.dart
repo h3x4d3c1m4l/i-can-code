@@ -9,7 +9,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
-import 'package:i_can_code/views/repl_screen/components/repl_terminal.dart';
+import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/repl_screen/repl_screen_controller.dart';
 import 'package:i_can_code/views/repl_screen/repl_screen_view_model.dart';
 
@@ -23,13 +23,11 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
   }
 
   AppHeaderConfig _buildHeader(BuildContext context) {
-    final title = context.localizations.replScreen_title(languageLabel(viewModel.language));
-
     return AppHeaderConfig(
       onTapHome: controller.goHome,
       crumbs: [
         AppCrumb(languageLabel(viewModel.language), onTap: controller.goToCatalog),
-        AppCrumb(title),
+        AppCrumb(context.localizations.replScreen_crumb),
       ],
     );
   }

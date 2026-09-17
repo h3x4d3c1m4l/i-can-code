@@ -38,16 +38,29 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
         const SizedBox(height: 48),
         Text(context.localizations.catalogScreen_extra, style: context.appTheme.text.h2),
         const SizedBox(height: 16),
-        CatalogCard(
-          // A prompt, in the code face the tile already uses. The lessons above
-          // are numbered and this is not one of them, so it does not get a
-          // number.
-          label: '>_',
-          title: context.localizations.replScreen_title(languageLabel(viewModel.language)),
-          subtitle: context.localizations.replScreen_subtitle,
-          meta: context.localizations.catalogScreen_extraFreePlay,
-          onTap: controller.openRepl,
-        ),
+        if (languageHasRepl(viewModel.language))
+          CatalogCard(
+            // A prompt, in the code face the tile already uses. The lessons above
+            // are numbered and this is not one of them, so it does not get a
+            // number.
+            label: '>_',
+            title: context.localizations.replScreen_title(languageLabel(viewModel.language)),
+            subtitle: context.localizations.replScreen_subtitle,
+            meta: context.localizations.catalogScreen_extraFreePlay,
+            onTap: controller.openRepl,
+          ),
+        if (languageHasRepl(viewModel.language) && languageHasMicrobit(viewModel.language))
+          const SizedBox(height: 16),
+        if (languageHasMicrobit(viewModel.language))
+          CatalogCard(
+            // The board itself. Not a number either, and not a prompt — this one
+            // leaves the browser.
+            label: '🔌',
+            title: context.localizations.microbitScreen_title(languageLabel(viewModel.language)),
+            subtitle: context.localizations.microbitScreen_subtitle,
+            meta: context.localizations.catalogScreen_extraHardware,
+            onTap: controller.openMicrobit,
+          ),
       ],
     );
   }
@@ -105,7 +118,8 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                       },
                     ),
                   ],
-                  if (languageHasRepl(viewModel.language)) _buildExtra(context),
+                  if (languageHasRepl(viewModel.language) || languageHasMicrobit(viewModel.language))
+                    _buildExtra(context),
                 ],
               ),
             ),

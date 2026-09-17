@@ -26,7 +26,13 @@ fvm flutter build web                   # build
 
 fvm dart run tool/try_lesson.dart <lesson.md>                       # list its sections
 fvm dart run tool/try_lesson.dart <lesson.md> <n> --code 'print(1)' # run one, see the verdict
+
+just build-rust-core                # regenerate the bridge and rebuild web/pkg/
+just test-rust                          # the Rust core's own tests
 ```
+
+The `just` recipes need a Rust toolchain, and so does CI, which runs the same
+build. See `docs/rust-core-build.md`.
 
 `try_lesson.dart` runs a section through the **real** `PythonAttemptRunner`, so a lesson can be written and checked without the app. It uses the machine's own `python3` rather than the `wasm32-wasi` build the app ships, so check `python3 --version` before trusting a result that turns on a language feature.
 
@@ -244,9 +250,10 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/input-and-output                 resume: wherever you left off
 /learn-python/input-and-output/print-yourself  one step, named by its section id
 /learn-python/repl                             the interactive console
+/learn-python/microbit                         the micro:bit screen
 ```
 
-`repl` sits where a lesson id goes, so it is **reserved**: a lesson must not use it, and `lesson_test.dart` holds that. Its route is declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read it as a lesson called "repl".
+`repl` and `microbit` sit where a lesson id goes, so both are **reserved**: a lesson must not use either, and `lesson_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons called "repl" and "microbit".
 
 The step is a **`LessonSection.id`, never a position** — the same reason progress keys on it. A pasted or bookmarked link still opens the step it named after the author reorders the lesson, and an id the lesson no longer has resolves like the bare form rather than showing nothing.
 
@@ -431,6 +438,28 @@ Three pieces make that work, and none of them is optional:
 **Nothing can interrupt a running program.** wasm has no signals, so Ctrl-C at a fresh prompt throws away the typed line — all a line discipline can do — and anywhere else, busy or part way through a block, restarts the interpreter and says so. No `KeyboardInterrupt` is ever printed, because Python never raised one. The controller tells the two cases apart by reading the last prompt off the screen, which is where a terminal has always got it.
 
 The terminal itself is **xterm** (`TerminalView`), so the escape codes CPython emits are handled by a real emulator rather than by the subset we happened to think of. Its sixteen ANSI colours live in `lib/theme/terminal_palette.dart`, deliberately *not* in `AppSemanticColors`: those are roles a caller picks by meaning, and these are numbered slots the running program picks from. One palette covers all four schemes because every preset's code surface is dark, and `test/theme/terminal_palette_test.dart` holds that to WCAG AA.
+
+### The Rust core
+
+`rust/` is the app's non-Dart half: a crate compiled to WebAssembly and reached from Dart through **flutter_rust_bridge**. `docs/rust-core-build.md` is the build, the pinned toolchain and the traps; **read it before touching `rust/`, `web/pkg/` or the bridge config.** `docs/microbit-usb.md` is the hardware it talks to and what it works around.
+
+Everything in it today serves one subject — a BBC micro:bit on the other end of a USB cable: the transport, the ARM debug stack, the flash logic. It is **not** named for that, deliberately, for the same reason the app is not named for Python. A second subject moves the micro:bit modules under a `microbit::` of their own, and nothing outside the crate changes; pre-building that layer for one occupant would be the same mistake as pre-promoting a widget.
+
+Rust rather than Dart because `nusb` already has backends for WebUSB, usbfs/Android, WinUSB and IOKit behind one API, so Android and desktop are a transport arm rather than a second implementation of 2200 lines of debug protocol. **iOS is permanently out of scope** — Apple gives App Store apps no USB host API, and no library version changes that.
+
+**Nothing the core generates is committed.** `lib/src/rust/`, `rust/src/frb_generated.rs` and `web/pkg/` are all gitignored, and one workflow builds and checks the whole thing on every PR and every deploy. A cold wasm build is about a minute, which is what `-Z build-std` costs; `Swatinem/rust-cache` keeps `rust/target` between runs. `assets/python/python.wasm` stays committed because that one is a fifteen-minute CPython cross-compile, not a minute of cargo.
+
+Everything under `web/` is copied into the build, so `web/pkg/` needs no `pubspec.yaml` entry and `RustLib.init()` finds it at `pkg/`.
+
+**`build-web` sets `RUSTUP_TOOLCHAIN` to the rolling `nightly`, which overrides `rust/rust-toolchain.toml`.** The pin does nothing unless `--wasm-pack-rustup-toolchain` is passed too, which `just build-rust-core` does, reading the channel out of the toolchain file so the two cannot drift.
+
+Three rules constrain the bridge API, all three from the environment and none of them taste:
+
+- **No `#[frb(sync)]` function, ever.** A sync call runs on the Dart main thread, `std::sync::Mutex` compiles to `memory.atomic.wait32` under `+atomics`, and browsers throw on `Atomics.wait` from the main thread.
+- **A device may not be held between calls.** flutter_rust_bridge hands each call to an arbitrary worker from a pool, and the `JsValue` inside nusb's `Device` cannot be transferred between workers. Anything holding a device open lives on one long-running session function's own stack, fed by a queue.
+- **`requestDevice()` exists only in `Window` scope**, while `getDevices()` also exists in a worker. So Dart asks for permission on the main thread and Rust picks the device up with `list_devices()`.
+
+The Dart side is `lib/services/microbit/`, shaped like `lib/services/python/`: a conditional import with the **stub as the default clause**, so the Dart VM that `flutter test` runs on gets `isSupported == false` rather than an exception. `WebMicrobitLink` owns `RustLib.init()` and is the only thing that may call it — loading the core is **not** an initialization step, because a student who never plugs in a board must not wait for it or be shown its failure. It is created by the screen that uses it and is deliberately not in `setupServices()`, the same as `PythonRepl`.
 
 ### Localization
 
