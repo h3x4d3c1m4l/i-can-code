@@ -25,13 +25,16 @@ class UnsupportedMicrobitLink implements MicrobitLink {
   Future<List<MicrobitDevice>> listDevices() async => const [];
 
   @override
-  Future<void> connect() async {}
+  Future<void> connect({bool interrupt = false}) async {}
 
   @override
   void write(String text) {}
 
   @override
-  Future<void> restart() async {}
+  Future<void> flash(String mainPy) async {}
+
+  @override
+  Future<void> restart({bool interrupt = false}) async {}
 
   @override
   Future<void> disconnect() async {}

@@ -91,6 +91,11 @@ jobs:
             wasm-bindgen-cli \
             "flutter_rust_bridge_codegen@$version"
 
+      # The hex the flasher builds on. Not committed; the tests that need it
+      # skip without it, which would make them worthless here.
+      - name: Fetch the micro:bit firmware
+        run: just fetch-microbit-firmware
+
       # Writes lib/src/rust/, rust/src/frb_generated.rs and web/pkg/, none of
       # which are committed. MUST come before the checks below: `lib.rs` declares
       # `mod frb_generated`, so the crate does not compile until this has run.

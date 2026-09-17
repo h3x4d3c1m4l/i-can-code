@@ -25,11 +25,19 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     );
   }
 
-  /// Opens the micro:bit screen, which is the other thing under "Extra".
-  Future<void> openMicrobit() async {
+  /// Opens the page a program is written and put on a board from.
+  Future<void> openMicrobitProgram() async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(
-      MicrobitRoute(languageSlug: languageSlug(viewModel.language)),
+      MicrobitProgramRoute(languageSlug: languageSlug(viewModel.language)),
+    );
+  }
+
+  /// Opens MicroPython's own prompt, on the board.
+  Future<void> openMicrobitRepl() async {
+    if (!contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(
+      MicrobitReplRoute(languageSlug: languageSlug(viewModel.language)),
     );
   }
 

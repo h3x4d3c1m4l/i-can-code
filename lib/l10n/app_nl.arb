@@ -116,15 +116,15 @@
   "replScreen_unavailableBody": "Een interactieve prompt vereist dat deze pagina cross-origin geïsoleerd is. Dat lukt hier niet — meestal komt dat door privémodus of doordat de site niet via https geladen is. De lessen zelf werken gewoon.",
   "catalogScreen_extra": "Extra",
   "catalogScreen_extraFreePlay": "Vrij oefenen",
-  "microbitScreen_title": "Vrij {language} uitproberen (micro:bit)",
-  "@microbitScreen_title": {
+  "microbitReplScreen_title": "Vrij {language} uitproberen (micro:bit)",
+  "@microbitReplScreen_title": {
       "placeholders": {
           "language": {
               "type": "String"
           }
       }
   },
-  "microbitScreen_subtitle": "Probeer dingen regel voor regel uit op een echte micro:bit. Hier wordt niets gecontroleerd.",
+  "microbitReplScreen_subtitle": "Probeer dingen regel voor regel uit op een echte micro:bit. Hier wordt niets gecontroleerd.",
   "microbitScreen_connect": "Verbind met micro:bit",
   "microbitScreen_connectTitle": "Sluit je micro:bit aan",
   "microbitScreen_connectBody": "Steek het bordje met een USB-kabel in deze computer en klik hieronder. De browser vraagt daarna zelf welk bordje je bedoelt.",
@@ -141,20 +141,19 @@
   "microbitScreen_deviceUnnamed": "micro:bit",
   "microbitScreen_deviceSerial": "Serienummer",
   "microbitScreen_deviceFirmware": "Firmware",
-  "microbitScreen_deviceProtocol": "CMSIS-DAP",
   "microbitScreen_deviceV1": "micro:bit V1",
   "microbitScreen_deviceV2": "micro:bit V2",
   "microbitScreen_idFromWire": "Board-id via het bordje zelf uitgelezen",
   "microbitScreen_idFromDescriptor": "Board-id uit de USB-beschrijving",
   "catalogScreen_extraHardware": "Echte hardware",
   "microbitScreen_deviceFlash": "Flash",
-  "microbitScreen_replHint": "Je typt rechtstreeks in MicroPython op het bordje. Enter voert de regel uit · Ctrl-C onderbreekt een lopend programma",
+  "microbitReplScreen_hint": "Je typt rechtstreeks in MicroPython op het bordje. Enter voert de regel uit · Ctrl-C onderbreekt een lopend programma",
   "microbitScreen_deviceDetails": "Details over dit bordje",
   "microbitScreen_deviceBoardId": "Board-id",
   "microbitScreen_deviceIdSource": "Bron",
   "microbitScreen_restart": "Herstarten",
   "replScreen_crumb": "Vrij uitproberen (browser)",
-  "microbitScreen_crumb": "Vrij uitproberen (micro:bit)",
+  "microbitReplScreen_crumb": "Vrij uitproberen (micro:bit)",
   "microbitScreen_connectedTo": "Verbonden met {board}",
   "microbitScreen_deviceName": "Apparaat",
   "@microbitScreen_connectedTo": {
@@ -163,5 +162,47 @@
               "type": "String"
           }
       }
-  }
+  },
+  "microbitScreen_flash": "Naar het bordje schrijven",
+  "microbitScreen_flashHint": "main.py",
+  "microbitScreen_flashing": "Bezig met schrijven… {percent}%",
+  "@microbitScreen_flashing": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitScreen_flashingPages": "Bezig met schrijven… {percent}% ({changed} van {total} pagina's anders)",
+  "@microbitScreen_flashingPages": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          },
+          "changed": {
+              "type": "int"
+          },
+          "total": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitScreen_flashingPagesUnknown": "Bezig met schrijven… {percent}% (bordje kon niet zeggen wat er anders is)",
+  "@microbitScreen_flashingPagesUnknown": {
+      "placeholders": {
+          "percent": {
+              "type": "int"
+          }
+      }
+  },
+  "microbitProgramScreen_title": "Je eigen programma op de micro:bit",
+  "@microbitProgramScreen_title": {
+      "description": "De pagina waar een leerling een programma schrijft en naar het bordje schrijft. Zegt geen taal, anders dan de REPL-titel: het bordje draait MicroPython en de leerling schrijft Python, en dat onderscheid hoort niet in een koptekst."
+  },
+  "microbitProgramScreen_subtitle": "Schrijf een programma, zet het op het bordje en kijk wat het doet. Hier wordt niets gecontroleerd.",
+  "@microbitProgramScreen_subtitle": {},
+  "microbitProgramScreen_crumb": "Eigen programma",
+  "@microbitProgramScreen_crumb": {},
+  "microbitProgramScreen_hint": "Je programma start zodra het op het bordje staat. Wat het print verschijnt hieronder, en wat je typt gaat ernaartoe",
+  "@microbitProgramScreen_hint": {}
 }

@@ -99,6 +99,37 @@ build-rust-core: gen-rust
   # leaves holds `*`, and everything under web/ is copied into the deployed site.
   rm -f web/pkg/.gitignore web/pkg/package.json
 
+# Downloads the MicroPython firmware the flasher builds on.
+#
+# Not committed: it is an upstream release artifact, and the checksum is what
+# makes a re-download the same file rather than whatever that tag points at now.
+fetch-microbit-firmware:
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  version="2.1.1"
+  sha256="5bd5d4584a5caae740a66d38f93651968569dd4b52f4bc132ebf3c6fdf3847ac"
+  file="assets/microbit/micropython-microbit-v${version}.hex"
+
+  if [ -f "$file" ] && shasum -a 256 -c <<< "$sha256  $file" >/dev/null 2>&1; then
+    echo "$file is already here and matches."
+    exit 0
+  fi
+
+  mkdir -p assets/microbit
+  curl -fsSL -o "$file" \
+    "https://github.com/microbit-foundation/micropython-microbit-v2/releases/download/v${version}/micropython-microbit-v${version}.hex"
+
+  if ! shasum -a 256 -c <<< "$sha256  $file" >/dev/null 2>&1; then
+    echo "ERROR: $file does not match its pinned checksum." >&2
+    echo "  expected $sha256" >&2
+    echo "  got      $(shasum -a 256 "$file" | cut -d' ' -f1)" >&2
+    rm -f "$file"
+    exit 1
+  fi
+
+  echo "$file fetched and verified."
+
 # Runs the Rust core's tests on stable, not the nightly the wasm build pins.
 test-rust:
   cd rust && cargo +stable test

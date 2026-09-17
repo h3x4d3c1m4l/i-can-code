@@ -1,6 +1,6 @@
+
 import 'dart:io';
 import 'dart:ui' as ui;
-
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -16,7 +16,7 @@ import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
-import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
@@ -1102,6 +1102,36 @@ void main() {
 
       expect(tester.getSize(find.byType(AppButton)), idle, reason: 'the button must not jump when pressed');
       expect(find.byType(FCircularProgress), findsOneWidget);
+    });
+
+    testWidgets('a measured wait fills the button and keeps its label', (tester) async {
+      Future<Rect> fillAt(double progress) async {
+        await tester.pumpWidget(
+          _host(
+            Align(
+              child: AppButton(progress: progress, onPress: null, child: const Text('Naar het bordje schrijven')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.getRect(find.descendant(of: find.byType(AppButton), matching: find.byType(ColoredBox)));
+      }
+
+      final quarter = await fillAt(0.25);
+      final full = await fillAt(1);
+      final button = tester.getRect(find.byType(AppButton));
+
+      expect(quarter.width, lessThan(full.width));
+      expect(quarter.left, moreOrLessEquals(button.left), reason: 'it grows from the leading edge');
+      expect(full.width, moreOrLessEquals(button.width), reason: 'a finished bar is the whole button');
+
+      // A measured wait says how much longer, so there is no reason to take the
+      // words away as well.
+      expect(find.byType(FCircularProgress), findsNothing);
+      final label = tester.widget<Visibility>(
+        find.descendant(of: find.byType(AppButton), matching: find.byType(Visibility)),
+      );
+      expect(label.visible, isTrue);
     });
   });
 

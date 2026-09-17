@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
-import 'package:i_can_code/views/lesson_screen/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:re_highlight/languages/python.dart';
 import 'package:re_highlight/re_highlight.dart';
 import 'package:re_highlight/styles/atom-one-dark.dart';

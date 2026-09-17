@@ -3,6 +3,7 @@
 //! Ported from `daplink.ts` in microbit-foundation/microbit-connection (MIT).
 
 pub mod cdc_saturation;
+pub mod flash;
 pub mod serial;
 
 use crate::dap::cmsis::CmsisDap;

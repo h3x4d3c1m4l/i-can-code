@@ -51,16 +51,26 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
           ),
         if (languageHasRepl(viewModel.language) && languageHasMicrobit(viewModel.language))
           const SizedBox(height: 16),
-        if (languageHasMicrobit(viewModel.language))
+        if (languageHasMicrobit(viewModel.language)) ...[
           CatalogCard(
-            // The board itself. Not a number either, and not a prompt — this one
-            // leaves the browser.
-            label: '🔌',
-            title: context.localizations.microbitScreen_title(languageLabel(viewModel.language)),
-            subtitle: context.localizations.microbitScreen_subtitle,
+            // What the board is for: a program of your own, written here and
+            // run there. Not a number, and not a prompt.
+            label: '⚡',
+            title: context.localizations.microbitProgramScreen_title,
+            subtitle: context.localizations.microbitProgramScreen_subtitle,
             meta: context.localizations.catalogScreen_extraHardware,
-            onTap: controller.openMicrobit,
+            onTap: controller.openMicrobitProgram,
           ),
+          const SizedBox(height: 16),
+          CatalogCard(
+            // A prompt again, but this one leaves the browser.
+            label: '🔌',
+            title: context.localizations.microbitReplScreen_title(languageLabel(viewModel.language)),
+            subtitle: context.localizations.microbitReplScreen_subtitle,
+            meta: context.localizations.catalogScreen_extraHardware,
+            onTap: controller.openMicrobitRepl,
+          ),
+        ],
       ],
     );
   }

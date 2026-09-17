@@ -49,6 +49,14 @@ pub enum DapError {
         command: u8,
         length: usize,
     },
+
+    /// Something that is asked for until it happens never happened.
+    ///
+    /// `stage` names what was being waited for, because every one of these
+    /// looks the same on the wire: the last read succeeded and said no.
+    Timeout {
+        stage: &'static str,
+    },
 }
 
 impl fmt::Display for DapError {
@@ -72,6 +80,7 @@ impl fmt::Display for DapError {
             DapError::Truncated { command, length } => {
                 write!(f, "response to command {command:#04x} was only {length} bytes")
             }
+            DapError::Timeout { stage } => write!(f, "gave up waiting for {stage}"),
         }
     }
 }

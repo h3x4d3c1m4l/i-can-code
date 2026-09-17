@@ -5,8 +5,10 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
-import 'package:i_can_code/views/microbit_screen/components/microbit_board_summary.dart';
-import 'package:i_can_code/views/microbit_screen/components/microbit_notice.dart';
+import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
+import 'package:i_can_code/views/components/microbit/microbit_notice.dart';
+import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
+import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
 
 /// Wraps [child] in what these widgets need: the app theme and the
 /// localizations they read their words from.
@@ -61,6 +63,9 @@ void main() {
 
       await expectLater(link.connect(), completes);
       await expectLater(link.disconnect(), completes);
+      await expectLater(link.restart(), completes);
+      // Flashing reads a 1.2 MB asset on the web. Here it must not even try.
+      await expectLater(link.flash('display.scroll("hi")'), completes);
       expect(() => link.write('print(1)\r'), returnsNormally);
     });
   });
@@ -93,6 +98,43 @@ void main() {
 
       expect(find.text('RustLib.init(): failed to fetch'), findsOneWidget);
       expect(find.byType(AppButton), findsOneWidget);
+    });
+  });
+
+  group('MicrobitStatePanel', () {
+    Future<void> show(WidgetTester tester, MicrobitStatus status, {MicrobitFailure? failure}) async {
+      await tester.pumpWidget(
+        _host(MicrobitStatePanel(status: status, failureKind: failure, onConnect: () {})),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a held board and a wrong board are not the same sentence', (tester) async {
+      // Each needs something different from the reader: close the other tab, or
+      // fetch a different board. One "could not connect" would say neither.
+      await show(tester, MicrobitStatus.failed, failure: MicrobitFailure.busy);
+      final busy = tester.widget<MicrobitNotice>(find.byType(MicrobitNotice)).title;
+
+      await show(tester, MicrobitStatus.failed, failure: MicrobitFailure.unsupportedBoard);
+      final wrongBoard = tester.widget<MicrobitNotice>(find.byType(MicrobitNotice)).title;
+
+      expect(busy, isNot(wrongBoard));
+    });
+
+    testWidgets('the browser that cannot do it at all is offered no button', (tester) async {
+      // There is nothing to press: no WebUSB means no board, whatever is done.
+      await show(tester, MicrobitStatus.unavailable);
+
+      expect(find.byType(MicrobitNotice), findsOneWidget);
+      expect(find.byType(AppButton), findsNothing);
+    });
+
+    testWidgets('an open board leaves the screen to the session', (tester) async {
+      // The terminal may not sit inside the scroll view this panel lives in, so
+      // the screen draws that part itself.
+      await show(tester, MicrobitStatus.connected);
+
+      expect(find.byType(MicrobitNotice), findsNothing);
     });
   });
 

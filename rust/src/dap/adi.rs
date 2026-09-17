@@ -84,12 +84,14 @@ impl<T: DapTransport> ArmDebug<T> {
         &mut self.dap
     }
 
-    /// Brings up SWD, retrying past replies left over from an earlier session.
+    /// Brings up SWD, retrying what the switch sequence itself can cure.
     ///
-    /// Only a mismatch is retried, because that is what a stale reply looks
-    /// like. Everything else fails on the spot.
+    /// A stale reply from an earlier session, and a target that does not answer
+    /// at all, are both worth another go: the sequence is a line reset, and an
+    /// nRF52 asleep in `WFI` answers the clock that wakes it rather than the
+    /// transaction that arrived first. Anything else fails on the spot.
     pub async fn connect(&mut self) -> Result<(), DapError> {
-        const MAX_RETRIES: usize = 3;
+        const MAX_RETRIES: usize = 5;
 
         let mut last_error = None;
 
@@ -100,12 +102,16 @@ impl<T: DapTransport> ArmDebug<T> {
 
             match self.connect_once().await {
                 Ok(()) => return Ok(()),
-                Err(error @ DapError::ResponseMismatch { .. }) => last_error = Some(error),
+                Err(error @ (DapError::ResponseMismatch { .. } | DapError::Transfer { .. })) => {
+                    last_error = Some(error);
+                }
                 Err(error) => return Err(error),
             }
         }
 
-        Err(last_error.unwrap_or(DapError::Truncated { command: 0, length: 0 }))
+        Err(last_error.unwrap_or(DapError::Timeout {
+            stage: "SWD to come up",
+        }))
     }
 
     async fn connect_once(&mut self) -> Result<(), DapError> {
@@ -145,8 +151,7 @@ impl<T: DapTransport> ArmDebug<T> {
 
     /// Reads the DP's id, clears sticky errors and powers the debug domains up.
     async fn power_up(&mut self) -> Result<(), DapError> {
-        // The value is unused. What matters is that the DP answers at all.
-        self.read_dp(DP_DPIDR).await?;
+        self.read_dpidr().await?;
 
         self.transfer_sequence(&[
             &[DapOperation::write(DP, DP_ABORT, ABORT_ALL)],
@@ -163,11 +168,36 @@ impl<T: DapTransport> ArmDebug<T> {
             }
         }
 
-        Err(DapError::Transfer {
-            response: 0,
-            completed: 0,
-            total: 1,
+        Err(DapError::Timeout {
+            stage: "the debug domains to power up",
         })
+    }
+
+    /// Asks the DP for its id until it answers.
+    ///
+    /// The value is unused; what matters is that the DP answers at all. The
+    /// first read after the switch sequence often does not, because sticky
+    /// errors left by whatever used the port last make the DP refuse
+    /// everything, and `DAP_WriteABORT` is the one command that clears them
+    /// without needing a transfer to succeed first.
+    async fn read_dpidr(&mut self) -> Result<(), DapError> {
+        const ATTEMPTS: usize = 5;
+
+        let mut last_error = None;
+
+        for _ in 0..ATTEMPTS {
+            match self.read_dp(DP_DPIDR).await {
+                Ok(_) => return Ok(()),
+                Err(error) => {
+                    last_error = Some(error);
+                    let _ = self.dap.clear_abort().await;
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or(DapError::Timeout {
+            stage: "the debug port to answer",
+        }))
     }
 
     /// Forgets the connection and the caches without touching the transport.
