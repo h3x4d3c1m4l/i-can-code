@@ -24,7 +24,7 @@ nusb = "0.2.7"
 # async timer: the browser has `setTimeout` and nothing else, and the host has no
 # event loop of its own unless one is brought along.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-gloo-timers = { version = "0.3", features = ["futures"] }
+gloo-timers = { version = "0.4", features = ["futures"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["time"] }
