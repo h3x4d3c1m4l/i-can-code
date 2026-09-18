@@ -374,6 +374,8 @@ A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunn
 
 A **whole lesson** may be optional too, by saying `optional: true` in its document-level metadata. The catalog then lists it under a *Verdieping* heading of its own rather than in the numbered run, so the main sequence still reads as one path and skipping every one of them still finishes the course. Inside, it is an ordinary lesson: checked, ticked and recorded the normal way. Same word and same promise as the section flag below, one level up.
 
+**Lessons can be grouped under a heading**, by a `group` line in their document-level metadata — this course uses it for its weeks. The catalog sets a small `CatalogGroupHeading` over each run of lessons that share a group, and `runsBy` (`lib/views/catalog_screen/`) is the whole rule: consecutive in filename order, so a group that recurs gets a second heading rather than pulling lessons out of order. The words come from the course, which is what keeps week numbers — a fact about one school's schedule — out of the app. The heading is small capitals rather than another `h2`, so it names the cards under it without competing with them.
+
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
 **Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing.

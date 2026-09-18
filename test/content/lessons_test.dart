@@ -199,4 +199,7 @@ void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why})
   // in one language reads in every other, because it is the same program.
   expect(lesson.sections.map((s) => s.program == null), first.sections.map((s) => s.program == null), reason: why);
   expect(lesson.sections.map((s) => s.stdin == null), first.sections.map((s) => s.stdin == null), reason: why);
+  // The heading's words are translated, but a lesson in a group in one
+  // language and loose in another would stand under a different heading.
+  expect(lesson.group == null, first.group == null, reason: why);
 }

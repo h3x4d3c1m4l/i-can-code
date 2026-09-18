@@ -92,7 +92,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional` and `group`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -189,6 +189,32 @@ optional: true
 The `<order>` prefix still decides where it sits, now within that group. Numbering
 these from 90 up keeps them out of the main run in a directory listing as well as
 on screen.
+
+### `group:` — a heading over a run of lessons
+
+A lesson may name the group it belongs to in its document-level `metadata`. The
+catalog sets a small heading over each run of lessons that share one.
+
+```metadata
+id: waarden-bewaren
+emoji: "🏷️"
+group: "Week 1 · De basis"
+```
+
+- **The words are the course's, not the app's.** A course that follows a
+  schedule names its weeks; one that does not names its chapters, or leaves the
+  field out and gets no headings at all.
+- **Grouping never reorders.** A heading starts wherever the group changes from
+  one lesson to the next in filename order, so a group that comes back later
+  gets a heading of its own rather than pulling its lessons forward. The number
+  in the filename stays the only source of order.
+- **It is translated**, like the title, but a lesson grouped in one locale is
+  grouped in all of them; `test/content/lessons_test.dart` holds that.
+- A `group` that is not a line of text — a number, a list, an empty string — is a
+  `FormatException`.
+
+A lesson that is also `optional: true` is listed under *Verdieping* whatever its
+group says.
 
 ### `emoji:` — the step's own mark
 

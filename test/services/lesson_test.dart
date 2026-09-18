@@ -393,6 +393,32 @@ void main() {
       expect(ordinary.optional, isFalse, reason: 'a lesson is part of the run unless it says otherwise');
     });
 
+    test('reads the lesson\'s `group`, which sets it under a heading', () {
+      final grouped = Lesson.parse(
+        '# T\n\n```metadata\nid: x\ngroup: "Week 1 · De basis"\n```\n\n'
+        '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+      final loose = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+
+      expect(grouped.group, 'Week 1 · De basis');
+      expect(loose.group, isNull, reason: 'a lesson belongs to no group unless it says so');
+    });
+
+    test('rejects a `group` that is not a line of text', () {
+      for (final value in ['3', '""', '"   "', '[a, b]']) {
+        expect(
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\ngroup: $value\n```\n\n'
+            '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+          ),
+          throwsA(isA<FormatException>()),
+          reason: value,
+        );
+      }
+    });
+
     test('rejects a lesson `optional` that is not a boolean', () {
       expect(
         () => Lesson.parse(

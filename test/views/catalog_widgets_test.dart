@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_group_heading.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
 
 /// What the catalog's widgets need: the app theme, the localizations, and an
@@ -107,6 +108,23 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_message), findsOneWidget);
+    });
+  });
+
+  group('CatalogGroupHeading', () {
+    testWidgets('names its group in capitals, as a heading', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(const CatalogGroupHeading('Week 1 · De basis')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('WEEK 1 · DE BASIS'), findsOneWidget);
+      expect(
+        tester.getSemantics(find.text('WEEK 1 · DE BASIS')),
+        matchesSemantics(label: 'WEEK 1 · DE BASIS', isHeader: true),
+        reason: 'a screen reader can jump between groups by heading',
+      );
+
+      handle.dispose();
     });
   });
 }

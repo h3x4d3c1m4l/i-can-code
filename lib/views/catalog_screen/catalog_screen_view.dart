@@ -7,6 +7,8 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_group_heading.dart';
+import 'package:i_can_code/views/catalog_screen/lesson_runs.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
@@ -163,9 +165,20 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                     ),
                   ),
                   const SizedBox(height: 40),
-                  for (final (index, courseLesson) in lessons.indexed) ...[
-                    if (index > 0) const SizedBox(height: 16),
-                    _buildLessonCard(context, courseLesson, locale),
+                  for (final (index, run) in runsBy(lessons, (it) => it.forLocale(locale).group).indexed) ...[
+                    // A heading opens a run and sits further from the run
+                    // before it than one card sits from the next, so the gap
+                    // itself says where one group ends.
+                    if (run.key case final String group) ...[
+                      if (index > 0) const SizedBox(height: 40),
+                      CatalogGroupHeading(group),
+                      const SizedBox(height: 14),
+                    ] else if (index > 0)
+                      const SizedBox(height: 16),
+                    for (final (position, courseLesson) in run.items.indexed) ...[
+                      if (position > 0) const SizedBox(height: 16),
+                      _buildLessonCard(context, courseLesson, locale),
+                    ],
                   ],
                   if (optional.isNotEmpty) _buildDeepDive(context, optional, locale),
                   if (languageHasRepl(viewModel.language) || languageHasMicrobit(viewModel.language))
