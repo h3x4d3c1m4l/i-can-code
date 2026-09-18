@@ -34,6 +34,10 @@
   },
   "lessonScreen_running": "Running…",
   "@lessonScreen_running": {},
+  "lessonScreen_input": "Input",
+  "@lessonScreen_input": {
+    "description": "Corner label on the card showing the text a step feeds to its program on standard input. Read as a pair with lessonScreen_output."
+  },
   "lessonScreen_output": "Output",
   "@lessonScreen_output": {},
   "lessonScreen_passed": "Correct!",
@@ -43,6 +47,14 @@
   "lessonScreen_back": "Previous step",
   "@lessonScreen_back": {
     "description": "The back button beside every Next. Icon only, so this is what a screen reader announces."
+  },
+  "lessonScreen_optionalExplained": "This step goes further than the core material and may be skipped. It stays open for another time if you do.",
+  "@lessonScreen_optionalExplained": {
+    "description": "What the question mark beside a step's Verdieping badge explains."
+  },
+  "lessonScreen_optionalWhat": "What is a deep dive?",
+  "@lessonScreen_optionalWhat": {
+    "description": "Names that question mark for a screen reader. A question, because that is what pressing it answers."
   },
   "lessonScreen_pairsHint": "Pick two tiles that belong together.",
   "@lessonScreen_pairsHint": {
@@ -167,6 +179,16 @@
   "@appHeader_hideBar": {
     "description": "The button in the bar that puts it away, on a screen worth reading without it. Icon only, so this is what a screen reader announces."
   },
+  "appHeader_step": "{step} / {total}",
+  "@appHeader_step": {
+    "description": "The step counter shown beside the show-bar button while the bar is hidden. Digits, because it sits where the progress bar was.",
+    "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "appHeader_stepLabel": "Step {step} of {total}",
+  "@appHeader_stepLabel": {
+    "description": "What a screen reader hears in place of those digits.",
+    "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
+  },
   "appHeader_showBar": "Show the bar",
   "@appHeader_showBar": {
     "description": "The button that floats over the page while the bar is away, and brings it back."
@@ -247,6 +269,18 @@
   "@replScreen_unavailableTitle": {},
   "replScreen_unavailableBody": "An interactive prompt needs this page to be cross-origin isolated, which is not happening here — usually private browsing, or a site not loaded over https. The lessons themselves still work.",
   "@replScreen_unavailableBody": {},
+  "catalogScreen_deepDive": "Deep dive",
+  "@catalogScreen_deepDive": {
+    "description": "Heading over the optional lessons on the catalog, which nothing in the numbered run depends on."
+  },
+  "catalogScreen_deepDiveExplained": "These lessons go further than the core material. You can skip them: the course is complete without them.",
+  "@catalogScreen_deepDiveExplained": {
+    "description": "Tooltip under the Deep dive heading on the catalog, saying that nothing in the numbered run depends on these lessons."
+  },
+  "catalogScreen_deepDiveWhat": "What is a deep dive?",
+  "@catalogScreen_deepDiveWhat": {
+    "description": "Names the question mark beside the Deep dive heading for a screen reader. A question, because that is what pressing it answers."
+  },
   "catalogScreen_extra": "Extra",
   "@catalogScreen_extra": {},
   "catalogScreen_extraFreePlay": "Free play",

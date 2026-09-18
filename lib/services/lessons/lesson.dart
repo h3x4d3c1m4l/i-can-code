@@ -52,6 +52,13 @@ enum SectionKind {
   /// typing it, so it has no editor and no starter block.
   bool get usesValidator => isAssignment || this == SectionKind.orderLines;
 
+  /// Whether the step hands a program to the interpreter at all.
+  ///
+  /// Wider than [usesValidator] by one: [predictOutput] runs its program to find
+  /// out what it prints and checks nothing. This is the set that may script what
+  /// that program reads on standard input.
+  bool get runsCode => usesValidator || this == SectionKind.predictOutput;
+
   static SectionKind parse(String value) => switch (value) {
     'info' => SectionKind.info,
     'quick-exercise' => SectionKind.quickExercise,
@@ -166,6 +173,18 @@ class LessonSection {
   /// any other mistake.
   final List<String> distractors;
 
+  /// What the program reads on standard input, from the section's `stdin`
+  /// block. Null when the section scripts none, which is every section that
+  /// does not ask for one.
+  ///
+  /// Kept verbatim — leading whitespace, trailing spaces and interior blank
+  /// lines all survive, because an empty line is a real empty answer to
+  /// `input()`. It ends in a newline so the last line is a complete one.
+  ///
+  /// A program that reads past the end of it stops with `EOFError`, which the
+  /// student sees as their own traceback.
+  final String? stdin;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -180,6 +199,7 @@ class LessonSection {
     this.explanation,
     this.lines = const [],
     this.distractors = const [],
+    this.stdin,
   });
 
 }
@@ -206,6 +226,15 @@ class Lesson {
   /// still opens, and the card falls back to the number.
   final String? emoji;
 
+  /// A "Verdieping": a whole lesson that is worth reading and that nothing else
+  /// depends on. The catalog lists these under a heading of their own instead of
+  /// in the numbered run, so the main sequence still reads as one path.
+  ///
+  /// The same word as [LessonSection.optional] and the same promise: it changes
+  /// what is *asked*, never what is recorded. A student who works through one
+  /// earns its ticks the normal way.
+  final bool optional;
+
   final List<LessonSection> sections;
 
   const Lesson({
@@ -213,6 +242,7 @@ class Lesson {
     required this.title,
     this.subtitle,
     this.emoji,
+    this.optional = false,
     required this.sections,
   });
 
@@ -232,6 +262,7 @@ class Lesson {
     String? title;
     String? subtitle;
     String? emoji;
+    var optional = false;
     final sections = <LessonSection>[];
 
     String? sectionTitle;
@@ -249,6 +280,9 @@ class Lesson {
     String? explanation;
     List<String>? ordered;
     List<String>? distractors;
+    // Nullable for the same reason `explanation` is: no block and an empty one
+    // are different mistakes.
+    String? stdin;
 
     void flush() {
       if (sectionTitle == null) return;
@@ -310,6 +344,13 @@ class Lesson {
           'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an order or distractors block.',
         );
       }
+      // Refused on the kinds that hand nothing to the interpreter, where a
+      // scripted answer would sit in the file with nothing to read it.
+      if (!sectionKind!.runsCode && stdin != null) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `stdin` block; nothing here runs.',
+        );
+      }
       // Optional where it belongs, refused everywhere else: it is shown with the
       // answer to a prediction, and no other kind has an answer to show it with.
       if (sectionKind != SectionKind.predictOutput && explanation != null) {
@@ -332,6 +373,7 @@ class Lesson {
           explanation: explanation,
           lines: ordered ?? const [],
           distractors: distractors ?? const [],
+          stdin: stdin,
         ),
       );
       sectionKind = null;
@@ -346,6 +388,7 @@ class Lesson {
       explanation = null;
       ordered = null;
       distractors = null;
+      stdin = null;
     }
 
     final lines = source.replaceAll('\r\n', '\n').split('\n');
@@ -372,6 +415,11 @@ class Lesson {
             if (sectionTitle == null) {
               id = meta['id'] as String? ?? id;
               emoji = _readEmoji(meta, 'The lesson') ?? emoji;
+              final lessonOptional = meta['optional'];
+              if (lessonOptional != null && lessonOptional is! bool) {
+                throw const FormatException('The lesson declares an `optional` that is not true or false.');
+              }
+              optional = lessonOptional as bool? ?? optional;
             } else {
               final type = meta['type'] as String?;
               if (type == null) throw FormatException('Section "$sectionTitle" declares no `type`.');
@@ -410,6 +458,17 @@ class Lesson {
               throw FormatException('Section "$sectionTitle" declares an empty `explanation` block.');
             }
             explanation = text;
+          case _BlockRole.stdin:
+            if (sectionTitle == null) {
+              throw const FormatException('A `stdin` block belongs to a section, not to the lesson.');
+            }
+            if (body.isEmpty) {
+              throw FormatException('Section "$sectionTitle" declares an empty `stdin` block.');
+            }
+            // Deliberately not `_codeLines`: that drops blank lines and trims,
+            // and a blank line here is one empty answer to `input()`. The
+            // terminating newline is what makes the last line a whole line.
+            stdin = '${body.join('\n')}\n';
           case _BlockRole.pairs:
             if (sectionTitle == null) {
               throw const FormatException('A `pairs` block belongs to a section, not to the lesson.');
@@ -449,7 +508,14 @@ class Lesson {
     if (title == null) throw const FormatException('The lesson has no `#` title.');
     if (sections.isEmpty) throw const FormatException('The lesson has no `##` sections.');
 
-    return Lesson(id: id, title: title, subtitle: subtitle, emoji: emoji, sections: sections);
+    return Lesson(
+      id: id,
+      title: title,
+      subtitle: subtitle,
+      emoji: emoji,
+      optional: optional,
+      sections: sections,
+    );
   }
 
   /// Reads a `pairs` block: one pair per paragraph, two lines each.
@@ -507,7 +573,7 @@ class Lesson {
 
 }
 
-enum _BlockRole { metadata, assignment, validator, predict, order, distractors, explanation, pairs, sample }
+enum _BlockRole { metadata, assignment, validator, predict, order, distractors, explanation, stdin, pairs, sample }
 
 /// An opening code fence, with its role read off the language it declares:
 /// ```` ```python-assignment ````. Stripping the `-assignment` / `-validator`
@@ -543,6 +609,12 @@ class _Fence {
     // Reserved for the same reason again — it is prose about the code, not code.
     if (declared == 'explanation') {
       return _Fence(marker: marker, role: _BlockRole.explanation, language: null);
+    }
+    // And again: what the student types at a prompt is not code in any language,
+    // so there is no suffix to strip and nothing to hand a highlighter. Colouring
+    // a name as an identifier is exactly the wrong reading of it.
+    if (declared == 'stdin') {
+      return _Fence(marker: marker, role: _BlockRole.stdin, language: null);
     }
     for (final (suffix, role) in const [
       ('-assignment', _BlockRole.assignment),

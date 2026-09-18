@@ -78,6 +78,8 @@ async function start({ channel }) {
     env: {
       PYTHONHOME: '/',
       PYTHONPATH: '/python314.zip',
+      // No .pyc files beside the modules a session imports: they would
+      // outlive nothing and show up in the next os.listdir at the prompt.
       PYTHONDONTWRITEBYTECODE: '1',
       PYTHONUNBUFFERED: '1',
       // 3.13 shipped a new REPL that drives the terminal itself through
@@ -94,6 +96,9 @@ async function start({ channel }) {
     },
     // No /main.py: there is no program, only the prompt.
     files: new Map([['/python314.zip', stdlib]]),
+    // Writable from the prompt, except the zip every import reads from. This
+    // filesystem lives as long as the session, not as long as one run.
+    readOnlyPaths: ['/python314.zip'],
     stdinReader: {
       // Flushing here is what keeps the prompt from arriving late: CPython
       // writes `>>> ` and then asks for a line, and this worker is about to

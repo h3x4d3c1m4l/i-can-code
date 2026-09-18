@@ -26,8 +26,9 @@ const STDLIB_PATH = '/python314.zip';
 const PYTHON_ENV = {
   PYTHONHOME: '/',
   PYTHONPATH: STDLIB_PATH,
-  // Without this CPython tries to write .pyc files next to the source and
-  // the read-only filesystem refuses, noisily.
+  // Without this CPython caches a .pyc beside every module a program
+  // imports, so a lesson about listing files would find a __pycache__ nobody
+  // wrote sitting in the middle of its output.
   PYTHONDONTWRITEBYTECODE: '1',
   // Output is captured at the end rather than streamed, so buffering would
   // only risk losing the tail of a program that dies mid-write.
@@ -141,6 +142,7 @@ async function probeVersion() {
     args: ['python', '-V'],
     env: PYTHON_ENV,
     files: new Map([[STDLIB_PATH, stdlib]]),
+    readOnlyPaths: [STDLIB_PATH],
     stdin: new Uint8Array(0),
     onOutput: (kind, bytes) => { if (kind === 'stdout') out.add(bytes); },
   });
@@ -170,6 +172,10 @@ async function run({ code, stdin }) {
     args: ['python', '/main.py'],
     env: PYTHON_ENV,
     files,
+    // The zip is the only thing here a program must not be able to break:
+    // zipimport re-opens it on every import, so emptying it ends the run with
+    // an EOFError that names nothing the student did.
+    readOnlyPaths: [STDLIB_PATH],
     stdin: new TextEncoder().encode(stdin ?? ''),
     onOutput: (kind, bytes) => (kind === 'stdout' ? stdout : stderr).add(bytes),
   });

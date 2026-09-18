@@ -17,6 +17,7 @@ import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
@@ -63,6 +64,25 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// Puts a widget that is not prose back on the prose's own left edge.
   static Widget _pastGutter(Widget child) =>
       Padding(padding: const EdgeInsets.only(left: _gutter), child: child);
+
+  /// What this step feeds the program on standard input. Null when it scripts
+  /// none, which is most steps.
+  ///
+  /// Always shown: a check that feeds numbers the prose never mentions cannot be
+  /// passed by reading it, and restating them in prose is one more thing that can
+  /// drift from the block they are written in.
+  static Widget? _buildInput(BuildContext context, LessonSection section) {
+    final stdin = section.stdin;
+    if (stdin == null) return null;
+
+    // Trimmed for the reason the output card is: the stored text ends in a
+    // newline, which would draw an empty line inside the card.
+    return OutputCard(label: context.localizations.lessonScreen_input, text: stdin.trimRight());
+  }
+
+  /// How long a quick exercise's answer may run. The editor is sized to it and
+  /// the controller is held to it, so the two cannot come apart.
+  static const int _quickExerciseLines = 2;
 
   /// Prose in the narrower of the two columns.
   static const double _taskProseSize = 19;
@@ -158,13 +178,23 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         AppCrumb(lesson.title, onTap: viewModel.step == 0 ? null : () => controller.goTo(0)),
       ],
       trailing: StepProgressBar(
-        stepCount: lesson.stepCount,
+        titles: [for (final section in lesson.sections) section.title],
         current: viewModel.step,
         passed: viewModel.passed,
         onTap: controller.goTo,
       ),
       // A lesson is read. This is the one screen the bar gets out of the way of.
       offersZen: true,
+      // Kept when the rest of the bar goes: the progress bar is the only thing
+      // in it a reader mid-lesson actually needs, and a step number is the least
+      // of it that still says where they are. Null on the end page, which is not
+      // a step and counts towards nothing.
+      zenLabel: viewModel.completed
+          ? null
+          : context.localizations.appHeader_step(viewModel.step + 1, lesson.stepCount),
+      zenSemanticsLabel: viewModel.completed
+          ? null
+          : context.localizations.appHeader_stepLabel(viewModel.step + 1, lesson.stepCount),
     );
   }
 
@@ -228,14 +258,15 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           const SizedBox(height: 30),
           LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 20),
-          // A quick exercise's answer is one line, so the editor is sized to
-          // exactly that. Longer code scrolls inside it.
+          // A quick exercise is a short answer, and two lines is what "short"
+          // turns out to mean: storing something and then showing it is the
+          // smallest exercise worth setting, and it does not fit in one.
           ..._buildWorkspace(
             context,
             lesson,
             section,
-            editorHeight: CodeEditorCard.heightForLines(1),
-            singleLine: true,
+            editorHeight: CodeEditorCard.heightForLines(_quickExerciseLines),
+            maxLines: _quickExerciseLines,
           ).map(_pastGutter),
         ],
       ),
@@ -328,6 +359,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             ),
           ),
           const SizedBox(height: 20),
+          if (_buildInput(context, section) case final Widget input) ...[
+            _pastGutter(input),
+            const SizedBox(height: 20),
+          ],
           _pastGutter(
             PredictionField(
               controller: prediction,
@@ -408,6 +443,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             ),
           ),
           const SizedBox(height: 24),
+          if (_buildInput(context, section) case final Widget input) ...[
+            _pastGutter(input),
+            const SizedBox(height: 24),
+          ],
           _pastGutter(
             AppButtonRow(
               children: [
@@ -489,7 +528,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     Lesson lesson,
     LessonSection section, {
     required double editorHeight,
-    bool singleLine = false,
+    int? maxLines,
   }) {
     final editor = _editorFor(viewModel.step, section);
     final attempt = viewModel.attempt;
@@ -499,9 +538,13 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         controller: editor,
         status: _statusLabel(context),
         height: editorHeight,
-        singleLine: singleLine,
+        maxLines: maxLines,
       ),
       const SizedBox(height: 16),
+      if (_buildInput(context, section) case final Widget input) ...[
+        input,
+        const SizedBox(height: 16),
+      ],
       AppButtonRow(
         children: [
           _buildBack(context, lesson),

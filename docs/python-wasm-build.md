@@ -143,9 +143,21 @@ anything TLS will not work. Neither matters for teaching, and both could be adde
 later by cross-compiling the C libraries for WASI and reconfiguring.
 
 The build is also a genuine sandbox, and that is worth preserving: a WASM module
-can only touch what the host grants it. Preopening just the stdlib directory means
-pupil code has no filesystem, no network and no way out. **Do not preopen more
-than `assets/python`.**
+can only reach what its imports allow. Pupil code has no network and no way out,
+and the filesystem it does have is **entirely inside `web/python/wasi.js`** — a
+tree of nodes in memory, seeded with the stdlib zip and the program being run.
+There is no host directory behind it and nothing is preopened from disk, so a
+program can write, list and delete all it likes without touching anything real.
+Nothing it writes outlives the wasm instance.
+
+Two properties that hold that up, and which a change to the shim must keep:
+
+- **The stdlib is sealed.** Both workers pass `readOnlyPaths: ['/python314.zip']`.
+  A program that truncates the archive it is importing from breaks every later
+  import with an `EOFError` naming nothing the student did.
+- **Growth is capped.** `FS_QUOTA_BYTES` bounds what a program may add, measured
+  against what was installed, so `while True: f.write("x")` ends in a clean
+  `ENOSPC` rather than in a dead tab.
 
 ## Upgrading Python
 

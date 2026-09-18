@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 import 'package:i_can_code/views/components/overlay_host.dart';
@@ -164,7 +165,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
                 // Below the bar in the stack, so the bar covers it on the way in
                 // rather than fading out on top of it. Nothing is behind it
                 // either way: the band it waits in is the bar's own.
-                if (offersZen) _buildShowBar(context, visible: visible, motion: motion),
+                if (offersZen) _buildShowBar(context, config, visible: visible, motion: motion),
                 _buildBar(context, config, visible: visible, motion: motion),
               ],
             );
@@ -212,9 +213,20 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
     );
   }
 
-  /// The way back to the bar: without it, the bar is not out of the way, it is
-  /// lost.
-  Widget _buildShowBar(BuildContext context, {required bool visible, required Duration motion}) {
+  /// The way back to the bar, and beside it the one thing from the bar worth
+  /// keeping: without the first, the bar is not out of the way but lost; without
+  /// the second, a reader in zen mode cannot tell how far in they are.
+  ///
+  /// One group rather than two, so the counter fades with the button and cannot
+  /// be left behind on a bar that has come back.
+  Widget _buildShowBar(
+    BuildContext context,
+    AppHeaderConfig? config, {
+    required bool visible,
+    required Duration motion,
+  }) {
+    final tokens = context.appTheme;
+
     return Positioned(
       top: _showBarTop,
       right: AppHeader.chromeInset(context),
@@ -227,10 +239,28 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
             duration: motion,
             curve: _curve,
             opacity: visible ? 0 : 1,
-            child: HeaderIconButton(
-              icon: FLucideIcons.panelTopOpen,
-              semanticsLabel: context.localizations.appHeader_showBar,
-              onPress: () => setState(() => _zen = false),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (config?.zenLabel case final String label) ...[
+                  Semantics(
+                    label: config?.zenSemanticsLabel,
+                    // The digits are a shorthand for what the label says, so a
+                    // screen reader must not read both.
+                    excludeSemantics: config?.zenSemanticsLabel != null,
+                    child: Text(
+                      label,
+                      style: tokens.text.codeSmall.copyWith(color: tokens.colors.progressCurrent),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                HeaderIconButton(
+                  icon: FLucideIcons.panelTopOpen,
+                  semanticsLabel: context.localizations.appHeader_showBar,
+                  onPress: () => setState(() => _zen = false),
+                ),
+              ],
             ),
           ),
         ),

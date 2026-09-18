@@ -119,6 +119,8 @@ Three rules behind that shape:
 
 - **Nothing reveals the bar by itself.** It was a band along the top edge that the pointer reached into once, and a bar that came and went with the pointer moved the page under the reader's hands. With a button each way the bar only ever appears because the reader asked.
 - **The page keeps its box.** It has the whole window whether the bar is showing or not, and the bar is drawn *over* it. Insetting the page instead reflowed the lesson on every press of either button, and cut what was scrolled past against an invisible edge with empty space above it.
+- **A hidden bar keeps the one thing that was worth reading.** `AppHeaderConfig.zenLabel` is a few characters the host draws beside the floating button while the bar is away — on a lesson, the step the reader is on. It is the least of the progress bar that still says where they are, and it is a string rather than two numbers because the host places it and does not count. Null on the end page, which is not a step. The digits are a shorthand, so a screen reader is given `zenSemanticsLabel` and the digits are excluded rather than read twice.
+
 - **A hidden bar must leave a way back.** The floating button waits in the band the bar left behind, in the cog's own column and at the cog's own height, so pressing it puts the cog under the pointer without either of them having moved — and it is a real focusable button, reachable by pointer, touch and tab alike. Meanwhile the bar itself is taken out of the focus *and* semantics trees, because off screen is not gone: it would otherwise still be read out and still take the tab meant for the page.
 
 **The page runs under the bar and pads for it itself.** The host gives every screen the whole window; what keeps a first screenful clear of the bar is `AppHeader.height`, added to the screen's own scroll padding — which is why that constant appears in three views. Everything scrolled past then passes under the bar instead of being cut off above it.
@@ -164,6 +166,12 @@ Generated files are excluded from linting (`analysis_options.yaml`) and must nev
 ### UI library
 
 **forui** for every widget, plus its bundled Lucide icons. **No Material, no Cupertino, no fluent_ui.** The shell is a `WidgetsApp.router` rather than a `MaterialApp` precisely so a stray Material widget looks wrong instead of quietly theming itself.
+
+**A hint that opens on a press is an `FPopover`, never an `FTooltip`.** forui's tooltip is hover-and-long-press by design: its hover branch wraps the child in a `Listener` that hides the tip on *every* pointer down, so a tap opens and closes it within one gesture and nothing is ever read. A popover adds no gesture of its own, which is why `SettingsMenu` says the popover "does not open itself" — the trigger is an ordinary `FTappable`, and that is also what puts it in the tab order and makes Enter work. `HintMark` (`lib/views/components/`) is that question mark: beside the catalog's *Verdieping* heading and beside the same word as a badge on a step. A `MouseRegion` around its trigger opens it on hover with **no dwell time**, because forui's tooltip waits out half a second and on a mark that size that reads as nothing happening. Its press is `show` and not `toggle`: the pointer is already inside by the time a click lands, so toggling would close what the hover opened.
+
+**The other half of that rule**: a hint that belongs to hover *is* an `FTooltip`, and the pointer-down that rules it out above is exactly what it wants. `StepProgressBar` names each step on hover, and the press under that hover is a move to another step, so the tip has to be gone by the time the new one is drawn. It sets `hoverEnterDuration` to zero for the reason `HintMark` does.
+
+**Every rounded corner is a squircle, and a text field is the one control that cannot be given one.** forui types a field's border as Material's `InputBorder`, whose concrete forms draw a plain rounded rectangle, so `squircle()` cannot reach it. `SquircleInputBorder` (`lib/theme/`) is an `InputBorder` subclass that hands every question to the real squircle; `PredictionField` restates all five of forui's border states with it, because the border carries its own colour and replacing one replaces the colour with it.
 
 The one Material import in the codebase is `package:material_ui/material_ui.dart show ThemeExtension` in `lib/theme/app_theme.dart` — forui types its extension map against that class, and Flutter 3.47's `package:flutter/material.dart` declares a *different* one. Importing the wrong `ThemeExtension` fails with a type error that does not mention either package.
 
@@ -247,14 +255,14 @@ No service worker means no console — private browsing, storage disabled, no ht
 ```text
 /                                              the language picker
 /learn-python                                  that language's lessons
-/learn-python/input-and-output                 resume: wherever you left off
-/learn-python/input-and-output/print-yourself  one step, named by its section id
+/learn-python/uitvoer                          resume: wherever you left off
+/learn-python/uitvoer/zelf-printen             one step, named by its section id
 /learn-python/repl                             the interactive console
 /learn-python/microbit                         a program of your own, on a board
 /learn-python/microbit-repl                    MicroPython's own prompt, on a board
 ```
 
-`repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `lesson_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons by those names.
+`repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons by those names.
 
 **The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
 
@@ -333,6 +341,12 @@ They cover three different windows and are not interchangeable:
 
 **A run belongs to the step it was started on.** `LessonScreenController` stops whatever is going the moment the student moves — `goTo`, the end page, and `dispose` as the catch-all behind the trail, the browser's Back button and the settings menu — and a run token drops the answer that arrives afterwards, so a verdict cannot land on a step it was not written for. **A stop draws no verdict at all**: it is not something the student got wrong, and what the program had printed died with the worker holding it. The runtime **supersedes** a run rather than refusing one; refusing is what left a student who walked away from a long `sleep` with "a program is already running" answered to every attempt afterwards and nothing they could press to clear it.
 
+**A program can read and write files.** The filesystem is a tree in memory inside `web/python/wasi.js`, seeded with the stdlib zip and the student's own `/main.py`, with `/tmp` beside them. `open(..., "w")`, `csv.writer`, `os.listdir`, `os.mkdir`, `pathlib` and `tempfile` all work, so a lesson on files is a lesson that runs rather than one that is read about. Three things bound it: **nothing persists** — the lesson worker builds a fresh instance per run, so a file written by one run is gone in the next, while the REPL worker keeps one for the session; **the stdlib is sealed** by `readOnlyPaths`, because a program that truncates the archive it imports from breaks every later import with an `EOFError` naming nothing the student did; and **growth is capped** at `FS_QUOTA_BYTES`, so a runaway write ends in `ENOSPC` instead of a dead tab. There are no links of either kind, which is what lets `normalise()` alone guarantee no path climbs out of the virtual root. See `docs/python-wasm-build.md`.
+
+**A validator can read a file the program wrote**, because the student's code and the checks are one program in one instance — `buildProgram` puts them in the same `/main.py`. So a step that asks for a CSV to be written can check what is in it, not only what was printed.
+
+**A section can script what its program reads.** A `stdin` block travels on the real file descriptor through `PythonRuntime.run(stdin:)` rather than inside the wrapper, so `buildProgram` stays the one string that is the whole experiment and `input()` behaves the way a student finds it anywhere else. The four kinds that hand a program to CPython may carry one — that set is `SectionKind.runsCode`, beside `isAssignment` (has an editor) and `usesValidator` (is checked). **The student is always shown it**, in a card beside the editor: a check that feeds numbers the prose never mentions cannot be passed by reading, and restating them in prose is one more thing that can drift from the block. There is no terminal, so the prompt `input("Naam? ")` writes lands in `output` and nothing is echoed back — which is what every validator on such a step has to be written around. Reading past the end raises `EOFError`, and that reaches the student as their own traceback rather than as a failed check.
+
 **A validator can read the code as a tree, not only as a string.** `kCheckLibrary` (`lib/services/python/python_check_library.dart`) is a Python module carried into the run beside the student's source and exec'd into the validator's scope, which is how a validator gets `program.calls("print").with_args(42)` in place of `"print(" in code` — a check that passes for `s = "print(42)"` and cannot tell `print(42)` from `print("42")`. `docs/lesson-format.md` is the author-facing spec, and the names in the library's `__all__` are the contract: adding one means documenting it there.
 
 Two things it deliberately is not:
@@ -358,6 +372,8 @@ Four words, fixed. Drifting off them is what made the folders disagree with the 
 
 A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Assignment* survives only where it names a **block** in a lesson file (```` ```python-assignment ````) and in `SectionKind.isAssignment`; as a word for a step it has been replaced by **exercise**.
 
+A **whole lesson** may be optional too, by saying `optional: true` in its document-level metadata. The catalog then lists it under a *Verdieping* heading of its own rather than in the numbered run, so the main sequence still reads as one path and skipping every one of them still finishes the course. Inside, it is an ordinary lesson: checked, ticked and recorded the normal way. Same word and same promise as the section flag below, one level up.
+
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
 **Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing.
@@ -371,7 +387,18 @@ Two things that are easy to get wrong:
 - **There is no index file.** Order comes from the `NN-` filename prefix and discovery from Flutter's `AssetManifest`, so the directory *is* the index. Reordering the course is a rename.
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
-`test/services/lesson_test.dart` parses every file that ships, so an authoring mistake fails the test run instead of the initialization screen.
+**The test suite never reads the course.** The lessons are headed for a private repository while the app stays open source, so no test may name a lesson or depend on one existing — the suite has to go green on a checkout with no course in it at all, and it does.
+
+Two things keep that true:
+
+- **A test that needs a real lesson reads `test/fixtures/lesson.md`**, which the suite owns: English, one step of every interactive kind, validators written the way an author writes them. It changes only when a test needs it to, so rewording a paragraph of the course cannot turn a renderer test red.
+- **The rules every shipped lesson must keep live in `test/content/lessons_test.dart`** and run over whatever course is present — `assets/lessons/` by default, or a checkout named by `LESSONS_DIR`. With no lesson files there they **skip, with the reason**, rather than pass on nothing: a green run that checked nothing reads exactly like one that checked everything. The course repository runs `LESSONS_DIR=<its lessons> fvm flutter test test/content/` against this app to check itself.
+
+`Course.entriesFrom` keys on the bundle's own `assets/lessons/` prefix, so the content test names each file on disk to that prefix and maps it back — which is what makes a file the app would not pick up one the check skips too.
+
+**`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**, because that is what the text is laid out at: `16 × 1.6` is 25.6, drawn as 26. Keeping the fraction left two lines 0.8px taller than the box asked for — invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student typed a second line. The six-line micro:bit editor was 2.4px short the same way.
+
+**A quick exercise is capped at two lines**, and the editor enforces it: `CodeEditorCard.maxLines` joins anything past the limit onto the last line it allows, because a plain Enter arrives through the text-input connection rather than through `shortcutOverrideActions`, so overriding the intent does nothing. Two rather than one, because storing a value and then showing it is the smallest exercise worth setting and it does not fit in one line. The cap and `heightForLines` are read from one constant in the view, so the editor cannot allow a line it is too short to show. An answer that needs a third line is an `exercise`.
 
 **A step does not have to ask for code.** `SectionKind.matchPairs` is a board of tiles the student pairs up — declared `type: match-pairs`, filled from a `pairs` block, and carrying no editor and no validator, because the board itself is the check. It is why `SectionKind.isAssignment` names the two kinds it is true of rather than reading "not `info`": a match-pairs step is neither prose nor an assignment, and the older test would have had the parser demand an editor for a step that has none.
 

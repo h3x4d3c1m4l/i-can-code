@@ -15,9 +15,12 @@ id: print-yourself
 emoji: "✍️"
 ```
 
-A `quick-exercise` is a question of a sentence or two whose answer is one line,
-so the prose and the editor stack in a single column and the editor is sized to
-exactly one line.
+A `quick-exercise` is a question of a sentence or two whose answer runs to at
+most two lines, so the prose and the editor stack in a single column and the
+editor is sized to exactly that. Two rather than one because storing something
+and then showing it is the smallest exercise worth setting. An answer that needs
+a third line belongs in an `exercise`: the editor holds the student to the limit,
+so the extra line is joined onto the second rather than accepted.
 
 Write a line of code that prints a piece of text.
 

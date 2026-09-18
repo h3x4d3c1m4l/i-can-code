@@ -24,6 +24,10 @@ class _HeldRuntime implements PythonRuntime {
   /// terminated, so the count is what proves a run was actually ended.
   int cancels = 0;
 
+  /// What the last run was fed on standard input, so a section's `stdin` block
+  /// can be followed all the way to the interpreter.
+  String? lastStdin;
+
   bool get isRunning => _pending != null;
 
   @override
@@ -36,7 +40,10 @@ class _HeldRuntime implements PythonRuntime {
   Future<void> ready() async {}
 
   @override
-  Future<PythonResult> run(String code, {String stdin = ''}) => (_pending = Completer<PythonResult>()).future;
+  Future<PythonResult> run(String code, {String stdin = ''}) {
+    lastStdin = stdin;
+    return (_pending = Completer<PythonResult>()).future;
+  }
 
   @override
   Future<void> cancel() async {
@@ -78,6 +85,22 @@ const List<LessonSection> _sections = [
     prose: '',
     lines: ['a', 'b', 'c'],
     validator: 'pass',
+  ),
+  LessonSection(
+    id: 'asked',
+    title: 'Gevraagd',
+    kind: SectionKind.exercise,
+    prose: '',
+    starter: '',
+    stdin: 'Sanne\n',
+  ),
+  LessonSection(
+    id: 'guess-asked',
+    title: 'Raden met invoer',
+    kind: SectionKind.predictOutput,
+    prose: '',
+    program: 'print(input())',
+    stdin: '7\n',
   ),
   LessonSection(id: 'last', title: 'Laatste', kind: SectionKind.exercise, prose: '', starter: ''),
 ];
@@ -264,6 +287,34 @@ void main() {
     await pumpEventQueue();
     expect(viewModel.attempt, isNull, reason: 'a stopped run must not report a verdict');
     expect(viewModel.running, isFalse);
+  });
+
+  test('a section\'s scripted input reaches the runtime', () async {
+    final accessor = BuildContextAccessor();
+    final viewModel = LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'asked');
+    final controller = LessonScreenController(viewModel: viewModel, contextAccessor: accessor);
+
+    unawaited(controller.run(_sections.firstWhere((s) => s.id == 'asked'), 'print(input())'));
+    await pumpEventQueue();
+
+    expect(runtime.lastStdin, 'Sanne\n');
+  });
+
+  test('a predicted program is fed its scripted input too', () async {
+    final accessor = BuildContextAccessor();
+    final viewModel = LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'guess-asked');
+    final controller = LessonScreenController(viewModel: viewModel, contextAccessor: accessor);
+
+    unawaited(controller.predict(_sections.firstWhere((s) => s.id == 'guess-asked'), '7'));
+    await pumpEventQueue();
+
+    expect(runtime.lastStdin, '7\n');
+  });
+
+  test('a section without one is run with nothing to read', () async {
+    final (_, _) = await running();
+
+    expect(runtime.lastStdin, isEmpty);
   });
 
   test('reaching the end page stops a run in flight', () async {

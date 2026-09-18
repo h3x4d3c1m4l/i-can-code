@@ -5,14 +5,15 @@ import 'package:i_can_code/routing/bootstrap_guard.dart';
 
 /// The section id that means "wherever I left off" rather than a real section.
 ///
-/// Reserved: a lesson must not name a section this. `lesson_test.dart` holds it.
+/// Reserved: a lesson must not name a section this. `test/content/lessons_test.dart`
+/// holds it.
 const String resumeSection = 'resume';
 
 /// The lesson id the interactive console sits on.
 ///
 /// Reserved for the same reason and in the same place: it occupies a language's
 /// second address segment, where a lesson id would otherwise go, so a lesson
-/// with this id would be unreachable. `lesson_test.dart` holds it.
+/// with this id would be unreachable. `test/content/lessons_test.dart` holds it.
 const String replLesson = 'repl';
 
 /// The lesson id writing a program to a micro:bit sits on.

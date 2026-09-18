@@ -1,7 +1,8 @@
 # Sample lessons
 
-One file per section type, each a **complete, parseable lesson** rather than a
-fragment — so every one of them can be run through the real harness:
+One file per section type, plus one per block that several types may carry. Each
+is a **complete, parseable lesson** rather than a fragment, so every one of them
+can be run through the real harness:
 
 ```bash
 fvm dart run tool/try_lesson.dart docs/samples/exercise.md           # list its sections
@@ -17,6 +18,7 @@ fvm dart run tool/try_lesson.dart docs/samples/predict-output.md 0   # see the a
 | [match-pairs.md](match-pairs.md) | `match-pairs` | A `pairs` block — the board is the check |
 | [predict-output.md](predict-output.md) | `predict-output` | A `<lang>-predict` block and its optional `explanation` |
 | [order-lines.md](order-lines.md) | `order-lines` | A `<lang>-order` block, its `<lang>-distractors`, and a validator that runs what was built |
+| [stdin.md](stdin.md) | `exercise`, `predict-output` | A `stdin` block on each: what the program reads when it calls `input()` |
 
 **These are documentation, not content.** They live here rather than under
 `assets/lessons/`, which is the only directory the app discovers, so nothing here

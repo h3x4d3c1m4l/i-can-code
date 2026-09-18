@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/hint_mark.dart';
 
 /// What an optional step is — a "Verdieping" — and the way past it, on one line
 /// under the step's title.
@@ -41,6 +42,13 @@ class OptionalStepBanner extends StatelessWidget {
               style: tokens.text.label.copyWith(fontSize: 12, color: theme.colors.secondaryForeground),
             ),
           ),
+        ),
+        const SizedBox(width: 8),
+        // The same mark the catalog puts beside its own Verdieping heading: the
+        // word is the reader's first meeting with it in either place.
+        HintMark(
+          message: context.localizations.lessonScreen_optionalExplained,
+          semanticsLabel: context.localizations.lessonScreen_optionalWhat,
         ),
         const SizedBox(width: 16),
         FTappable(

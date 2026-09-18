@@ -18,7 +18,7 @@ class LessonEntry {
   /// file states about itself.
   final String slug;
 
-  /// Asset paths by locale code, e.g. `{'nl': '…/01-input-and-output.nl.md'}`.
+  /// Asset paths by locale code, e.g. `{'nl': '…/01-uitvoer.nl.md'}`.
   final Map<String, String> paths;
 
   const LessonEntry({

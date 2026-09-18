@@ -17,13 +17,17 @@ class CodeEditorCard extends StatefulWidget {
   /// Shown at the top right — "Python klaar", a run in progress, and so on.
   final String status;
 
-  /// Whether the answer is a single line.
+  /// How many lines the answer may run to. Null for no limit.
   ///
   /// Enforced on the controller, not by blocking Enter: a plain Enter arrives
   /// through the text-input connection rather than `shortcutOverrideActions`, so
-  /// overriding [CodeShortcutNewLineIntent] does nothing. Any inserted newline
-  /// is undone instead.
-  final bool singleLine;
+  /// overriding [CodeShortcutNewLineIntent] does nothing. A newline past the
+  /// limit is undone instead.
+  ///
+  /// It caps the answer; it does not size the card. [height] does that, and a
+  /// caller MUST keep the two in step or the last line it allows is one the
+  /// student has to scroll to.
+  final int? maxLines;
 
   /// How tall the editing area is. The design's is 276px.
   ///
@@ -44,13 +48,20 @@ class CodeEditorCard extends StatefulWidget {
 
   /// The height that fits [lines] of code exactly. Stated in lines so it does
   /// not have to be re-derived when the code font changes.
-  static double heightForLines(int lines) => lines * _fontSize * _lineHeight + codePadding.vertical;
+  ///
+  /// A line is rounded **up** to whole pixels before it is multiplied, because
+  /// that is what the text is laid out at: `16 × 1.6` is 25.6, drawn as 26. Two
+  /// lines were 0.8px taller than the box the exact arithmetic asked for, which
+  /// is invisible and is still enough for the editor to decide it can scroll and
+  /// draw a scrollbar over the code.
+  static double heightForLines(int lines) =>
+      lines * (_fontSize * _lineHeight).ceilToDouble() + codePadding.vertical;
 
   const CodeEditorCard({
     required this.controller,
     required this.status,
     this.height = 276,
-    this.singleLine = false,
+    this.maxLines,
     super.key,
   });
 
@@ -64,29 +75,33 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
   @override
   void initState() {
     super.initState();
-    if (widget.singleLine) widget.controller.addListener(_collapseToOneLine);
+    if (widget.maxLines != null) widget.controller.addListener(_capLines);
   }
 
   @override
   void didUpdateWidget(CodeEditorCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller == widget.controller && oldWidget.singleLine == widget.singleLine) return;
-    oldWidget.controller.removeListener(_collapseToOneLine);
-    if (widget.singleLine) widget.controller.addListener(_collapseToOneLine);
+    if (oldWidget.controller == widget.controller && oldWidget.maxLines == widget.maxLines) return;
+    oldWidget.controller.removeListener(_capLines);
+    if (widget.maxLines != null) widget.controller.addListener(_capLines);
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_collapseToOneLine);
+    widget.controller.removeListener(_capLines);
     super.dispose();
   }
 
-  /// Rejoins a line that was split. Removes the newline rather than replacing
-  /// it, so pressing Enter mid-word is a true no-op.
-  void _collapseToOneLine() {
-    final text = widget.controller.text;
-    if (!text.contains('\n')) return;
-    widget.controller.text = text.replaceAll('\n', '');
+  /// Rejoins whatever ran past the limit. Removes the newline rather than
+  /// replacing it, so pressing Enter mid-word is a true no-op.
+  void _capLines() {
+    final limit = widget.maxLines;
+    if (limit == null) return;
+
+    final lines = widget.controller.text.split('\n');
+    if (lines.length <= limit) return;
+
+    widget.controller.text = [...lines.take(limit - 1), lines.skip(limit - 1).join()].join('\n');
   }
 
   @override
@@ -119,8 +134,9 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
               wordWrap: false,
               padding: CodeEditorCard.codePadding,
               // Line numbers, quieter than the code, so a traceback's "line 3"
-              // can be found. A single-line answer has nothing to number.
-              indicatorBuilder: widget.singleLine
+              // can be found. A capped answer is short enough to count by eye,
+              // where a column of numbers beside it is only clutter.
+              indicatorBuilder: widget.maxLines != null
                   ? null
                   : (context, editingController, chunkController, notifier) => Padding(
                       padding: const EdgeInsets.only(right: 14),

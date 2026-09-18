@@ -21,16 +21,16 @@ void main() {
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
-      '/learn-python/input-and-output',
-      '/learn-python/input-and-output/print-yourself',
+      '/learn-python/hello',
+      '/learn-python/hello/print-yourself',
     ]) {
       expect(matcher.match(path), isNotNull, reason: path);
     }
   });
 
   test('every step of a lesson is one screen, and a second lesson is another', () {
-    final first = lessonRoute(languageSlug: 'learn-python', lessonId: 'input-and-output', sectionId: 'intro');
-    final later = lessonRoute(languageSlug: 'learn-python', lessonId: 'input-and-output', sectionId: 'print-yourself');
+    final first = lessonRoute(languageSlug: 'learn-python', lessonId: 'hello', sectionId: 'intro');
+    final later = lessonRoute(languageSlug: 'learn-python', lessonId: 'hello', sectionId: 'print-yourself');
     final other = lessonRoute(languageSlug: 'learn-python', lessonId: 'variables', sectionId: 'intro');
 
     // auto_route keys a page on its route name alone, so the widget's own key
@@ -67,7 +67,7 @@ void main() {
   });
 
   test('a lesson without a section resolves to the resume marker', () {
-    final matched = AppRouter().matcher.match('/learn-python/input-and-output');
+    final matched = AppRouter().matcher.match('/learn-python/hello');
 
     // The bare form redirects rather than being a second route for the same
     // page, which auto_route forbids.

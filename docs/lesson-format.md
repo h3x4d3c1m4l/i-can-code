@@ -7,8 +7,8 @@ no sidecar YAML and no index.
 ```text
 assets/lessons/
   python/
-    01-input-and-output.nl.md
-    01-input-and-output.en.md
+    01-uitvoer.nl.md
+    01-uitvoer.en.md
 ```
 
 ## The filename carries three things
@@ -39,7 +39,8 @@ runtime until it is declared there.
 
 ## Worked examples of every type
 
-`docs/samples/` holds one complete, parseable lesson per section type — see
+`docs/samples/` holds one complete, parseable lesson per section type, plus one
+per block that several types may carry — see
 [samples/README.md](samples/README.md). Each can be run through the real harness
 with `tool/try_lesson.dart`, and `test/services/lesson_test.dart` parses them all
 so they cannot drift from this document.
@@ -47,12 +48,12 @@ so they cannot drift from this document.
 ## The shape of a file
 
 ````markdown
-# Invoer en uitvoer
+# Uitvoer
 
-Data invoeren
+Laat je programma iets op het scherm zetten.
 
 ```metadata
-id: input-and-output
+id: uitvoer
 emoji: "⌨️"
 ```
 
@@ -100,6 +101,7 @@ if "print(" not in code:
 | `<lang>-order` | The lines an `order-lines` step is assembled from, in the right order. |
 | `<lang>-distractors` | Lines that belong to no correct program. Optional. |
 | `explanation` | Why that program's output is what it is. Shown after the answer. |
+| `stdin` | What the program reads on standard input. Shown to the student. See below. |
 | `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
 
@@ -115,14 +117,14 @@ a position survives none of that.
   new id, or students will see work they have not done marked as finished.
 - Removing a section simply stops it counting. There is no migration.
 
-`test/services/lesson_test.dart` holds all three rules for the lessons that ship.
+`test/content/lessons_test.dart` holds all three rules for the lessons that ship.
 
 ### Section types
 
 | `type` | Layout |
 | --- | --- |
 | `info` | Prose only. No editor, nothing to run. |
-| `quick-exercise` | Prose and editor stacked in **one column** — the question is a sentence or two. |
+| `quick-exercise` | Prose and editor stacked in **one column** — a sentence or two, answered in at most 2 lines. |
 | `exercise` | The design's **two columns**: prose left, editor and output right. |
 | `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
 | `predict-output` | Prose, a program, and a box to say what it prints before it runs. No editor — see below. |
@@ -130,13 +132,19 @@ a position survives none of that.
 
 Which blocks a section may carry follows from its type:
 
-| `type` | Assignment | Validator | `pairs` | `<lang>-predict` | `explanation` | `<lang>-order` |
-| --- | --- | --- | --- | --- | --- | --- |
-| `info` | Must not | Must not | Must not | Must not | Must not | Must not |
-| `quick-exercise`, `exercise` | Must carry one | Must carry one | Must not | Must not | Must not | Must not |
-| `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not |
-| `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not |
-| `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one |
+| `type` | Assignment | Validator | `pairs` | `<lang>-predict` | `explanation` | `<lang>-order` | `stdin` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `info` | Must not | Must not | Must not | Must not | Must not | Must not | Must not |
+| `quick-exercise`, `exercise` | Must carry one | Must carry one | Must not | Must not | Must not | Must not | May carry one |
+| `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not | Must not |
+| `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not | May carry one |
+| `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one | May carry one |
+
+No type ever *has* to carry a `stdin` block: the four that may are the four that
+hand a program to the interpreter, and a program that reads nothing is the
+ordinary case. That set is `SectionKind.runsCode`, the third of the three
+predicates beside `isAssignment` (has an editor) and `usesValidator` (is
+checked).
 
 `order-lines` is the one type that is checked without being typed: it runs a
 program, so it needs a validator, but the student assembles that program rather
@@ -166,6 +174,22 @@ normal way, so the badge changes what is *asked*, never what is *recorded*.
 `optional` MUST be `true` or `false`; anything else is a `FormatException`.
 Omitted, it is `false`.
 
+**A whole lesson may say it too**, in its document-level `metadata`. The catalog
+then lists it under a **Verdieping** heading of its own instead of in the numbered
+run, so the main sequence still reads as one path and a student who skips every
+one of them has still finished the course. Inside, it is an ordinary lesson: its
+steps are checked and its ticks are recorded the normal way.
+
+```metadata
+id: kommagetallen
+emoji: "🔬"
+optional: true
+```
+
+The `<order>` prefix still decides where it sits, now within that group. Numbering
+these from 90 up keeps them out of the main run in a directory listing as well as
+on screen.
+
 ### `emoji:` — the step's own mark
 
 Every step carries one emoji, shown before its title and nowhere else. A
@@ -182,7 +206,7 @@ emoji: "💡"
 ```
 
 - **The same in every translation.** It marks the step, not the language the
-  step is written in, so `test/services/lesson_test.dart` holds the two locales
+  step is written in, so `test/content/lessons_test.dart` holds the two locales
   to the same emoji the way it holds them to the same ids.
 - **One emoji, not a sentence.** Nothing enforces the count — the field is text
   and a long one simply looks wrong — but a title is not the place for a row of
@@ -238,6 +262,11 @@ Three things to know:
 
 ## Why the role rides in the fence language
 
+Four words are reserved outright rather than read as a language: `metadata`,
+`pairs`, `explanation` and `stdin`. None of them is code, so there is no suffix
+to strip and nothing to hand a highlighter — colouring a student's typed name as
+an identifier is exactly the wrong reading of it.
+
 ` ```python-assignment ` parses with the stock `markdown` package —
 the language becomes `class="language-python-assignment"` on the `code` element,
 so no custom block syntax and no fork is needed. The loader strips the
@@ -288,8 +317,11 @@ student will be measured against — check a new step with it.
 
 Two rules follow, and neither is enforced by the parser:
 
-- **The program MUST be deterministic.** No `random`, no clock, no input. The
-  same program has to print the same thing for every student, on every visit.
+- **The program MUST be deterministic.** No `random` and no clock. Input is
+  allowed when the section scripts it in a `stdin` block, because a scripted read
+  is the same read for every student; without one there is nothing to read and
+  `input()` stops the program with `EOFError`. The same program has to print the
+  same thing for every student, on every visit.
 - **It MUST print something.** A program with no output has nothing to predict.
   The parser refuses an *empty block*, but it cannot see that `x = 1` prints
   nothing — that is the author's to catch, and `try_lesson.dart` will show it.
@@ -405,6 +437,86 @@ fvm dart run tool/try_lesson.dart <lesson.md> <n>
 fvm dart run tool/try_lesson.dart <lesson.md> <n> --code 'print(2)\nprint(1)'
 ```
 
+## `stdin` — scripted standard input
+
+A section that hands a program to the interpreter may say what that program reads
+on standard input. That is what lets an exercise use `input()`, which the course
+material this app was built for leans on heavily.
+
+````markdown
+## Vraag een naam
+
+```metadata
+type: exercise
+id: ask-a-name
+emoji: "🙋"
+```
+
+Vraag om een naam en groet die daarna.
+
+```stdin
+Sanne
+```
+
+```python-assignment
+naam = input(...)
+```
+
+```python-validator
+if not output.endswith("Hallo Sanne"):
+    raise Exception("Groet de naam die is ingevoerd, met `Hallo` ervoor.")
+```
+````
+
+One line per line, **kept verbatim**: leading whitespace, trailing spaces and
+interior blank lines all survive, because every one of them is something a
+student could type at a prompt. A terminating newline is added so the last line
+is a whole line. An empty block is a `FormatException`; a block that is a single
+empty line is one empty answer and is allowed.
+
+It is a plain `stdin` fence, not `<lang>-stdin`. What is typed at a prompt is not
+code in any language, so there is no suffix to strip and nothing to hand a syntax
+highlighter.
+
+### The student is always shown it
+
+The text appears in a card labelled **Invoer**, beside the editor or under the
+program. That is not a courtesy: a validator that feeds 7 and 3 while the prose
+says nothing makes a step that cannot be passed by reading it, and restating the
+input in prose is one more thing that can drift from the block it is written in.
+
+### The prompt lands in `output`
+
+There is no terminal here to keep the two apart, so whatever `input("Naam? ")`
+writes is part of the program's output, and **what the student types is never
+echoed**. A program that prompts and then greets produces:
+
+```text
+Naam? Hallo Sanne
+```
+
+So a validator checking `output == "Hallo Sanne"` will never pass. Either expect
+the prompt as well, or use `endswith`. Two prompts in a row run together the same
+way, which makes a `predict-output` step with prompts harder than it probably
+looks — `docs/samples/stdin.md` is built that way on purpose, so an author sees
+it before a student does.
+
+### Reading past the end is the student's own crash
+
+A program that calls `input()` more times than there are lines stops with
+`EOFError: EOF when reading a line`. It reaches the screen as their own
+traceback, not as a failed check, because the program did not finish.
+
+**Script at least as many lines as any correct answer reads.** That is the
+author's rule, and nothing enforces it. `tool/try_lesson.dart` prints the input
+and its line count above the code for exactly this reason:
+
+```text
+stdin (2 lines):
+    7
+    3
+```
+
 ## `pairs` — a match-the-pairs board
 
 A `match-pairs` section carries one `pairs` block in place of an assignment and
@@ -484,7 +596,7 @@ names already bound:
 | Name | Type | Meaning |
 | --- | --- | --- |
 | `code` | `str` | Exactly what the student typed |
-| `output` | `str` | Their program's standard output, **with trailing whitespace stripped** |
+| `output` | `str` | Their program's standard output, **with trailing whitespace stripped**. Includes any prompt the program wrote — see `stdin` below |
 | `program` | `Program` | The same source, read as a tree. See *Reading the code* below |
 
 It reports a failure by raising, and the exception message is what the student
@@ -527,6 +639,37 @@ what it produced. So the tree **sees a branch that never executed** and **never
 sees a value that was computed**: in `x = 40 + 2` then `print(x)`, `program` sees
 a call to `print` with a variable, not with `42`. Check the value in `output`;
 check the shape in `program`.
+
+### Checking a file the program wrote
+
+The student's code and the validator are one program in one interpreter, so a
+file written by the first is still there for the second:
+
+```python
+import csv, io
+
+if not program.calls(".writerow"):
+    raise Exception("Schrijf de regels weg met `writerow`.")
+try:
+    rows = list(csv.reader(io.StringIO(open("/tmp/cijfers.csv").read())))
+except FileNotFoundError:
+    raise Exception("Sla het bestand op als `/tmp/cijfers.csv`.")
+if rows[0] != ["naam", "cijfer"]:
+    raise Exception("Begin met een regel met de kopjes `naam` en `cijfer`.")
+```
+
+**Write under `/tmp`, and say so in the prose.** In the app the whole tree is
+writable, but `tool/try_lesson.dart` runs on the machine's own `python3`, where
+`/` is a real filesystem that refuses it. A step that writes to `/cijfers.csv`
+therefore passes in the browser and fails for the author checking it, which is
+the worst way round. `/tmp` is writable in both.
+
+The filesystem is in memory and starts empty but for the standard library, the
+student's own source at `/main.py` and an empty `/tmp`. **Nothing persists
+between runs**, so a step cannot leave a file for the next one, and a validator
+that reads a file has to be written against the same run that wrote it. The
+standard library archive is read-only; everything else is fair game, up to a
+quota past which writes fail with `ENOSPC`.
 
 #### What you can ask
 
@@ -713,6 +856,15 @@ want a student to read.**
 2. Add translations as further `.<locale>.md` files beside it.
 3. If the language directory is new, add it to `pubspec.yaml`.
 
-No code change and no regeneration. `test/services/lesson_test.dart` parses
+No code change and no regeneration. `test/content/lessons_test.dart` checks
 every file that ships, so an authoring mistake fails the test run rather than the
 initialization screen.
+
+The course is kept apart from the app, so point the check at wherever it lives:
+
+```bash
+LESSONS_DIR=path/to/lessons fvm flutter test test/content/
+```
+
+That directory is laid out the way `assets/lessons/` is, one folder per
+language. With no lesson files in it the check skips and says so.

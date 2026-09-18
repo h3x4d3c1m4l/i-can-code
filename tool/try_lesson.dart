@@ -12,13 +12,14 @@
 //   dart run tool/try_lesson.dart <lesson.md> <section> --answer answer.py
 //
 // With no `--code` or `--answer`, the section's own starter block is run.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 
-void main(List<String> args) {
+Future<void> main(List<String> args) async {
   if (args.isEmpty) {
     _bail('usage: dart run tool/try_lesson.dart <lesson.md> [section] [--code <src> | --answer <file>]');
     return;
@@ -56,14 +57,13 @@ void main(List<String> args) {
   // runs the lesson's own program — its output is the answer key, and the file
   // states none. An order-lines step runs the author's own order, which is what
   // proves the intended answer actually passes the validator beside it.
-  const runnable = {SectionKind.predictOutput, SectionKind.orderLines};
-  if (!section.kind.isAssignment && !runnable.contains(section.kind)) {
+  if (!section.kind.runsCode) {
     _bail('Section $index ("${section.title}") is ${section.kind.name} — there is nothing to run.');
     return;
   }
 
   final code = _readCode(args) ?? section.starter ?? section.program ?? section.lines.join('\n');
-  _report(section, code, args);
+  await _report(section, code, args);
 }
 
 void _listSections(Lesson lesson) {
@@ -104,17 +104,35 @@ String? _readCode(List<String> args) {
   return null;
 }
 
-void _report(LessonSection section, String code, List<String> args) {
-  final run = Process.runSync(
+Future<void> _report(LessonSection section, String code, List<String> args) async {
+  // `Process.start` rather than `runSync`, which cannot redirect standard input
+  // at all. Both pipes are drained concurrently so a program that fills one
+  // while nothing reads the other cannot deadlock.
+  final process = await Process.start(
     'python3',
     ['-c', PythonAttemptRunner.buildProgram(code: code, validator: section.validator)],
   );
+  process.stdin.write(section.stdin ?? '');
+  await process.stdin.close();
+  final streams = await Future.wait([
+    process.stdout.transform(utf8.decoder).join(),
+    process.stderr.transform(utf8.decoder).join(),
+  ]);
   final result = PythonAttemptRunner.parseResult(
-    PythonResult(stdout: '${run.stdout}', stderr: '${run.stderr}', exitCode: run.exitCode),
+    PythonResult(stdout: streams[0], stderr: streams[1], exitCode: await process.exitCode),
   );
 
+  stdout.writeln('── ${section.title}  [${section.kind.name}]');
+  if (section.stdin case final String scripted) {
+    // The line count, because scripting two lines for a program that reads three
+    // is the mistake that reaches a student as an EOFError.
+    final lines = scripted.trimRight().split('\n');
+    stdout
+      ..writeln()
+      ..writeln('stdin (${lines.length} line${lines.length == 1 ? '' : 's'}):')
+      ..writeln(_indent(scripted.trimRight()));
+  }
   stdout
-    ..writeln('── ${section.title}  [${section.kind.name}]')
     ..writeln()
     ..writeln('code:')
     ..writeln(_indent(code.trimRight().isEmpty ? '(empty)' : code.trimRight()))

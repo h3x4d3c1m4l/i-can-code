@@ -79,13 +79,20 @@ class PythonAttemptRunner {
 
   /// Runs [code] and, if it finished cleanly, [validator]. A null or blank
   /// validator means nothing to check, which passes.
-  Future<AttemptResult> attempt({required String code, String? validator}) async {
+  ///
+  /// [stdin] is what the program reads on standard input. It travels on the real
+  /// file descriptor rather than inside the program text, so `input()` and
+  /// `sys.stdin` behave the way a student would find them anywhere else, and
+  /// [buildProgram] stays the one string that is the whole experiment. A program
+  /// that reads past the end of it stops with `EOFError`, which comes back as a
+  /// [AttemptResult.programError] and never as a failed check.
+  Future<AttemptResult> attempt({required String code, String? validator, String? stdin}) async {
     if (!_runtime.isSupported) {
       return const AttemptResult.broken('Running code is not available in this browser.');
     }
 
     await _runtime.ready();
-    final result = await _runtime.run(buildProgram(code: code, validator: validator));
+    final result = await _runtime.run(buildProgram(code: code, validator: validator), stdin: stdin ?? '');
 
     return parseResult(result);
   }
@@ -169,21 +176,30 @@ _out.write("\\n$sentinel" + json.dumps(_verdict) + "\\n")
         .where((line) => line.startsWith(sentinel))
         .firstOrNull;
 
-    if (line == null) {
-      // No verdict: the runtime failed before the harness ran, or output was
-      // capped mid-envelope. Never report that as a wrong answer.
-      return AttemptResult(
-        passed: false,
-        output: result.stdout,
-        programError: result.stderr.isEmpty
-            ? 'The program did not finish. Its output may have been too long.'
-            : result.stderr,
-        truncated: result.truncated,
-        duration: result.duration,
-      );
-    }
+    // No usable verdict: the runtime failed before the harness ran, or output
+    // was capped mid-envelope. Never report that as a wrong answer.
+    AttemptResult unreadable() => AttemptResult(
+      passed: false,
+      output: result.stdout,
+      programError: result.stderr.isEmpty
+          ? 'The program did not finish. Its output may have been too long.'
+          : result.stderr,
+      truncated: result.truncated,
+      duration: result.duration,
+    );
 
-    final verdict = jsonDecode(line.substring(sentinel.length)) as Map<String, dynamic>;
+    if (line == null) return unreadable();
+
+    final Map<String, dynamic> verdict;
+    try {
+      // The cap can fall *inside* the envelope, leaving a line that opens with
+      // the sentinel and carries half a JSON document. Without this, the
+      // FormatException escapes and the run never finishes at all: the button
+      // keeps spinning and the student is given nothing to act on.
+      verdict = jsonDecode(line.substring(sentinel.length)) as Map<String, dynamic>;
+    } on Object {
+      return unreadable();
+    }
 
     return AttemptResult(
       passed: verdict['ok'] as bool,

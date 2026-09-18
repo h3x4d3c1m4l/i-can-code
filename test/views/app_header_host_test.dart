@@ -69,9 +69,21 @@ Widget _stackedHost(GlobalKey<NavigatorState> pages) => FTheme(
 );
 
 /// A screen that publishes a header and fills whatever it is given.
-Widget _screen({List<AppCrumb> crumbs = const [], bool zen = false, Key? key}) => AppHeaderPublisher(
+Widget _screen({
+  List<AppCrumb> crumbs = const [],
+  bool zen = false,
+  Key? key,
+  String? zenLabel,
+  String? zenSemanticsLabel,
+}) => AppHeaderPublisher(
   key: key,
-  builder: (context) => AppHeaderConfig(crumbs: crumbs, onTapHome: () {}, offersZen: zen),
+  builder: (context) => AppHeaderConfig(
+    crumbs: crumbs,
+    onTapHome: () {},
+    offersZen: zen,
+    zenLabel: zenLabel,
+    zenSemanticsLabel: zenSemanticsLabel,
+  ),
   child: const SizedBox.expand(key: _screenKey),
 );
 
@@ -333,6 +345,63 @@ void main() {
       // Asking for the bar was about the lesson being read, not about every
       // lesson after it.
       expect(_topOf(tester, find.byType(AppHeader)), -AppHeader.height);
+    });
+
+    testWidgets('the step a reader is on survives the bar going away', (tester) async {
+      // The progress bar is the one thing in the header a reader mid-lesson
+      // actually needs, and a step number is the least of it that still says
+      // where they are.
+      final semantics = tester.ensureSemantics();
+      final screen = ValueNotifier<Widget>(
+        _screen(
+          crumbs: const [AppCrumb('Python')],
+          zen: true,
+          zenLabel: '2 / 17',
+          zenSemanticsLabel: 'Stap 2 van 17',
+        ),
+      );
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 17'), findsOneWidget);
+      // Digits are a shorthand for the sentence, so only one of the two is read.
+      expect(_semanticLabels(tester), contains('Stap 2 van 17'));
+      expect(_semanticLabels(tester), isNot(contains('2 / 17')));
+
+      // It stands beside the way back rather than anywhere else, so the two
+      // fade together and neither is left on a bar that has come back.
+      final counter = tester.getRect(find.text('2 / 17'));
+      final button = tester.getRect(find.bySemanticsLabel('Balk tonen'));
+      expect(counter.right, lessThan(button.left));
+      expect(counter.center.dy, closeTo(button.center.dy, 1));
+
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+
+      expect(
+        _semanticLabels(tester),
+        isNot(contains('Stap 2 van 17')),
+        reason: 'the bar is back and carries the progress bar itself',
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('a screen with no step to report shows only the way back', (tester) async {
+      final screen = ValueNotifier<Widget>(_screen(crumbs: const [AppCrumb('Python')], zen: true));
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+
+      // Not `textContaining('/')`: the app's own mark is `</>`.
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Text && RegExp(r'^\d+ / \d+$').hasMatch(widget.data ?? ''),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('a screen that does not offer zen carries neither button', (tester) async {

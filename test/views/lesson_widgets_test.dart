@@ -1,6 +1,7 @@
 
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -12,6 +13,7 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/presets/app_color_preset.dart';
+import 'package:i_can_code/theme/squircle_input_border.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
@@ -25,11 +27,13 @@ import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.da
 import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
+import 'package:material_ui/material_ui.dart' show InputBorder, InputDecorator;
 import 'package:re_editor/re_editor.dart';
 
 /// Wraps [child] in what the lesson widgets need: the app theme, the
@@ -55,11 +59,28 @@ Widget _host(Widget child) => FTheme(
   ),
 );
 
+/// [_host] plus the [Overlay] a tooltip needs. The app really does have one
+/// above every screen — `OverlayHost` wraps the router, see *The bar* in
+/// `CLAUDE.md` — so this is the shape the progress bar is built in, not a prop.
+Widget _hostWithOverlay(Widget child) =>
+    _host(
+      Overlay(
+        // `_host` puts its child in a scroll view, which gives the overlay
+        // unbounded height; it sizes to this entry instead.
+        initialEntries: [OverlayEntry(canSizeOverlay: true, builder: (_) => child)],
+      ),
+    );
+
+List<String> _titles(int count) => [for (var step = 1; step <= count; step++) 'Stap $step'];
+
 void main() {
   late Lesson lesson;
 
   setUpAll(() {
-    lesson = Lesson.parse(File('assets/lessons/python/01-input-and-output.nl.md').readAsStringSync());
+    // The suite's own lesson rather than one that ships: the course lives
+    // outside this repository, and a renderer test must not break because an
+    // author reworded a paragraph.
+    lesson = Lesson.parse(File('test/fixtures/lesson.md').readAsStringSync());
   });
 
   group('splitProseOnSubheadings', () {
@@ -122,7 +143,7 @@ void main() {
   });
 
   group('LessonProse', () {
-    testWidgets('renders every shipped section without throwing', (tester) async {
+    testWidgets('renders every section of the fixture without throwing', (tester) async {
       for (final section in lesson.sections) {
         await tester.pumpWidget(_host(LessonProse(markdown: section.prose)));
         await tester.pumpAndSettle();
@@ -134,7 +155,7 @@ void main() {
       await tester.pumpWidget(_host(LessonProse(markdown: lesson.sections.first.prose)));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Welkom bij de eerste module'), findsOneWidget);
+      expect(find.textContaining('Welcome to the first lesson'), findsOneWidget);
       expect(find.textContaining('metadata'), findsNothing);
       expect(find.textContaining('raise Exception'), findsNothing);
     });
@@ -451,10 +472,34 @@ void main() {
     });
   });
 
+  group('PredictionField', () {
+    testWidgets('takes the app\'s corner, which a text field cannot be given directly', (tester) async {
+      // forui types a field's border as Material's InputBorder, whose concrete
+      // forms draw a plain rounded rectangle — so this is the one control in the
+      // app that `squircle()` cannot reach. See SquircleInputBorder.
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(_host(PredictionField(controller: controller, onChange: (_) {})));
+      await tester.pumpAndSettle();
+
+      final border = tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration.border;
+      final states = <Set<WidgetState>>[{}, {WidgetState.focused}, {WidgetState.disabled}];
+
+      for (final state in states) {
+        expect(
+          (border! as WidgetStateProperty<InputBorder>).resolve(state),
+          isA<SquircleInputBorder>(),
+          reason: '$state',
+        );
+      }
+    });
+  });
+
   group('CodeEditorCard', () {
     // re_editor asserts on an unbounded height, and the card always sits inside
     // a scroll view, which is exactly the constraint the app hands it.
-    testWidgets('a single-line editor refuses the Enter key', (tester) async {
+    testWidgets('a capped editor takes the Enter key up to its limit', (tester) async {
       final controller = CodeLineEditingController.fromText('print(1)');
       addTearDown(controller.dispose);
 
@@ -463,8 +508,8 @@ void main() {
           CodeEditorCard(
             controller: controller,
             status: 'python',
-            singleLine: true,
-            height: CodeEditorCard.heightForLines(1),
+            maxLines: 2,
+            height: CodeEditorCard.heightForLines(2),
           ),
         ),
       );
@@ -475,12 +520,17 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
 
-      // Sized to one line, so a second could only scroll out of sight.
-      expect(controller.text, isNot(contains('\n')));
-      expect(controller.text, 'print(1)', reason: 'and the split line is rejoined exactly as it was');
+      expect(controller.text, 'print(1)\n', reason: 'the second line is inside the limit');
+
+      // The card is sized to the limit, so a third line could only scroll out
+      // of sight.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(controller.text, 'print(1)\n', reason: 'and the split line is rejoined exactly as it was');
     });
 
-    testWidgets('a single-line editor flattens a pasted block', (tester) async {
+    testWidgets('a capped editor flattens what a paste adds past the limit', (tester) async {
       final controller = CodeLineEditingController.fromText('print(1)');
       addTearDown(controller.dispose);
 
@@ -489,18 +539,20 @@ void main() {
           CodeEditorCard(
             controller: controller,
             status: 'python',
-            singleLine: true,
-            height: CodeEditorCard.heightForLines(1),
+            maxLines: 2,
+            height: CodeEditorCard.heightForLines(2),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       // Enter is not the only way a newline arrives.
-      controller.text = 'print(1)\nprint(2)';
+      controller.text = 'print(1)\nprint(2)\nprint(3)';
       await tester.pumpAndSettle();
 
-      expect(controller.text, isNot(contains('\n')));
+      // The lines past the limit are joined onto the last one it allows, rather
+      // than dropped: nothing the student typed disappears.
+      expect(controller.text, 'print(1)\nprint(2)print(3)');
     });
 
     testWidgets('a normal editor still accepts the Enter key', (tester) async {
@@ -529,7 +581,7 @@ void main() {
       expect(find.byType(DefaultCodeLineNumber), findsOneWidget);
     });
 
-    testWidgets('a single-line editor has no gutter', (tester) async {
+    testWidgets('a capped editor has no gutter', (tester) async {
       final controller = CodeLineEditingController.fromText('print(1)');
       addTearDown(controller.dispose);
 
@@ -538,15 +590,48 @@ void main() {
           CodeEditorCard(
             controller: controller,
             status: 'python',
-            singleLine: true,
-            height: CodeEditorCard.heightForLines(1),
+            maxLines: 2,
+            height: CodeEditorCard.heightForLines(2),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Nothing to number, so a column reading "1" is only clutter.
+      // Short enough to count by eye, so a column of numbers beside it is only
+      // clutter.
       expect(find.byType(DefaultCodeLineNumber), findsNothing);
+    });
+
+    testWidgets('an editor sized to its lines has nothing to scroll', (tester) async {
+      // A line is drawn at whole pixels — 16 x 1.6 is 25.6, laid out as 26 — so
+      // arithmetic that kept the fraction left two lines 0.8px taller than their
+      // box. Invisible, and still enough for a scrollbar to appear over the code
+      // the moment a student typed a second line.
+      for (final lines in [1, 2, 6]) {
+        final controller = CodeLineEditingController.fromText(
+          List.generate(lines, (index) => 'print($index)').join('\n'),
+        );
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _host(
+            CodeEditorCard(
+              controller: controller,
+              status: 'python',
+              height: CodeEditorCard.heightForLines(lines),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final vertical = tester
+            .stateList<ScrollableState>(
+              find.descendant(of: find.byType(CodeEditor), matching: find.byType(Scrollable)),
+            )
+            .firstWhere((state) => state.axisDirection == AxisDirection.down);
+
+        expect(vertical.position.maxScrollExtent, 0, reason: '$lines line(s) must fit exactly');
+      }
     });
 
     testWidgets('lays out inside a scroll view', (tester) async {
@@ -579,11 +664,49 @@ void main() {
   });
 
   group('StepProgressBar', () {
+    List<String> titles(int count) => _titles(count);
+
+    testWidgets('a segment names its step on hover', (tester) async {
+      // A row of identical bars is the one part of the header that cannot say
+      // where it goes, so hovering one has to.
+      await tester.pumpWidget(
+        _hostWithOverlay(
+          Align(child: StepProgressBar(titles: titles(3), current: 0, passed: const {}, onTap: (_) {})),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2. Stap 2'), findsNothing);
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      await tester.pump();
+      await mouse.moveTo(tester.getCenter(find.byKey(const ValueKey(1))));
+      // The clock has to be moved on by hand: forui waits out `hoverEnterDuration`
+      // with a `Future.delayed`, which schedules no frame for pumpAndSettle to
+      // find.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2. Stap 2'), findsOneWidget);
+    });
+
+    testWidgets('a screen reader hears the step\'s name, not just its number', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Align(child: StepProgressBar(titles: titles(3), current: 0, passed: const {}, onTap: (_) {}))));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('2 / 3: Stap 2'), findsOneWidget);
+
+      handle.dispose();
+    });
+
     testWidgets('renders one segment per step and reports taps', (tester) async {
       var tapped = -1;
       await tester.pumpWidget(
         _host(
-          StepProgressBar(stepCount: 3, current: 1, passed: const {0}, onTap: (step) => tapped = step),
+          StepProgressBar(titles: _titles(3), current: 1, passed: const {0}, onTap: (step) => tapped = step),
         ),
       );
       await tester.pumpAndSettle();
@@ -601,7 +724,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           Align(
-            child: StepProgressBar(stepCount: 3, current: 1, passed: const {0}, onTap: (_) {}),
+            child: StepProgressBar(titles: _titles(3), current: 1, passed: const {0}, onTap: (_) {}),
           ),
         ),
       );
@@ -625,7 +748,7 @@ void main() {
 
     testWidgets('is compact enough to sit in the header', (tester) async {
       await tester.pumpWidget(
-        _host(Align(child: StepProgressBar(stepCount: 4, current: 0, passed: const {}, onTap: (_) {}))),
+        _host(Align(child: StepProgressBar(titles: _titles(4), current: 0, passed: const {}, onTap: (_) {}))),
       );
       await tester.pumpAndSettle();
 

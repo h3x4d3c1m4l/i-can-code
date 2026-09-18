@@ -49,12 +49,25 @@ class AppHeaderConfig {
   /// it would be a number following the reader around.
   final String? version;
 
+  /// Where the reader is, in a few characters, shown **only while the bar is
+  /// hidden** — the one thing from the bar worth keeping when the rest is put
+  /// away. Null on a screen that has no such place, and on every screen that
+  /// does not offer zen at all.
+  ///
+  /// A string rather than two numbers: the host places it and does not count.
+  final String? zenLabel;
+
+  /// What a screen reader hears in place of [zenLabel], which is digits.
+  final String? zenSemanticsLabel;
+
   const AppHeaderConfig({
     this.crumbs = const [],
     this.onTapHome,
     this.trailing,
     this.offersZen = false,
     this.version,
+    this.zenLabel,
+    this.zenSemanticsLabel,
   });
 
 }
