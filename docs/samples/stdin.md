@@ -36,8 +36,8 @@ program.allow_only("call", "assignment")
 
 if not program.calls("input").with_args(a_string):
     raise Exception("Geef `input` een vraag mee, zodat de gebruiker weet wat te doen.")
-# De vraag die `input` toont staat óók in de uitvoer: er is geen terminal die hem
-# apart houdt. Een check op `output` moet hem dus meerekenen.
+# De uitvoer ziet eruit als een terminal: de vraag, wat er getypt is, en dan de
+# groet op een eigen regel. Een check op `output` moet die eerste regel meerekenen.
 if not output.endswith("Hallo Sanne"):
     raise Exception("Groet de naam die is ingevoerd, met `Hallo` ervoor.")
 ```
@@ -68,6 +68,6 @@ print(a + b)
 twee stukken tekst dus achter elkaar in plaats van ze op te tellen. Wil je
 rekenen, zet de invoer dan eerst om met `int`.
 
-Let ook op waar de twee vragen staan: ze zijn onderdeel van de uitvoer, want er is
-geen apart invoervenster waarin ze zouden kunnen verschijnen.
+De twee vragen en wat er getypt is staan ook in de uitvoer, net als in een
+terminal. Pas de laatste regel is wat `print` ervan maakt.
 ```

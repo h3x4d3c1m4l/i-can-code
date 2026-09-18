@@ -373,6 +373,19 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             ),
           ),
           const SizedBox(height: 20),
+          // The answer comes *before* the buttons, unlike on an exercise, so the
+          // way on sits after what the step has to say rather than above it: the
+          // explanation is the point of a prediction, and a Next button over it
+          // is an invitation to skip it. It also lands the verdict where the eye
+          // already is, on the spot of the button just pressed. An exercise keeps
+          // Run above its output because it is run again and again, and scrolling
+          // past your own error to try once more would be the price of this.
+          if (attempt != null && asked != null) ...[
+            _pastGutter(
+              PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
+            ),
+            const SizedBox(height: 24),
+          ],
           _pastGutter(
             AppButtonRow(
               children: [
@@ -392,12 +405,6 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               ],
             ),
           ),
-          if (attempt != null && asked != null) ...[
-            const SizedBox(height: 20),
-            _pastGutter(
-              PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
-            ),
-          ],
         ],
       ),
     );

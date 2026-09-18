@@ -1,14 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
+import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_controller.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -226,6 +232,53 @@ void main() {
 
     return (LessonScreenController(viewModel: viewModel, contextAccessor: accessor), viewModel);
   }
+
+  testWidgets('the way on sits after the answer, not above it', (tester) async {
+    // A prediction's explanation is the point of the step, and a Next button
+    // over it is an invitation to skip it. The answer also has to land where the
+    // eye already is: on the spot of the button that was just pressed.
+    await tester.pumpWidget(
+      FTheme(
+        data: buildAppTheme(),
+        child: Localizations(
+          locale: const Locale('nl'),
+          delegates: AppLocalizations.localizationsDelegates,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: MediaQuery(
+              data: const MediaQueryData(size: Size(900, 2000)),
+              // The text field wants one for its selection handles. The app has
+              // one above every screen; see `OverlayHost`.
+              child: Overlay(
+                initialEntries: [
+                  OverlayEntry(
+                    builder: (_) =>
+                        const LessonScreen(languageSlug: 'learn-python', lessonId: 'loops', sectionId: 'guess'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final run = find.text('Controleer voorspelling');
+    final fieldBottom = tester.getBottomLeft(find.byType(EditableText)).dy;
+
+    await tester.enterText(find.byType(EditableText), '42');
+    await tester.pumpAndSettle();
+    await tester.tap(run);
+    await tester.pump();
+    runtime.finish(passed: true, output: '42\n');
+    await tester.pumpAndSettle();
+
+    final answer = tester.getRect(find.byType(PredictionVerdict));
+    expect(answer.top, greaterThan(fieldBottom), reason: 'the answer comes straight after the prediction');
+    expect(tester.getTopLeft(run).dy, greaterThan(answer.bottom), reason: 'and the buttons after the answer');
+    expect(tester.getTopLeft(find.text('Volgende')).dy, greaterThan(answer.bottom));
+  });
 
   test('a prediction runs the lesson\'s own program, with no checks on it', () async {
     final (controller, viewModel) = predicting();

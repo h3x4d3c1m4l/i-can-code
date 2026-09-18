@@ -86,9 +86,13 @@
   "@lessonScreen_orderProgram": {
     "description": "Heads the lines the student has arranged, which is what gets run."
   },
-  "lessonScreen_orderEmpty": "Drag a line here, or tap one.",
-  "@lessonScreen_orderEmpty": {
-    "description": "Stands in for the arranged program while it is still empty. Names both ways in, since an empty board shows neither."
+  "lessonScreen_orderEmptyPointer": "Drag a line here, or click one.",
+  "@lessonScreen_orderEmptyPointer": {
+    "description": "The empty program on an order-lines step, where the reader presses with a mouse or trackpad."
+  },
+  "lessonScreen_orderEmptyTouch": "Drag a line here, or tap one.",
+  "@lessonScreen_orderEmptyTouch": {
+    "description": "The same hint on a phone or tablet, where the reader presses with a finger."
   },
   "lessonScreen_orderUp": "Move line up",
   "@lessonScreen_orderUp": {

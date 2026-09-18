@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -160,7 +161,11 @@ class LineOrderingBoard extends StatelessWidget {
             position: 0,
             onPlace: onPlace,
             onMove: onMove,
-            child: _EmptyProgram(context.localizations.lessonScreen_orderEmpty),
+            child: _EmptyProgram(
+              _pressIsATap
+                  ? context.localizations.lessonScreen_orderEmptyTouch
+                  : context.localizations.lessonScreen_orderEmptyPointer,
+            ),
           )
         else
           for (final (position, index) in arranged.indexed) ...[
@@ -498,3 +503,18 @@ class _TileButton extends StatelessWidget {
   }
 
 }
+
+/// Whether the reader presses with a finger, which is what decides between
+/// "tik" and "klik".
+///
+/// Flutter's own mobile platforms, the set `TargetPlatformVariant.mobile` tests
+/// against. The same signal Flutter uses to choose its own touch behaviour, so the
+/// word agrees with how the page scrolls and selects. On the web it is read off
+/// the browser, and an iPad asking for the desktop site — which Safari does by
+/// default — still comes out as iOS: Flutter treats a "Mac" with more than two
+/// touch points as one.
+bool get _pressIsATap => const {
+  TargetPlatform.android,
+  TargetPlatform.iOS,
+  TargetPlatform.fuchsia,
+}.contains(defaultTargetPlatform);

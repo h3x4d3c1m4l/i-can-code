@@ -153,29 +153,31 @@ void main() {
       test('input() reads the line the section scripted', () async {
         final result = await attempt(code: 'print(input())', stdin: 'Sander\n');
 
-        expect(result.output, 'Sander\n');
+        // Once as typed, once as printed.
+        expect(result.output, 'Sander\nSander\n');
         expect(result.programError, isNull);
       });
 
       test('two reads take two lines, in order', () async {
         final result = await attempt(code: 'a = input()\nb = input()\nprint(b, a)', stdin: '1\n2\n');
 
-        expect(result.output, '2 1\n');
+        expect(result.output, '1\n2\n2 1\n');
       });
 
-      test('the prompt lands in the output and the typed value does not', () async {
-        // Nothing echoes it back: the input never went through a terminal. This
-        // is what every validator on a step with input has to be written around,
-        // so it is pinned rather than left to be rediscovered.
+      test('the output reads the way a terminal would show it', () async {
+        // A terminal shows what is typed and Enter starts a new line. Scripted
+        // input does neither on its own, which ran the prompt and the next print
+        // together on one line — a picture of `input` no student sees in
+        // PyCharm. The harness writes each line read back into the output.
         final result = await attempt(code: 'naam = input("Naam? ")\nprint("Hallo", naam)', stdin: 'Sander\n');
 
-        expect(result.output, 'Naam? Hallo Sander\n');
+        expect(result.output, 'Naam? Sander\nHallo Sander\n');
       });
 
       test('a validator sees that same output, prompt included', () async {
         final result = await attempt(
           code: 'print("Hallo", input("Naam? "))',
-          validator: 'assert output == "Naam? Hallo Sander", repr(output)',
+          validator: 'assert output == "Naam? Sander\\nHallo Sander", repr(output)',
           stdin: 'Sander\n',
         );
 
@@ -194,6 +196,10 @@ void main() {
         expect(result.passed, isFalse);
         expect(result.programError, contains('EOFError'));
         expect(result.checkMessage, isNull);
+        // The echo wraps stdin rather than `input`, so it is CPython's own
+        // `input` that raises and the student's line is the last frame shown.
+        expect(result.programError, isNot(contains('_Echo')));
+        expect(result.programError, isNot(contains('readline')));
       });
 
       test('a section with no script gives a program that reads nothing', () async {

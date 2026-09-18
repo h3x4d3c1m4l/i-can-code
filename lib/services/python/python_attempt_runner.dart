@@ -115,7 +115,42 @@ import base64, io, json, sys, traceback
 
 _p = json.loads(base64.b64decode("$payload").decode("utf-8"))
 _out = sys.stdout
+_in = sys.stdin
 _buf = io.StringIO()
+
+
+class _Echo:
+    # A terminal shows what is typed, and pressing Enter starts a new line.
+    # Scripted input does neither, so `input("Naam? ")` and the next print would
+    # run together on one line in a way no student sees in PyCharm. This writes
+    # each line into the output as it is read. It wraps stdin rather than
+    # `input`: at the end of the script CPython's own `input` raises the
+    # EOFError, so no frame of the harness reaches the student's traceback.
+    def __init__(self, real):
+        self._real = real
+
+    def readline(self, *args):
+        line = self._real.readline(*args)
+        sys.stdout.write(line)
+        return line
+
+    def read(self, *args):
+        text = self._real.read(*args)
+        sys.stdout.write(text)
+        return text
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
 _verdict = {"ok": True, "error": None, "message": None}
 
 try:
@@ -125,6 +160,7 @@ except SyntaxError as _e:
     _verdict["error"] = "".join(traceback.format_exception_only(type(_e), _e))
 else:
     sys.stdout = _buf
+    sys.stdin = _Echo(_in)
     try:
         exec(_compiled, {"__name__": "__main__"})
     except SystemExit:
@@ -138,6 +174,7 @@ else:
         )
     finally:
         sys.stdout = _out
+        sys.stdin = _in
 
 _captured = _buf.getvalue()
 

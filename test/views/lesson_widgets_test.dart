@@ -1547,6 +1547,20 @@ void main() {
       expect(find.text('Sleep hier een regel naartoe, of tik er een aan.'), findsOneWidget);
     });
 
+    testWidgets('the empty program says tap to a finger', (tester) async {
+      await tester.pumpWidget(board());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sleep hier een regel naartoe, of tik er een aan.'), findsOneWidget);
+    }, variant: TargetPlatformVariant.mobile());
+
+    testWidgets('and click to a mouse', (tester) async {
+      await tester.pumpWidget(board());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sleep hier een regel naartoe, of klik er een aan.'), findsOneWidget);
+    }, variant: TargetPlatformVariant.desktop());
+
     testWidgets('a placed line leaves the available ones and is not drawn twice', (tester) async {
       await tester.pumpWidget(board(arranged: const [2]));
       await tester.pumpAndSettle();

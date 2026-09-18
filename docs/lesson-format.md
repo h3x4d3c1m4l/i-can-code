@@ -485,21 +485,31 @@ program. That is not a courtesy: a validator that feeds 7 and 3 while the prose
 says nothing makes a step that cannot be passed by reading it, and restating the
 input in prose is one more thing that can drift from the block it is written in.
 
-### The prompt lands in `output`
+### The output reads like a terminal
 
-There is no terminal here to keep the two apart, so whatever `input("Naam? ")`
-writes is part of the program's output, and **what the student types is never
-echoed**. A program that prompts and then greets produces:
+The harness writes every line the program reads back into its output, straight
+after the prompt, the way a terminal shows what is typed and moves to a new line
+on Enter. A program that prompts and then greets produces what a student would
+see in PyCharm:
 
 ```text
-Naam? Hallo Sanne
+Naam? Sanne
+Hallo Sanne
 ```
 
-So a validator checking `output == "Hallo Sanne"` will never pass. Either expect
-the prompt as well, or use `endswith`. Two prompts in a row run together the same
-way, which makes a `predict-output` step with prompts harder than it probably
-looks — `docs/samples/stdin.md` is built that way on purpose, so an author sees
-it before a student does.
+Without that, the prompt and the next `print` ran together on one line —
+`Naam? Hallo Sanne` — which is a picture of `input` no student meets anywhere
+else.
+
+Two things follow for a validator. **`output` includes the prompts and the typed
+answers**, so `output == "Hallo Sanne"` will not pass; compare the whole thing or
+use `endswith`. And a `predict-output` step asks the student to predict the
+typed lines too, which is right: that is what the screen shows.
+
+Only reading is echoed — `input()`, `sys.stdin.readline()`, iterating over
+`sys.stdin`. It wraps `sys.stdin` rather than `input` itself, so a read past the
+end is still CPython's own `EOFError`, with nothing of the harness in the
+traceback.
 
 ### Reading past the end is the student's own crash
 
