@@ -42,7 +42,6 @@ class InitializationScreenView extends ScreenViewBase<InitializationScreenViewMo
     return LoadingOverlay(
       message: switch (viewModel.step) {
         InitializationStep.loadingCourse => localizations.initializationScreen_loadingCourse,
-        InitializationStep.startingRuntime => localizations.initializationScreen_startingRuntime,
         null => localizations.initializationScreen_loading,
       },
       // Only shown once something has gone wrong, so a normal cold start stays

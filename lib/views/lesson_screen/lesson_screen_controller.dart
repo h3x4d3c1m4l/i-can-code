@@ -36,6 +36,21 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     if (viewModel.addressNeedsRewrite) {
       WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(goTo(viewModel.step)));
     }
+    _warmRuntime();
+  }
+
+  /// Starts the interpreter as soon as a step that runs code is in front of the
+  /// student, and not before.
+  ///
+  /// It used to be compiled during the bootstrap, which made every student wait
+  /// for 7 MB of CPython before the catalog, the one who only reads a lesson
+  /// included. The VM behind the Tkinter page has always waited for a reason to
+  /// start; this is the same rule for the runtime in the page. `run` awaits
+  /// readiness itself, so a press that beats the compile still runs; warming it
+  /// here is what keeps that press from being the first to wait.
+  void _warmRuntime() {
+    if (!_currentSection.kind.runsCode) return;
+    unawaited(_runtime.ready().catchError((_) {}));
   }
 
   /// Runs the student's code for the current step and checks it.
@@ -175,6 +190,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     // itself, and [stop] would then find nothing left to stop.
     await stop();
     viewModel.goTo(step);
+    _warmRuntime();
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 
     final lesson = viewModel.lesson.translations.values.first;

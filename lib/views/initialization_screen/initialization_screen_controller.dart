@@ -7,7 +7,6 @@ import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
-import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_view_model.dart';
 
@@ -39,14 +38,9 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       if (GetIt.I.isRegistered<Course>()) await GetIt.I.unregister<Course>();
       GetIt.I.registerSingleton<Course>(course);
 
-      // Compiling CPython is the longest part of a cold start; doing it here
-      // means the student waits behind a progress message rather than on the
-      // first Run. Reading progress needs the course loaded, and swallows its
-      // own failures.
+      // Reading progress needs the course loaded, and swallows its own
+      // failures.
       await GetIt.I<ProgressStore>().load(course);
-      if (_disposed) return;
-
-      await _step(InitializationStep.startingRuntime, GetIt.I<PythonRuntime>().ready);
       if (_disposed) return;
     } on Object catch (error) {
       if (!_disposed) viewModel.setError('$error');

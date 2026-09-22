@@ -1,6 +1,7 @@
 
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +20,7 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
@@ -29,7 +31,6 @@ import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
-import 'package:i_can_code/views/lesson_screen/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';

@@ -216,6 +216,28 @@ group: "Week 1 · De basis"
 A lesson that is also `optional: true` is listed under *Verdieping* whatever its
 group says.
 
+### `runtime:` — what the step's code runs on
+
+Every step runs on `python`, CPython in the page, unless it says otherwise. A
+lesson may set the default for all of its steps in its document-level
+`metadata`, and a step may set its own:
+
+```metadata
+id: een-venster
+runtime: tkinter
+```
+
+`tkinter` is Python with Tk on the machine behind the Tkinter page. **The app
+cannot run a lesson step there yet**, so a step that asks for it is **left out**:
+it does not appear in the lesson, it counts towards no step count, and nothing
+else in its `metadata` is read — its `type` and its blocks may be ones this
+version has never heard of. A lesson whose every step is left out that way is
+dropped from the catalog rather than listed as a card that opens on nothing.
+
+So a course may carry window lessons before the app can run them, and they cost
+a student nothing in the meantime. A `runtime` no version knows is still an
+author's mistake and a `FormatException`.
+
 ### `emoji:` — the step's own mark
 
 Every step carries one emoji, shown before its title and nowhere else. A

@@ -34,6 +34,10 @@ class _HeldRuntime implements PythonRuntime {
   /// can be followed all the way to the interpreter.
   String? lastStdin;
 
+  /// How often the interpreter was asked to start. It is no longer compiled
+  /// during the bootstrap, so a step that runs code has to ask for it.
+  int readies = 0;
+
   bool get isRunning => _pending != null;
 
   @override
@@ -43,7 +47,9 @@ class _HeldRuntime implements PythonRuntime {
   String? get version => 'Python 3.14.0';
 
   @override
-  Future<void> ready() async {}
+  Future<void> ready() async {
+    readies++;
+  }
 
   @override
   Future<PythonResult> run(String code, {String stdin = ''}) {
@@ -152,6 +158,9 @@ void main() {
 
     expect(viewModel.running, isTrue);
     expect(runtime.isRunning, isTrue, reason: 'the run has to reach the runtime before it can be stopped');
+    // The bootstrap no longer compiles CPython, so the step in front of the
+    // student is what starts it.
+    expect(runtime.readies, greaterThan(0), reason: 'a step that runs code starts the interpreter');
 
     return (controller, viewModel);
   }

@@ -89,6 +89,12 @@ class Course {
           throw FormatException('$path: ${error.message}');
         }
       }
+      // A lesson whose steps all need a runtime this version cannot run parses
+      // to no steps at all (see [LessonRuntime.isReady]). It is left out rather
+      // than listed as a card that opens on nothing, and a course may carry one
+      // before the app can run it. Any locale, not every: a card that opens in
+      // one language and not in another is worse than no card.
+      if (translations.values.any((lesson) => lesson.sections.isEmpty)) continue;
       lessons.add(CourseLesson(entry: entry, translations: translations));
     }
 

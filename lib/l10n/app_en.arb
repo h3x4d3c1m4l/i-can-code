@@ -8,10 +8,6 @@
   "@initializationScreen_loading": {},
   "initializationScreen_loadingCourse": "Loading the course",
   "@initializationScreen_loadingCourse": {},
-  "initializationScreen_startingRuntime": "Starting Python",
-  "@initializationScreen_startingRuntime": {
-    "description": "Python is the only language the app teaches so far; this string moves to the language being started once there are more."
-  },
   "initializationScreen_retrying": "Attempt {count}",
   "@initializationScreen_retrying": {
     "placeholders": {
@@ -64,7 +60,7 @@
   "@lessonScreen_predictYours": {
     "description": "Labels the box a predict-output step is answered in, and the same answer read back beside the real output."
   },
-  "lessonScreen_predictHint": "Type what you think will appear\u2026",
+  "lessonScreen_predictHint": "Type what you think will appear…",
   "@lessonScreen_predictHint": {
     "description": "Placeholder inside that box. Says \"appear\" rather than \"is printed\": the step may come before print has a name."
   },
@@ -186,12 +182,26 @@
   "appHeader_step": "{step} / {total}",
   "@appHeader_step": {
     "description": "The step counter shown beside the show-bar button while the bar is hidden. Digits, because it sits where the progress bar was.",
-    "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "appHeader_stepLabel": "Step {step} of {total}",
   "@appHeader_stepLabel": {
     "description": "What a screen reader hears in place of those digits.",
-    "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "appHeader_showBar": "Show the bar",
   "@appHeader_showBar": {
@@ -243,11 +253,11 @@
   "@common_cancel": {},
   "replScreen_title": "Try {language} freely (browser)",
   "@replScreen_title": {
-      "placeholders": {
-          "language": {
-              "type": "String"
-          }
+    "placeholders": {
+      "language": {
+        "type": "String"
       }
+    }
   },
   "replScreen_subtitle": "Try things out one line at a time. Nothing here is checked.",
   "@replScreen_subtitle": {},
@@ -259,11 +269,11 @@
   "@replScreen_hint": {},
   "replScreen_exited": "The interpreter has stopped (exit code {code}).",
   "@replScreen_exited": {
-      "placeholders": {
-          "code": {
-              "type": "int"
-          }
+    "placeholders": {
+      "code": {
+        "type": "int"
       }
+    }
   },
   "replScreen_stopped": "Stopped. The interpreter was restarted, so everything you had defined is gone.",
   "@replScreen_stopped": {},
@@ -291,11 +301,11 @@
   "@catalogScreen_extraFreePlay": {},
   "microbitReplScreen_title": "Try {language} freely (micro:bit)",
   "@microbitReplScreen_title": {
-      "placeholders": {
-          "language": {
-              "type": "String"
-          }
+    "placeholders": {
+      "language": {
+        "type": "String"
       }
+    }
   },
   "microbitReplScreen_subtitle": "Try things out one line at a time on a real micro:bit. Nothing here is checked.",
   "microbitScreen_connect": "Connect a micro:bit",
@@ -307,6 +317,10 @@
   "microbitScreen_unavailableBody": "Driving a micro:bit needs WebUSB, which only Chrome and Edge have. Firefox and Safari cannot do it. The lessons themselves work fine.",
   "microbitScreen_failedTitle": "Could not connect",
   "microbitScreen_failedBody": "Something went wrong talking to the board. Unplug the cable, plug it back in and try again.",
+  "microbitScreen_failureDetails": "Technical details",
+  "@microbitScreen_failureDetails": {
+    "description": "Folds out the error the connection itself reported, in English, for whoever helps the student. Folded by default."
+  },
   "microbitScreen_busyTitle": "Something else is holding the board",
   "microbitScreen_busyBody": "Only one program at a time can use the debug interface. Close other tabs running MakeCode or the Python Editor, and try again.",
   "microbitScreen_wrongBoardTitle": "This is not a micro:bit V2",
@@ -330,52 +344,56 @@
   "microbitScreen_connectedTo": "Connected to {board}",
   "microbitScreen_deviceName": "Device",
   "@microbitScreen_connectedTo": {
-      "placeholders": {
-          "board": {
-              "type": "String"
-          }
+    "placeholders": {
+      "board": {
+        "type": "String"
       }
+    }
   },
   "microbitScreen_flash": "Write to the board",
   "microbitScreen_flashHint": "main.py",
   "microbitScreen_flashing": "Writing… {percent}%",
   "@microbitScreen_flashing": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
       }
+    }
   },
   "microbitScreen_flashingPages": "Writing… {percent}% ({changed} of {total} pages differ)",
   "@microbitScreen_flashingPages": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          },
-          "changed": {
-              "type": "int"
-          },
-          "total": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "changed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
       }
+    }
   },
   "microbitScreen_flashingPagesUnknown": "Writing… {percent}% (the board could not say what differs)",
   "@microbitScreen_flashingPagesUnknown": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
       }
+    }
   },
   "microbitProgramScreen_title": "Your own program on the micro:bit",
   "@microbitProgramScreen_title": {
-      "description": "The page where a student writes a program and puts it on the board. Names no language, unlike the REPL title: the board runs MicroPython while the student writes Python, and that distinction does not belong in a heading."
+    "description": "The page where a student writes a program and puts it on the board. Names no language, unlike the REPL title: the board runs MicroPython while the student writes Python, and that distinction does not belong in a heading."
   },
   "microbitProgramScreen_subtitle": "Write a program, put it on the board and watch what it does. Nothing here is checked.",
   "@microbitProgramScreen_subtitle": {},
   "microbitProgramScreen_crumb": "Own program",
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Your program starts as soon as it is on the board. What it prints appears below, and what you type goes to it",
-  "@microbitProgramScreen_hint": {}
+  "@microbitProgramScreen_hint": {},
+  "codeEditorCard_leaveHint": "Esc, then Tab to leave",
+  "@codeEditorCard_leaveHint": {
+    "description": "Shown in the code editor's top strip while it has the keyboard. Tab indents code there, so pressing Esc and then Tab (or Shift+Tab) is how the keyboard moves on to the next control. Keep it short: it shares one line with the file name and the status."
+  }
 }

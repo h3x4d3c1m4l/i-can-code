@@ -326,10 +326,12 @@ first move away from a cold-loaded step rebuilds the screen once.
 They cover three different windows and are not interchangeable:
 
 1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand, light and dark; changing the preset means changing that block too. An inline script reads `localStorage['theme.mode']` — `SharedPreferencesAsync` stores web keys **verbatim, no `flutter.` prefix**, JSON-encoded — and falls back to `prefers-color-scheme`, so a student who forced light on a dark machine gets no flash. That literal key is coupled to `ThemeModeControllerBase.storageKey`.
-2. **`InitializationScreen`** — work the app does once it is running (reading the course index, compiling `python.wasm`). Shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
+2. **`InitializationScreen`** — work the app does once it is running: reading the course index, and nothing else. It shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
 3. **`LoadingOverlay`** — anything a screen waits on afterwards.
 
 ### Running a student's code
+
+**Every runtime starts when a step needs it, and not before.** Compiling the 7 MB `python.wasm` was a bootstrap step once, so a student who only read a lesson waited for an interpreter they never ran, and the catalog came up that much later. `LessonScreenController` now warms it when a step that runs code is the one in front of the student, on arrival and on every move. `PythonRuntime.run()` awaits `ready()` itself, so a Run that beats the compile still runs; warming is only what keeps that press from being the one that waits. A failure surfaces as `AttemptResult.broken`, which never reads as the student's mistake.
 
 `PythonAttemptRunner` is the only thing that should call `PythonRuntime.run()`. It wraps the student's code and the section's validator into **one** program, because the checks have to see the exact output that run produced. `AttemptResult` keeps the three outcomes apart — a crash (`programError`), a failed check (`checkMessage`) and a pass — because each needs different words on screen, and `AttemptResult.broken` is a fourth: the runtime is unavailable, which must never read as "you got it wrong".
 
@@ -389,6 +391,8 @@ Two things that are easy to get wrong:
 - **There is no index file.** Order comes from the `NN-` filename prefix and discovery from Flutter's `AssetManifest`, so the directory *is* the index. Reordering the course is a rename.
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
+**A step says what it runs on, and one this version cannot run is left out.** `runtime:` in a lesson's or a section's metadata is `python` by default — CPython in the page — and `tkinter` is Python with Tk on a machine of its own. No lesson step can run there yet, so `Lesson.parse` **drops** such a step and reads nothing else about it: its `type` and its blocks may be ones this version has never heard of. A lesson whose every step goes that way parses to no steps at all, which is not an error, and `Course.load` leaves it out rather than list a card that opens on nothing. That is what lets the course carry window lessons before the app can run them. A `runtime` no version knows is still an author's mistake.
+
 **The test suite never reads the course.** The lessons are headed for a private repository while the app stays open source, so no test may name a lesson or depend on one existing — the suite has to go green on a checkout with no course in it at all, and it does.
 
 Two things keep that true:
@@ -401,6 +405,10 @@ Two things keep that true:
 **`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**, because that is what the text is laid out at: `16 × 1.6` is 25.6, drawn as 26. Keeping the fraction left two lines 0.8px taller than the box asked for — invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student typed a second line. The six-line micro:bit editor was 2.4px short the same way.
 
 **A quick exercise is capped at two lines**, and the editor enforces it: `CodeEditorCard.maxLines` joins anything past the limit onto the last line it allows, because a plain Enter arrives through the text-input connection rather than through `shortcutOverrideActions`, so overriding the intent does nothing. Two rather than one, because storing a value and then showing it is the smallest exercise worth setting and it does not fit in one line. The cap and `heightForLines` are read from one constant in the view, so the editor cannot allow a line it is too short to show. An answer that needs a third line is an `exercise`.
+
+**The code editor always has a way out, and says so.** `re_editor` binds Tab and Shift+Tab to indent and outdent, so on its own the editor is a keyboard trap (WCAG 2.1.2): nothing after it on the page can be reached by Tab. `EscapeThenTabExit` (`lib/views/components/`) is the workaround widget, and every `CodeEditorCard` is built through it: **Escape, then Tab or Shift+Tab, moves to the next or previous control, and a Tab alone still indents**. The card states it in its strip, beside the file name, only while the editor has the keyboard. Its class comment lists the `re_editor` and Flutter behaviour it leans on.
+
+Only the desktop editor binds Tab, and `re_editor` decides which editor it builds once per isolate: `kIsAndroid` is a top-level final, read the first time any editor is built, and `flutter test` defaults to Android. So `test/views/code_editor_keyboard_test.dart` runs every test as a desktop, and a Tab test in a file that has already built an editor under Android tests nothing.
 
 **A step does not have to ask for code.** `SectionKind.matchPairs` is a board of tiles the student pairs up — declared `type: match-pairs`, filled from a `pairs` block, and carrying no editor and no validator, because the board itself is the check. It is why `SectionKind.isAssignment` names the two kinds it is true of rather than reading "not `info`": a match-pairs step is neither prose nor an assignment, and the older test would have had the parser demand an editor for a step that has none.
 
@@ -454,6 +462,8 @@ Flutter's asset globbing is **not recursive**, so every asset directory is liste
 **The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `languageLabel()`, the same name without the number.
 
 The student's source is carried into that program as **base64 of JSON**, never interpolated. Interpolation needs escaping their code can always defeat — a triple quote, a stray backslash — and base64's alphabet contains no quote, so the payload cannot terminate the literal holding it. `test/services/python_attempt_runner_test.dart` runs the wrapper through the machine's own `python3` (skipped when absent), so the capture, traceback trimming and `output` stripping are tested without a browser.
+
+**The wrapper replaces `main.py` with the student's own source before it compiles it.** The worker runs the wrapper *as* `/main.py`, and the student's code is compiled under that same name, so CPython read every traceback line, and a `SyntaxError`'s text and caret column, back from the wrapper: each error quoted `import base64, …` and pointed at the wrong column. The script is already parsed by then, so the file can hold what was actually compiled. The host tests and `tool/try_lesson.dart` run the wrapper as `main.py` in a directory of its own for the same reason; with `-c` there was no such file, which is how this went unnoticed.
 
 ### Running Python interactively
 

@@ -3,7 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 
 /// The one button that starts the student's program and the one that stops it
-/// again.
+/// again, on a lesson step and on the Tkinter page.
 ///
 /// One button and not two: while a program is running, starting it is the only
 /// thing that cannot be asked for and stopping it is the only thing that can, so
@@ -18,7 +18,8 @@ import 'package:i_can_code/views/components/app_button.dart';
 ///
 /// No spinner: the strip over the editor already says a run is in flight, and a
 /// spinner drawn over the label would cover the one word that says what pressing
-/// this now does.
+/// this now does. On the Tkinter page it would also be the one thing repainting
+/// every frame while the emulator shares the thread.
 class RunButton extends StatelessWidget {
 
   /// Whether a run is in flight, which is what decides which of the two this is.

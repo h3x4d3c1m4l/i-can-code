@@ -3,7 +3,6 @@
   "app_title": "I Can Code",
   "initializationScreen_loading": "Laden…",
   "initializationScreen_loadingCourse": "De cursus laden",
-  "initializationScreen_startingRuntime": "Python starten",
   "initializationScreen_retrying": "Poging {count}",
   "initializationScreen_failed": "De app kon niet starten",
   "initializationScreen_retry": "Opnieuw proberen",
@@ -98,11 +97,11 @@
   "common_cancel": "Annuleren",
   "replScreen_title": "Vrij {language} uitproberen (browser)",
   "@replScreen_title": {
-      "placeholders": {
-          "language": {
-              "type": "String"
-          }
+    "placeholders": {
+      "language": {
+        "type": "String"
       }
+    }
   },
   "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd.",
   "replScreen_starting": "De interpreter wordt gestart…",
@@ -110,11 +109,11 @@
   "replScreen_hint": "Enter voert de regel uit · ↑ haalt een eerdere regel terug · Ctrl-D sluit af",
   "replScreen_exited": "De interpreter is gestopt (afsluitcode {code}).",
   "@replScreen_exited": {
-      "placeholders": {
-          "code": {
-              "type": "int"
-          }
+    "placeholders": {
+      "code": {
+        "type": "int"
       }
+    }
   },
   "replScreen_stopped": "Gestopt. De interpreter is opnieuw gestart, dus alles wat je had gedefinieerd is weg.",
   "replScreen_failed": "De interpreter kon niet worden gestart.",
@@ -127,11 +126,11 @@
   "catalogScreen_extraFreePlay": "Vrij oefenen",
   "microbitReplScreen_title": "Vrij {language} uitproberen (micro:bit)",
   "@microbitReplScreen_title": {
-      "placeholders": {
-          "language": {
-              "type": "String"
-          }
+    "placeholders": {
+      "language": {
+        "type": "String"
       }
+    }
   },
   "microbitReplScreen_subtitle": "Probeer dingen regel voor regel uit op een echte micro:bit. Hier wordt niets gecontroleerd.",
   "microbitScreen_connect": "Verbind met micro:bit",
@@ -143,6 +142,10 @@
   "microbitScreen_unavailableBody": "Een micro:bit aansturen vereist WebUSB, dat alleen Chrome en Edge hebben. Firefox en Safari kunnen het niet. De lessen zelf werken gewoon.",
   "microbitScreen_failedTitle": "Verbinden lukte niet",
   "microbitScreen_failedBody": "Er ging iets mis bij het praten met het bordje. Trek de kabel eruit, steek hem er weer in en probeer opnieuw.",
+  "microbitScreen_failureDetails": "Technische details",
+  "@microbitScreen_failureDetails": {
+    "description": "Klapt de foutmelding van de verbinding zelf uit, in het Engels, voor wie de leerling helpt. Staat standaard dicht."
+  },
   "microbitScreen_busyTitle": "Iets anders heeft het bordje vast",
   "microbitScreen_busyBody": "De debug-interface kan maar door één programma tegelijk gebruikt worden. Sluit andere tabbladen met MakeCode of de Python Editor, en probeer het opnieuw.",
   "microbitScreen_wrongBoardTitle": "Dit is geen micro:bit V2",
@@ -166,52 +169,56 @@
   "microbitScreen_connectedTo": "Verbonden met {board}",
   "microbitScreen_deviceName": "Apparaat",
   "@microbitScreen_connectedTo": {
-      "placeholders": {
-          "board": {
-              "type": "String"
-          }
+    "placeholders": {
+      "board": {
+        "type": "String"
       }
+    }
   },
   "microbitScreen_flash": "Naar het bordje schrijven",
   "microbitScreen_flashHint": "main.py",
   "microbitScreen_flashing": "Bezig met schrijven… {percent}%",
   "@microbitScreen_flashing": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
       }
+    }
   },
   "microbitScreen_flashingPages": "Bezig met schrijven… {percent}% ({changed} van {total} pagina's anders)",
   "@microbitScreen_flashingPages": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          },
-          "changed": {
-              "type": "int"
-          },
-          "total": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "changed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
       }
+    }
   },
   "microbitScreen_flashingPagesUnknown": "Bezig met schrijven… {percent}% (bordje kon niet zeggen wat er anders is)",
   "@microbitScreen_flashingPagesUnknown": {
-      "placeholders": {
-          "percent": {
-              "type": "int"
-          }
+    "placeholders": {
+      "percent": {
+        "type": "int"
       }
+    }
   },
   "microbitProgramScreen_title": "Je eigen programma op de micro:bit",
   "@microbitProgramScreen_title": {
-      "description": "De pagina waar een leerling een programma schrijft en naar het bordje schrijft. Zegt geen taal, anders dan de REPL-titel: het bordje draait MicroPython en de leerling schrijft Python, en dat onderscheid hoort niet in een koptekst."
+    "description": "De pagina waar een leerling een programma schrijft en naar het bordje schrijft. Zegt geen taal, anders dan de REPL-titel: het bordje draait MicroPython en de leerling schrijft Python, en dat onderscheid hoort niet in een koptekst."
   },
   "microbitProgramScreen_subtitle": "Schrijf een programma, zet het op het bordje en kijk wat het doet. Hier wordt niets gecontroleerd.",
   "@microbitProgramScreen_subtitle": {},
   "microbitProgramScreen_crumb": "Eigen programma",
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Je programma start zodra het op het bordje staat. Wat het print verschijnt hieronder, en wat je typt gaat ernaartoe",
-  "@microbitProgramScreen_hint": {}
+  "@microbitProgramScreen_hint": {},
+  "codeEditorCard_leaveHint": "Esc, dan Tab: verlaten",
+  "@codeEditorCard_leaveHint": {
+    "description": "Staat in de bovenste strook van de code-editor zolang die het toetsenbord heeft. Tab laat daar code inspringen, dus Esc en daarna Tab (of Shift+Tab) brengt het toetsenbord naar het volgende onderdeel. Houd het kort: het deelt één regel met de bestandsnaam en de status."
+  }
 }

@@ -12,9 +12,15 @@ import 'package:i_can_code/services/python/python_runtime.dart';
 /// trimming, the `output` stripping and the JSON envelope.
 Future<AttemptResult> attempt({required String code, String? validator, String? stdin}) async {
   final program = PythonAttemptRunner.buildProgram(code: code, validator: validator);
+  // Run as main.py in its own directory, the way web/python/python_worker.js
+  // runs it. With `-c` there is no main.py on disk, which hid that tracebacks
+  // quoted the wrapper's lines instead of the student's.
+  final dir = await Directory.systemTemp.createTemp('icc_attempt_');
+  addTearDown(() => dir.delete(recursive: true));
+  await File('${dir.path}/main.py').writeAsString(program);
   // `Process.start` rather than `runSync`, which cannot redirect standard input.
   // Both pipes are drained concurrently so filling one cannot deadlock the run.
-  final process = await Process.start('python3', ['-c', program]);
+  final process = await Process.start('python3', ['main.py'], workingDirectory: dir.path);
   process.stdin.write(stdin ?? '');
   await process.stdin.close();
   final streams = await Future.wait([

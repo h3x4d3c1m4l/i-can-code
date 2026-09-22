@@ -74,3 +74,14 @@ web/pkg/
 *.freezed.dart
 lib/l10n/generated/
 
+
+# The Tkinter VM's build output and the image bundle the page loads. Both are
+# built or fetched locally and ship as a release asset, not in the repository.
+vm/build/
+web/vm/image/
+
+# The VM tools' npm packages; vm/tools/package-lock.json pins them.
+vm/tools/node_modules/
+
+# The guest agent's Cargo build output. The image build compiles it in Docker.
+vm/agent/target/
