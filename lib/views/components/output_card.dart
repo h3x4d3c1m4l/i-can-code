@@ -5,10 +5,11 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 
 /// A labelled block of monospace text on the page's own light card.
 ///
-/// What a program printed, and — on a [SectionKind.predictOutput] step — what
-/// the student said it would. The two are drawn by one widget on purpose: the
-/// whole of that step is comparing them, and a prediction set differently from
-/// the output would put a difference on the screen that is not in the text.
+/// What a program printed, on a lesson step or on the Tkinter page, and on a
+/// predict-output step what the student said it would. The last two are drawn
+/// by one widget on purpose: the whole of that step is comparing them, and a
+/// prediction set differently from the output would put a difference on the
+/// screen that is not in the text.
 class OutputCard extends StatelessWidget {
 
   /// Set small and upper-cased, so it names the block without competing with it.

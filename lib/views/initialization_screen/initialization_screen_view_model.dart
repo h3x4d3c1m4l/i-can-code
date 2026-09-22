@@ -5,7 +5,7 @@ part 'initialization_screen_view_model.g.dart';
 
 /// What the bootstrap is doing. An identity rather than a message: the
 /// controller has no [BuildContext] and so cannot localize.
-enum InitializationStep { loadingCourse, startingRuntime }
+enum InitializationStep { loadingCourse }
 
 class InitializationScreenViewModel = InitializationScreenViewModelBase with _$InitializationScreenViewModel;
 

@@ -3,6 +3,7 @@ import 'dart:js_interop';
 
 import 'package:i_can_code/services/python/python_assets_web.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/web/absolute_url_web.dart';
 import 'package:web/web.dart' as web;
 
 /// Copied verbatim from `web/python/` into the build output.

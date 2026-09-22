@@ -4,8 +4,8 @@ import 'package:i_can_code/extensions/app_localizations_extension.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
-import 'package:i_can_code/views/lesson_screen/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// What the last run produced: its verdict, then the program's output. The

@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/views/components/app_button.dart';
-import 'package:i_can_code/views/components/microbit/microbit_notice.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
+import 'package:i_can_code/views/components/notice_card.dart';
 
 /// Everything a micro:bit screen shows while no board is open.
 ///
@@ -39,12 +39,12 @@ class MicrobitStatePanel extends StatelessWidget {
     final l10n = context.localizations;
 
     return switch (status) {
-      MicrobitStatus.unavailable => MicrobitNotice(
+      MicrobitStatus.unavailable => NoticeCard(
         title: l10n.microbitScreen_unavailableTitle,
         body: l10n.microbitScreen_unavailableBody,
       ),
       MicrobitStatus.failed => _buildFailure(context),
-      MicrobitStatus.noDevice => MicrobitNotice(
+      MicrobitStatus.noDevice => NoticeCard(
         title: l10n.microbitScreen_noDeviceTitle,
         body: l10n.microbitScreen_noDeviceBody,
         action: _buildConnectButton(context),
@@ -52,7 +52,7 @@ class MicrobitStatePanel extends StatelessWidget {
       // The screen itself draws the session, outside the scroll view a terminal
       // may not sit in.
       MicrobitStatus.connected || MicrobitStatus.flashing => const SizedBox.shrink(),
-      MicrobitStatus.disconnected || MicrobitStatus.connecting => MicrobitNotice(
+      MicrobitStatus.disconnected || MicrobitStatus.connecting => NoticeCard(
         title: l10n.microbitScreen_connectTitle,
         body: l10n.microbitScreen_connectBody,
         action: _buildConnectButton(context),
@@ -74,7 +74,14 @@ class MicrobitStatePanel extends StatelessWidget {
       MicrobitFailure.protocol || null => (l10n.microbitScreen_failedTitle, l10n.microbitScreen_failedBody),
     };
 
-    return MicrobitNotice(title: title, body: body, detail: failure, action: _buildConnectButton(context));
+    return NoticeCard(
+      title: title,
+      body: body,
+      detail: failure,
+      // English, and for whoever helps: folded, as the Tkinter page folds its own.
+      detailLabel: l10n.microbitScreen_failureDetails,
+      action: _buildConnectButton(context),
+    );
   }
 
   Widget _buildConnectButton(BuildContext context) {

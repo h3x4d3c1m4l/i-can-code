@@ -87,6 +87,63 @@ void main() {
       expect(validators.any((v) => v.contains(r'\n')), isTrue, reason: 'nor is a backslash eaten');
     });
 
+    group('a runtime this version cannot run', () {
+      // What a course may already carry: a window step, which the lesson screen
+      // cannot show and the harness cannot check yet. It is left out, and
+      // nothing about it is read, so an unknown type and unknown blocks in it
+      // are not a parse error.
+      const windowStep =
+          '## Een venster\n\n'
+          '```metadata\n'
+          'id: window\n'
+          'runtime: tkinter\n'
+          'type: window-exercise\n'
+          '```\n\n'
+          '```python-window\n'
+          'root.mainloop()\n'
+          '```\n';
+
+      test('is left out of the lesson, with the steps around it kept', () {
+        final lesson = Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n'
+          '## Lezen\n\n```metadata\nid: read\ntype: info\n```\n\nprose\n\n'
+          '$windowStep\n'
+          '## Nog lezen\n\n```metadata\nid: more\ntype: info\n```\n\nprose\n',
+        );
+
+        expect(lesson.sections.map((section) => section.id), ['read', 'more']);
+        expect(lesson.runtime, LessonRuntime.python);
+      });
+
+      test('declared by the whole lesson leaves it with no steps, and that is not an error', () {
+        final lesson = Lesson.parse('# T\n\n```metadata\nid: x\nruntime: tkinter\n```\n\n$windowStep');
+
+        expect(lesson.runtime, LessonRuntime.tkinter);
+        expect(lesson.sections, isEmpty);
+        expect(lesson.id, 'x', reason: 'the lesson still parses, so the course can leave it out');
+      });
+
+      test('a step may still opt back in to a runtime the app can run', () {
+        final lesson = Lesson.parse(
+          '# T\n\n```metadata\nid: x\nruntime: tkinter\n```\n\n'
+          '## Lezen\n\n```metadata\nid: read\nruntime: python\ntype: info\n```\n\nprose\n',
+        );
+
+        expect(lesson.sections.map((section) => section.id), ['read']);
+      });
+
+      test('a lesson with no steps at all is still an error', () {
+        expect(() => Lesson.parse('# T\n\n```metadata\nid: x\n```\n'), throwsA(isA<FormatException>()));
+      });
+
+      test('a runtime no version has is an author\'s mistake', () {
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\nruntime: basic\n```\n\n$windowStep'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    });
+
     test('rejects a section with no id', () {
       expect(
         () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\n```\n\nprose\n'),

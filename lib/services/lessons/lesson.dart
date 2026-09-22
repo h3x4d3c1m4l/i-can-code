@@ -71,6 +71,32 @@ enum SectionKind {
 
 }
 
+/// What a step's code runs on, from a `runtime` in the lesson's or the
+/// section's `metadata`. The default is [python], which every shipped step uses.
+enum LessonRuntime {
+
+  /// CPython built for wasm, in the page.
+  python,
+
+  /// Python with Tk on the machine behind the Tkinter page.
+  tkinter;
+
+  /// Whether a step on this runtime can be shown today.
+  ///
+  /// False for [tkinter]: the page runs windows, the lesson screen does not,
+  /// and the harness that would check a window program is a design and not
+  /// code yet. A step that asks for it is **left out** by [Lesson.parse] rather
+  /// than refused, so a course may carry one before the app can run it.
+  bool get isReady => this == LessonRuntime.python;
+
+  static LessonRuntime parse(String value) => switch (value) {
+    'python' => LessonRuntime.python,
+    'tkinter' => LessonRuntime.tkinter,
+    _ => throw FormatException('Unknown runtime "$value".'),
+  };
+
+}
+
 /// One tile of a [SectionKind.matchPairs] board: which pair it belongs to, and
 /// which of that pair's two halves it is.
 ///
@@ -245,6 +271,13 @@ class Lesson {
   /// number is still the only source of order.
   final String? group;
 
+  /// What this lesson's steps run on unless a step says otherwise.
+  final LessonRuntime runtime;
+
+  /// The steps the app can show. A step for a runtime that is not ready is not
+  /// among them: see [LessonRuntime.isReady]. So this may be empty, which is a
+  /// whole lesson written for a runtime this version cannot run, and
+  /// [Course.load] leaves such a lesson out.
   final List<LessonSection> sections;
 
   const Lesson({
@@ -254,6 +287,7 @@ class Lesson {
     this.emoji,
     this.optional = false,
     this.group,
+    this.runtime = LessonRuntime.python,
     required this.sections,
   });
 
@@ -275,12 +309,17 @@ class Lesson {
     String? emoji;
     var optional = false;
     String? group;
+    var runtime = LessonRuntime.python;
     final sections = <LessonSection>[];
+    // Steps left out for a runtime that is not ready, so that a lesson made
+    // only of those is empty rather than malformed.
+    var notReady = 0;
 
     String? sectionTitle;
     String? sectionId;
     String? sectionEmoji;
     SectionKind? sectionKind;
+    LessonRuntime? sectionRuntime;
     var sectionOptional = false;
     var prose = <String>[];
     String? starter;
@@ -296,8 +335,33 @@ class Lesson {
     // are different mistakes.
     String? stdin;
 
+    void clearSection() {
+      sectionKind = null;
+      sectionId = null;
+      sectionEmoji = null;
+      sectionRuntime = null;
+      sectionOptional = false;
+      prose = <String>[];
+      starter = null;
+      validator = null;
+      pairs = null;
+      program = null;
+      explanation = null;
+      ordered = null;
+      distractors = null;
+      stdin = null;
+    }
+
     void flush() {
       if (sectionTitle == null) return;
+      // A step for a runtime that is not ready is left out, and nothing about
+      // it is read: it may declare a type and carry blocks that only the
+      // harness for that runtime will know.
+      if (!(sectionRuntime ?? runtime).isReady) {
+        notReady++;
+        clearSection();
+        return;
+      }
       if (sectionKind == null) {
         throw FormatException('Section "$sectionTitle" has no `metadata` block declaring its type.');
       }
@@ -388,19 +452,7 @@ class Lesson {
           stdin: stdin,
         ),
       );
-      sectionKind = null;
-      sectionId = null;
-      sectionEmoji = null;
-      sectionOptional = false;
-      prose = <String>[];
-      starter = null;
-      validator = null;
-      pairs = null;
-      program = null;
-      explanation = null;
-      ordered = null;
-      distractors = null;
-      stdin = null;
+      clearSection();
     }
 
     final lines = source.replaceAll('\r\n', '\n').split('\n');
@@ -437,7 +489,13 @@ class Lesson {
                 throw const FormatException('The lesson declares a `group` that is not a line of text.');
               }
               group = (lessonGroup as String?)?.trim() ?? group;
+              runtime = _readRuntime(meta, 'The lesson') ?? runtime;
             } else {
+              // Before the type, which a step for another runtime may name in
+              // words this version does not know yet.
+              sectionRuntime = _readRuntime(meta, 'Section "$sectionTitle"') ?? runtime;
+              if (!sectionRuntime!.isReady) continue;
+
               final type = meta['type'] as String?;
               if (type == null) throw FormatException('Section "$sectionTitle" declares no `type`.');
               sectionKind = SectionKind.parse(type);
@@ -523,7 +581,8 @@ class Lesson {
 
     if (id == null) throw const FormatException('The lesson has no document-level `metadata` block with an `id`.');
     if (title == null) throw const FormatException('The lesson has no `#` title.');
-    if (sections.isEmpty) throw const FormatException('The lesson has no `##` sections.');
+    // A lesson whose every step was left out is empty on purpose, not broken.
+    if (sections.isEmpty && notReady == 0) throw const FormatException('The lesson has no `##` sections.');
 
     return Lesson(
       id: id,
@@ -532,6 +591,7 @@ class Lesson {
       emoji: emoji,
       optional: optional,
       group: group,
+      runtime: runtime,
       sections: sections,
     );
   }
@@ -587,6 +647,21 @@ class Lesson {
     final trimmed = emoji.trim();
     if (trimmed.isEmpty) throw FormatException('$owner declares an empty `emoji`.');
     return trimmed;
+  }
+
+  /// The `runtime` [meta] declares, or null where it declares none. A name no
+  /// runtime has is an author's mistake and throws; a runtime this version
+  /// cannot run yet is not.
+  static LessonRuntime? _readRuntime(YamlMap meta, String owner) {
+    final runtime = meta['runtime'];
+    if (runtime == null) return null;
+    if (runtime is! String) throw FormatException('$owner declares a `runtime` that is not text.');
+
+    try {
+      return LessonRuntime.parse(runtime.trim());
+    } on FormatException catch (error) {
+      throw FormatException('$owner ${error.message[0].toLowerCase()}${error.message.substring(1)}');
+    }
   }
 
 }

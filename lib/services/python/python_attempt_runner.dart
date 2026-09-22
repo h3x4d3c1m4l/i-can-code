@@ -111,9 +111,19 @@ class PythonAttemptRunner {
     );
 
     return '''
-import base64, io, json, sys, traceback
+import base64, io, json, linecache, sys, traceback
 
 _p = json.loads(base64.b64decode("$payload").decode("utf-8"))
+# The code is compiled as "main.py", and CPython reads a traceback's lines, and a
+# SyntaxError's text and column, back from the file by that name. The browser runs
+# this wrapper as main.py, so every error quoted a line of the harness. The script
+# is already parsed, so the file can hold what was actually compiled.
+try:
+    with open("main.py", "w", encoding="utf-8") as _f:
+        _f.write(_p["code"])
+except OSError:
+    # mtime None keeps linecache.checkcache from dropping the entry.
+    linecache.cache["main.py"] = (len(_p["code"]), None, _p["code"].splitlines(True), "main.py")
 _out = sys.stdout
 _in = sys.stdin
 _buf = io.StringIO()

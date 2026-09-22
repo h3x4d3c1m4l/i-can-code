@@ -6,9 +6,9 @@ import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
-import 'package:i_can_code/views/components/microbit/microbit_notice.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
+import 'package:i_can_code/views/components/notice_card.dart';
 
 /// Wraps [child] in what these widgets need: the app theme and the
 /// localizations they read their words from.
@@ -70,16 +70,16 @@ void main() {
     });
   });
 
-  group('MicrobitNotice', () {
+  group('NoticeCard', () {
     testWidgets('shows its heading and body', (tester) async {
-      await tester.pumpWidget(_host(const MicrobitNotice(title: 'Geen micro:bit', body: 'Sluit het bordje aan.')));
+      await tester.pumpWidget(_host(const NoticeCard(title: 'Geen micro:bit', body: 'Sluit het bordje aan.')));
 
       expect(find.text('Geen micro:bit'), findsOneWidget);
       expect(find.text('Sluit het bordje aan.'), findsOneWidget);
     });
 
     testWidgets('omits the machine detail and the action when there are none', (tester) async {
-      await tester.pumpWidget(_host(const MicrobitNotice(title: 'Titel', body: 'Tekst.')));
+      await tester.pumpWidget(_host(const NoticeCard(title: 'Titel', body: 'Tekst.')));
 
       expect(find.byType(AppButton), findsNothing);
     });
@@ -87,7 +87,7 @@ void main() {
     testWidgets('shows the core error under the explanation', (tester) async {
       await tester.pumpWidget(
         _host(
-          MicrobitNotice(
+          NoticeCard(
             title: 'Titel',
             body: 'Tekst.',
             detail: 'RustLib.init(): failed to fetch',
@@ -113,19 +113,41 @@ void main() {
       // Each needs something different from the reader: close the other tab, or
       // fetch a different board. One "could not connect" would say neither.
       await show(tester, MicrobitStatus.failed, failure: MicrobitFailure.busy);
-      final busy = tester.widget<MicrobitNotice>(find.byType(MicrobitNotice)).title;
+      final busy = tester.widget<NoticeCard>(find.byType(NoticeCard)).title;
 
       await show(tester, MicrobitStatus.failed, failure: MicrobitFailure.unsupportedBoard);
-      final wrongBoard = tester.widget<MicrobitNotice>(find.byType(MicrobitNotice)).title;
+      final wrongBoard = tester.widget<NoticeCard>(find.byType(NoticeCard)).title;
 
       expect(busy, isNot(wrongBoard));
+    });
+
+    testWidgets('the core\'s own error is folded away, one press from whoever helps', (tester) async {
+      const error = 'probe: DAP transfer timed out';
+      await tester.pumpWidget(
+        _host(
+          MicrobitStatePanel(
+            status: MicrobitStatus.failed,
+            failureKind: MicrobitFailure.protocol,
+            failure: error,
+            onConnect: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Verbinden lukte niet'), findsOneWidget);
+      expect(find.text(error), findsNothing, reason: 'English, and not for the student');
+
+      await tester.tap(find.text('Technische details'));
+      await tester.pumpAndSettle();
+      expect(find.text(error), findsOneWidget);
     });
 
     testWidgets('the browser that cannot do it at all is offered no button', (tester) async {
       // There is nothing to press: no WebUSB means no board, whatever is done.
       await show(tester, MicrobitStatus.unavailable);
 
-      expect(find.byType(MicrobitNotice), findsOneWidget);
+      expect(find.byType(NoticeCard), findsOneWidget);
       expect(find.byType(AppButton), findsNothing);
     });
 
@@ -134,7 +156,7 @@ void main() {
       // the screen draws that part itself.
       await show(tester, MicrobitStatus.connected);
 
-      expect(find.byType(MicrobitNotice), findsNothing);
+      expect(find.byType(NoticeCard), findsNothing);
     });
   });
 

@@ -116,6 +116,20 @@ void main() {
       expect(result.programError, isNot(contains('_compiled')), reason: 'harness frames must not leak');
     });
 
+    test('a traceback quotes the student\'s line, not the wrapper\'s', () async {
+      final runtime = await attempt(code: 'x = 1\nprint(x / 0)', validator: null);
+      final syntax = await attempt(code: 'x = 1\nprint("a"', validator: null);
+
+      expect(runtime.programError, contains('print(x / 0)'));
+      expect(syntax.programError, contains('print("a"'));
+      // The caret sits under the unclosed parenthesis. A column read against the
+      // wrapper's own short line 2 lands under the "r" of print.
+      expect(syntax.programError, contains('    print("a"\n         ^'));
+      for (final error in [runtime.programError, syntax.programError]) {
+        expect(error, isNot(contains('import base64')), reason: 'line 1 of the wrapper, read back from disk');
+      }
+    });
+
     test('output printed before a crash is still shown', () async {
       final result = await attempt(code: 'print("before")\nraise ValueError("stop")', validator: null);
 
@@ -300,7 +314,7 @@ void main() {
 
         expect((await attempt(code: 'print(42)\nprint(3.14)', validator: validator)).passed, isTrue);
         expect(
-          (await attempt(code: '"""Mijn programma."""\nprint(42)', validator: validator)).passed,
+          (await attempt(code: '"""My program."""\nprint(42)', validator: validator)).passed,
           isTrue,
           reason: 'a docstring is not a construct a lesson teaches',
         );

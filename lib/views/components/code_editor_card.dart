@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
+import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/escape_then_tab_exit.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/python.dart';
 import 'package:re_highlight/styles/atom-one-dark.dart';
@@ -8,8 +10,12 @@ import 'package:re_highlight/styles/atom-one-dark.dart';
 /// The dark card the student writes in: a filename strip, the runtime's status,
 /// and the editor itself.
 ///
-/// Shared by a lesson's exercises and the micro:bit screen. Only the status
-/// line differs between them.
+/// Shared by a lesson's exercises, the micro:bit screen and the Tkinter page.
+/// Only the status line differs between them.
+///
+/// Tab indents, so the keyboard leaves with Escape then Tab, or Shift+Tab
+/// backwards ([EscapeThenTabExit]), and the strip says so while the editor has
+/// focus.
 class CodeEditorCard extends StatefulWidget {
 
   final CodeLineEditingController controller;
@@ -37,6 +43,10 @@ class CodeEditorCard extends StatefulWidget {
   /// controller while building. Longer code scrolls inside.
   final double height;
 
+  /// Whether the editor takes the keyboard when it is first built. `re_editor`
+  /// does by default.
+  final bool autofocus;
+
   static const double _fontSize = 16;
   static const double _lineHeight = 1.6;
   /// The strip naming the file and the runtime. Public because a worked example
@@ -62,6 +72,7 @@ class CodeEditorCard extends StatefulWidget {
     required this.status,
     this.height = 276,
     this.maxLines,
+    this.autofocus = true,
     super.key,
   });
 
@@ -105,9 +116,12 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => EscapeThenTabExit(builder: _buildCard);
+
+  Widget _buildCard(BuildContext context, FocusNode focusNode, bool focused) {
     final colors = context.appTheme.colors;
     final text = context.appTheme.text;
+    final muted = text.codeSmall.copyWith(color: colors.codeMuted);
 
     return DecoratedBox(
       decoration: ShapeDecoration(
@@ -120,10 +134,26 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
           Padding(
             padding: CodeEditorCard.headerPadding,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('main.py', style: text.codeSmall.copyWith(color: colors.codeMuted)),
-                Text(widget.status, style: text.codeSmall.copyWith(color: colors.codeMuted)),
+                Text('main.py', style: muted),
+                // The way out, which WCAG 2.1.2 wants stated, the way the
+                // Tkinter page's window frame states its own. Centred, so it
+                // does not run into the status as one line.
+                Expanded(
+                  child: focused
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            context.localizations.codeEditorCard_leaveHint,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: muted,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                Text(widget.status, style: muted),
               ],
             ),
           ),
@@ -131,6 +161,8 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
             height: widget.height,
             child: CodeEditor(
               controller: widget.controller,
+              focusNode: focusNode,
+              autofocus: widget.autofocus,
               wordWrap: false,
               padding: CodeEditorCard.codePadding,
               // Line numbers, quieter than the code, so a traceback's "line 3"

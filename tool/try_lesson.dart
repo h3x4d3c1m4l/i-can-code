@@ -108,10 +108,13 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
   // `Process.start` rather than `runSync`, which cannot redirect standard input
   // at all. Both pipes are drained concurrently so a program that fills one
   // while nothing reads the other cannot deadlock.
-  final process = await Process.start(
-    'python3',
-    ['-c', PythonAttemptRunner.buildProgram(code: code, validator: section.validator)],
+  // Run as main.py in its own directory, the way the browser worker does, so a
+  // traceback here quotes the same lines the student will see.
+  final dir = Directory.systemTemp.createTempSync('try_lesson_');
+  File('${dir.path}/main.py').writeAsStringSync(
+    PythonAttemptRunner.buildProgram(code: code, validator: section.validator),
   );
+  final process = await Process.start('python3', ['main.py'], workingDirectory: dir.path);
   process.stdin.write(section.stdin ?? '');
   await process.stdin.close();
   final streams = await Future.wait([
@@ -121,6 +124,7 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
   final result = PythonAttemptRunner.parseResult(
     PythonResult(stdout: streams[0], stderr: streams[1], exitCode: await process.exitCode),
   );
+  dir.deleteSync(recursive: true);
 
   stdout.writeln('── ${section.title}  [${section.kind.name}]');
   if (section.stdin case final String scripted) {
