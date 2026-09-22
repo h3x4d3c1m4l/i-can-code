@@ -306,6 +306,14 @@ back finishes it in the middle. Opening a lesson that was already finished gets
 the end page and no confetti; a step skipped on the way makes the page say
 "einde van" rather than "afgerond".
 
+Two smaller bursts sit beside it, both just for fun. A passed exercise (a run with
+a validator, so not a predict step) fires `ConfettiBurst.small`, one puff from the
+bottom centre. The end page carries a quiet "Meer confetti" link that fires the
+full burst again, shown only when this visit earned the first one; the last three
+presses stay mounted so a new press adds to the flakes in the air instead of
+wiping them. Both are keyed on a counter in the view model, which is what makes a
+repeat fire again.
+
 The burst draws **nothing** when `MediaQuery.disableAnimationsOf` is set — on
 the web that is `prefers-reduced-motion: reduce`, which the engine maps onto both
 `reduceMotion` and `disableAnimations`. Its colours come from the preset's own

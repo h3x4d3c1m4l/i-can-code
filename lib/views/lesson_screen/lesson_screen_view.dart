@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
@@ -113,9 +115,19 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         Positioned.fill(
           child: IgnorePointer(
             child: Observer(
-              builder: (context) => viewModel.completed && viewModel.earnedCelebration
-                  ? const ConfettiBurst()
-                  : const SizedBox.shrink(),
+              builder: (context) => Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (viewModel.passBursts > 0) ConfettiBurst.small(key: ValueKey(('pass', viewModel.passBursts))),
+                  if (viewModel.completed && viewModel.earnedCelebration) const ConfettiBurst(),
+                  // The last few rather than only the newest, so a press while
+                  // the previous burst is in the air adds to it instead of
+                  // wiping it away.
+                  if (viewModel.completed)
+                    for (var i = math.max(1, viewModel.extraBursts - 2); i <= viewModel.extraBursts; i++)
+                      ConfettiBurst(key: ValueKey(('extra', i))),
+                ],
+              ),
             ),
           ),
         ),
@@ -213,6 +225,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           completedSteps: viewModel.passed.length,
           stepCount: lesson.stepCount,
           onNextLesson: viewModel.hasNextLesson ? controller.openNextLesson : null,
+          // Only where the first burst fired by itself: more of something the
+          // visit never had would celebrate a skipped step.
+          onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
           onBack: () => controller.previous(lesson.stepCount),
           backLabel: context.localizations.lessonScreen_back,
           onLeave: () => controller.openLanguage(viewModel.lesson.entry.language),

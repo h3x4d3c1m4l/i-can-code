@@ -109,6 +109,7 @@
     "description": "The link beside the deep-dive badge that moves past the step."
   },
   "lessonScreen_complete": "Finish",
+  "lessonScreen_moreConfetti": "🎉 More confetti",
   "@lessonScreen_complete": {
     "description": "The button on a lesson's last step. It leads to the lesson's end page, not out of the lesson."
   },

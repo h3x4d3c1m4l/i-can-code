@@ -35,6 +35,9 @@ class LessonCompletePanel extends StatelessWidget {
   /// language, which leaves [onLeave] as the only way on.
   final VoidCallback? onNextLesson;
 
+  /// Fires another burst of confetti. Null leaves the button out.
+  final VoidCallback? onMoreConfetti;
+
   /// Back to the lesson's last step. The end page is past the last step rather
   /// than instead of it, so there is always somewhere behind it.
   final VoidCallback onBack;
@@ -58,6 +61,7 @@ class LessonCompletePanel extends StatelessWidget {
     required this.backLabel,
     this.emoji,
     this.onNextLesson,
+    this.onMoreConfetti,
     super.key,
   });
 
@@ -122,7 +126,32 @@ class LessonCompletePanel extends StatelessWidget {
             ),
           ],
         ),
+        // Left out under reduced motion, where the burst draws nothing and the
+        // button would do nothing.
+        if (onMoreConfetti case final VoidCallback more when !MediaQuery.disableAnimationsOf(context)) ...[
+          const SizedBox(height: 28),
+          _buildMoreConfetti(context, more),
+        ],
       ],
+    );
+  }
+
+  /// Quiet on purpose: muted and small, so it reads as a bonus beside the two
+  /// ways on rather than as a third one.
+  Widget _buildMoreConfetti(BuildContext context, VoidCallback onPress) {
+    final colors = context.theme.colors;
+
+    return FTappable(
+      semanticsButton: true,
+      onPress: onPress,
+      builder: (context, states, child) => Opacity(
+        opacity: states.contains(FTappableVariant.hovered) ? 1 : 0.7,
+        child: child,
+      ),
+      child: Text(
+        context.localizations.lessonScreen_moreConfetti,
+        style: context.appTheme.text.bodySmall.copyWith(color: colors.mutedForeground),
+      ),
     );
   }
 

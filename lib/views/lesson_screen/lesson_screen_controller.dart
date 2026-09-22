@@ -65,7 +65,10 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     final result = await _runner.attempt(code: code, validator: section.validator, stdin: section.stdin);
     if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
-    if (result.passed) await _remember(section);
+    if (!result.passed) return;
+
+    viewModel.notePassBurst();
+    await _remember(section);
   }
 
   /// Runs a predict-output step's own program and shows what it printed.
@@ -218,6 +221,9 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
     if (!wasFinished && _progress.isFinished(viewModel.lesson)) viewModel.noteLessonFinished();
   }
+
+  /// One more burst over the end page, for the fun of it.
+  void moreConfetti() => viewModel.addExtraBurst();
 
   /// Opens the next lesson in this language, or the catalog when this was the
   /// last one.

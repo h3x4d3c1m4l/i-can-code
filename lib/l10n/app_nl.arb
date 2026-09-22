@@ -33,6 +33,7 @@
   "lessonScreen_optional": "Verdieping",
   "lessonScreen_skip": "Overslaan",
   "lessonScreen_complete": "Afronden",
+  "lessonScreen_moreConfetti": "🎉 Meer confetti",
   "lessonScreen_completeTitle": "{lesson} afgerond!",
   "@lessonScreen_completeTitle": {
     "placeholders": {

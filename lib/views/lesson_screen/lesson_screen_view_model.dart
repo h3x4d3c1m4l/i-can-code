@@ -98,6 +98,15 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   bool _earnedCelebration = false;
 
+  /// How many exercises have passed on this visit. Each one is a small burst of
+  /// its own, keyed on this count, so a second pass fires again.
+  @readonly
+  int _passBursts = 0;
+
+  /// How many times the end page's confetti button was pressed.
+  @readonly
+  int _extraBursts = 0;
+
   /// Which way the student last moved, which is the direction the step that is
   /// leaving slides out and the one arriving slides in.
   ///
@@ -211,6 +220,12 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// Notes that the tick just recorded is what finished the lesson.
   @action
   void noteLessonFinished() => _earnedCelebration = true;
+
+  @action
+  void notePassBurst() => _passBursts++;
+
+  @action
+  void addExtraBurst() => _extraBursts++;
 
   @action
   void setCode(String code) => _code = {..._code, _step: code};

@@ -3,7 +3,8 @@ import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 
-/// Two cannons in the bottom corners, fired once when this widget appears.
+/// Confetti fired once when this widget appears: two cannons in the bottom
+/// corners, or one small puff from the bottom centre for a passed exercise.
 ///
 /// A widget rather than `Confetti.launch`, which is the package's headline API:
 /// that one inserts an [OverlayEntry] into the enclosing [Navigator], so the
@@ -20,7 +21,13 @@ import 'package:i_can_code/theme/app_theme.dart';
 /// both `reduceMotion` and `disableAnimations`.
 class ConfettiBurst extends StatefulWidget {
 
-  const ConfettiBurst({super.key});
+  /// A pass is celebrated many times per lesson, so it gets a fraction of what
+  /// finishing the lesson gets.
+  final bool small;
+
+  const ConfettiBurst({super.key}) : small = false;
+
+  const ConfettiBurst.small({super.key}) : small = true;
 
   @override
   State<ConfettiBurst> createState() => _ConfettiBurstState();
@@ -40,6 +47,18 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
 
     final colors = _palette(context);
 
+    if (widget.small) {
+      return _buildCannon(
+        controller: _left,
+        x: 0.5,
+        angle: 90,
+        colors: colors,
+        particleCount: 36,
+        spread: 70,
+        startVelocity: 40,
+      );
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -56,6 +75,9 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
     required double x,
     required double angle,
     required List<Color> colors,
+    int particleCount = 60,
+    double spread = 62,
+    double startVelocity = 52,
   }) {
     return Confetti(
       controller: controller,
@@ -64,10 +86,10 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
       instant: true,
       options: ConfettiOptions(
         colors: colors,
-        particleCount: 60,
+        particleCount: particleCount,
         angle: angle,
-        spread: 62,
-        startVelocity: 52,
+        spread: spread,
+        startVelocity: startVelocity,
         scalar: 1.1,
         x: x,
         y: 0.82,

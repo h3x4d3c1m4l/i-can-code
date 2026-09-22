@@ -968,17 +968,45 @@ void main() {
   });
 
   group('LessonCompletePanel', () {
-    Widget panel({int completedSteps = 3, VoidCallback? onNextLesson}) => LessonCompletePanel(
+    Widget panel({int completedSteps = 3, VoidCallback? onNextLesson, VoidCallback? onMoreConfetti}) =>
+        LessonCompletePanel(
       emoji: '\u{2328}\u{FE0F}',
       title: 'Invoer en uitvoer',
       completedSteps: completedSteps,
       stepCount: 3,
       onNextLesson: onNextLesson,
+      onMoreConfetti: onMoreConfetti,
       onBack: () {},
       backLabel: 'Vorige stap',
       onLeave: () {},
       leaveLabel: 'Terug naar Python',
     );
+
+    testWidgets('offers more confetti, quietly', (tester) async {
+      var presses = 0;
+      await tester.pumpWidget(_host(panel(onMoreConfetti: () => presses++)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('🎉 Meer confetti'));
+      await tester.pumpAndSettle();
+      expect(presses, 1);
+    });
+
+    testWidgets('leaves the confetti button out for a reader who asked for less motion', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: panel(onMoreConfetti: () {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('🎉 Meer confetti'), findsNothing);
+    });
 
     testWidgets('a finished lesson is named as finished', (tester) async {
       await tester.pumpWidget(_host(panel()));
@@ -1057,6 +1085,18 @@ void main() {
       await tester.pump();
 
       expect(find.byType(Confetti), findsNothing);
+    });
+
+    testWidgets('a small burst is one cannon, straight up from the middle', (tester) async {
+      await tester.pumpWidget(_host(const SizedBox(width: 600, height: 400, child: ConfettiBurst.small())));
+      await tester.pump();
+
+      final cannons = tester.widgetList<Confetti>(find.byType(Confetti)).toList();
+      expect(cannons, hasLength(1));
+      expect(cannons.single.options!.x, 0.5);
+      expect(cannons.single.options!.angle, 90);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 
