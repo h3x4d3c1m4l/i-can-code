@@ -78,7 +78,41 @@ class AppButton extends StatelessWidget {
   /// control rather than as a panel.
   static const double outlineWidth = 1;
 
+  /// A filled button's own edge — [AppButtonTone.primary] and
+  /// [AppButtonTone.neutral]. Thick and playful on purpose, unlike
+  /// [outlineWidth]: this ring is what gives a filled button its toy-block
+  /// look, the same job the collar and the gloss below do.
+  static const double _bevelOutlineWidth = 3;
+
+  /// How far the collar shows beneath a filled button, and how far it sinks
+  /// when pressed. A [BoxShadow] with no blur rather than a second widget: a
+  /// [ShapeDecoration]'s shadows are already clipped to its own shape, so one
+  /// solid, unblurred, downward shadow reads as a hard-edged rim instead of a
+  /// soft drop shadow.
+  static const double _collarHeight = 4;
+
+  /// How much darker the outline and the collar are than the fill they sit
+  /// on, in [HSLColor] lightness. Two different amounts, not one: an edge and
+  /// a shadow drawn in the same shade would fuse into one ring under the
+  /// button's own corner curve.
+  static const double _outlineDarken = 0.28;
+  static const double _collarDarken = 0.18;
+
+  /// The gloss along a filled button's top, front to back. A flat highlight
+  /// gradient rather than a lit-from-above shader: cheap, and it is what
+  /// turns a flat fill into something that reads as a rounded, pressable cap.
+  static const Color _glossTop = Color(0x59FFFFFF);
+  static const Color _glossBottom = Color(0x00FFFFFF);
+
   static const Color _transparent = Color(0x00000000);
+
+  /// [color], darkened by [amount] of its own lightness. Used for a filled
+  /// button's own outline and collar, so neither needs a design token of its
+  /// own — they are a shade of the button's own fill, and move with it.
+  static Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness((hsl.lightness - amount).clamp(0, 1)).toColor();
+  }
 
   /// The label. Null on an icon-only button — see [AppButton.icon].
   final Widget? child;
@@ -243,40 +277,82 @@ class AppButton extends StatelessWidget {
     final semantic = context.appTheme.colors;
     final enabled = onPress != null;
 
+    // Only a filled button gets the bevel — [AppButtonTone.outline] has no
+    // fill for a collar or a gloss to sit on.
+    final bevelled = tone != AppButtonTone.outline;
+
     final (background, foreground) = switch (tone) {
       AppButtonTone.primary => (theme.colors.primary, theme.colors.primaryForeground),
       AppButtonTone.neutral => (semantic.neutralButton, semantic.neutralButtonForeground),
       AppButtonTone.outline => (_transparent, semantic.neutralButton),
     };
 
+    final outlineColor = _darken(background, _outlineDarken).withValues(alpha: enabled ? 1 : 0.4);
+    final collarColor = _darken(background, _collarDarken).withValues(alpha: enabled ? 1 : 0.4);
+
     return FTappable(
       onPress: onPress,
       semanticsButton: true,
       semanticsLabel: semanticsLabel,
-      builder: (context, states, child) => DecoratedBox(
-        decoration: ShapeDecoration(
-          color: _fillFor(states, background: background, foreground: foreground),
-          shape: squircle(
-            kControlCornerRadius,
-            side: tone == AppButtonTone.outline
-                ? BorderSide(
-                    color: semantic.neutralButton.withValues(alpha: enabled ? 1 : 0.4),
-                    width: outlineWidth,
-                  )
-                : BorderSide.none,
-          ),
-        ),
-        child: Stack(
-          children: [
-            if (progress != null) Positioned.fill(child: _buildProgress(context, foreground)),
-            Padding(
-              // The design's own measurements: 38 across, 19 down.
-              padding: this.child == null ? _iconPadding : _labelPadding,
-              child: child,
+      builder: (context, states, child) {
+        // Pressed sinks the face into the collar instead of just losing its
+        // shadow: the shadow's own bottom edge is where the translated face
+        // lands, so the button's bottom edge does not appear to move.
+        final pressed = states.contains(FTappableVariant.pressed);
+
+        final decorated = DecoratedBox(
+          decoration: ShapeDecoration(
+            color: _fillFor(states, background: background, foreground: foreground),
+            shape: squircle(
+              kControlCornerRadius,
+              side: switch (tone) {
+                AppButtonTone.outline => BorderSide(
+                  color: semantic.neutralButton.withValues(alpha: enabled ? 1 : 0.4),
+                  width: outlineWidth,
+                ),
+                AppButtonTone.primary || AppButtonTone.neutral => BorderSide(
+                  color: outlineColor,
+                  width: _bevelOutlineWidth,
+                ),
+              },
             ),
-          ],
-        ),
-      ),
+            shadows: bevelled && !pressed
+                ? [BoxShadow(color: collarColor, offset: const Offset(0, _collarHeight))]
+                : null,
+          ),
+          child: ClipPath(
+            clipper: ShapeBorderClipper(shape: squircle(kControlCornerRadius)),
+            child: Stack(
+              children: [
+                if (bevelled)
+                  const Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [_glossTop, _glossBottom],
+                          stops: [0, 0.6],
+                        ),
+                      ),
+                    ),
+                  ),
+                if (progress != null) Positioned.fill(child: _buildProgress(context, foreground)),
+                Padding(
+                  // The design's own measurements: 38 across, 19 down.
+                  padding: this.child == null ? _iconPadding : _labelPadding,
+                  child: child,
+                ),
+              ],
+            ),
+          ),
+        );
+
+        // Transform, not a resize: the same reason `busy` keeps the label's
+        // own box laid out. A button that grew or shrank on press would also
+        // shift whatever sits below it in an [AppButtonRow].
+        return bevelled ? Transform.translate(offset: Offset(0, pressed ? _collarHeight : 0), child: decorated) : decorated;
+      },
       child: DefaultTextStyle(
         style: context.appTheme.text.label.copyWith(
           fontSize: 18,
