@@ -561,6 +561,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         status: _statusLabel(context),
         height: editorHeight,
         maxLines: maxLines,
+        starterCode: section.starter ?? '',
       ),
       const SizedBox(height: 16),
       if (_buildInput(context, section) case final Widget input) ...[

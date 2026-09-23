@@ -278,8 +278,9 @@ void main() {
         'editor': find.byType(CodeEditor),
         'back': find.byWidgetPredicate((widget) => widget is AppButton && widget.semanticsLabel == 'Terug naar Python'),
         'run': find.byType(RunButton),
-      }, steps: 3);
-      expect(visited, ['back', 'run', 'editor'], reason: 'out of the editor, round the page and back in');
+        'reset': find.bySemanticsLabel('Code herstellen'),
+      }, steps: 4);
+      expect(visited, ['back', 'run', 'reset', 'editor'], reason: 'out of the editor, round the page and back in');
 
       await _moveOn(tester, backwards: true);
       expect(_inEditor(), isFalse, reason: 'backwards out of it too');

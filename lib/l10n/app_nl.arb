@@ -221,5 +221,9 @@
   "codeEditorCard_leaveHint": "Esc, dan Tab: verlaten",
   "@codeEditorCard_leaveHint": {
     "description": "Staat in de bovenste strook van de code-editor zolang die het toetsenbord heeft. Tab laat daar code inspringen, dus Esc en daarna Tab (of Shift+Tab) brengt het toetsenbord naar het volgende onderdeel. Houd het kort: het deelt één regel met de bestandsnaam en de status."
-  }
+  },
+  "codeEditorCard_reset": "Code herstellen",
+  "resetCode_title": "Code herstellen?",
+  "resetCode_body": "Je code gaat terug naar hoe de opdracht begon. Dit kun je niet ongedaan maken.",
+  "resetCode_confirm": "Herstel"
 }

@@ -396,5 +396,15 @@
   "codeEditorCard_leaveHint": "Esc, then Tab to leave",
   "@codeEditorCard_leaveHint": {
     "description": "Shown in the code editor's top strip while it has the keyboard. Tab indents code there, so pressing Esc and then Tab (or Shift+Tab) is how the keyboard moves on to the next control. Keep it short: it shares one line with the file name and the status."
-  }
+  },
+  "codeEditorCard_reset": "Reset code",
+  "@codeEditorCard_reset": {
+    "description": "Semantics label for the icon button in the code editor's top strip that restores the exercise's starter code."
+  },
+  "resetCode_title": "Reset this code?",
+  "@resetCode_title": {},
+  "resetCode_body": "Your code goes back to how the exercise started. This cannot be undone.",
+  "@resetCode_body": {},
+  "resetCode_confirm": "Reset",
+  "@resetCode_confirm": {}
 }

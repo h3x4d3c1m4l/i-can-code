@@ -72,6 +72,28 @@ Widget _hostWithOverlay(Widget child) =>
       ),
     );
 
+/// [_host]'s theme and locale, under a real [Navigator] rather than a scroll
+/// view: `showFDialog` looks one up, the same reason `app_header_test.dart`
+/// builds one for the settings menu's own confirm dialog.
+Widget _hostWithNavigator(Widget child) => FTheme(
+  data: buildAppTheme(),
+  child: Localizations(
+    locale: const Locale('nl'),
+    delegates: AppLocalizations.localizationsDelegates,
+    child: Directionality(
+      textDirection: TextDirection.ltr,
+      child: MediaQuery(
+        data: const MediaQueryData(size: Size(1200, 800)),
+        child: Navigator(
+          onGenerateRoute: (_) => PageRouteBuilder<void>(
+            pageBuilder: (_, _, _) => Align(child: SizedBox(width: 700, child: child)),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
 List<String> _titles(int count) => [for (var step = 1; step <= count; step++) 'Stap $step'];
 
 void main() {
@@ -661,6 +683,44 @@ void main() {
         height,
         reason: '80 lines must scroll inside the editor, not stretch the page',
       );
+    });
+
+    testWidgets('no reset button when there is no starter code to reset to', (tester) async {
+      final controller = CodeLineEditingController.fromText('print(1)');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Code herstellen'), findsNothing);
+    });
+
+    testWidgets('a reset button restores the starter code, after asking', (tester) async {
+      final controller = CodeLineEditingController.fromText('print("gewijzigd")');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          CodeEditorCard(controller: controller, status: 'python', starterCode: 'print("start")'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Code herstellen'));
+      await tester.pumpAndSettle();
+
+      // Irreversible, so it asks, and backing out leaves the code alone.
+      expect(find.text('Code herstellen?'), findsOneWidget);
+      await tester.tap(find.text('Annuleren'));
+      await tester.pumpAndSettle();
+      expect(controller.text, 'print("gewijzigd")');
+
+      await tester.tap(find.bySemanticsLabel('Code herstellen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Herstel'));
+      await tester.pumpAndSettle();
+
+      expect(controller.text, 'print("start")');
     });
   });
 
