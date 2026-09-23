@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/presets/app_color_preset.dart';
@@ -32,14 +32,27 @@ FThemeData buildAppTheme({
     ),
   );
 
+  final style = FStyle.inherit(colors: colors, typography: typography, touch: _touch).copyWith(
+    borderRadius: kBorderRadius,
+    tappableStyle: _clickCursor,
+  );
+
   return FThemeData(
     touch: _touch,
     debugLabel: '${preset.name} ${brightness.name}',
     colors: colors,
     typography: typography,
-    style: FStyle.inherit(colors: colors, typography: typography, touch: _touch).copyWith(
-      borderRadius: kBorderRadius,
-      tappableStyle: _clickCursor,
+    style: style,
+    dialogStyle: FDialogStyle.inherit(
+      colors: colors,
+      typography: typography,
+      style: style,
+      hapticFeedback: const FHapticFeedback(),
+      touch: _touch,
+    ).copyWith(
+      decoration: DecorationDelta.shapeDelta(
+        shape: squircle(kHeroTileCornerRadius, side: BorderSide(color: colors.border, width: style.borderWidth)),
+      ),
     ),
     // **Both** places, and they are not the same object.
     //
