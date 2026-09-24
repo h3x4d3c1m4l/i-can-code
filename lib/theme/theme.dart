@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/presets/app_color_preset.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
@@ -50,8 +51,20 @@ FThemeData buildAppTheme({
       hapticFeedback: const FHapticFeedback(),
       touch: _touch,
     ).copyWith(
+      // The bevel `CatalogCard` wears, standing still: a dialog is not pressed.
       decoration: DecorationDelta.shapeDelta(
-        shape: squircle(kHeroTileCornerRadius, side: BorderSide(color: colors.border, width: style.borderWidth)),
+        shape: squircle(
+          kHeroTileCornerRadius,
+          side: BorderSide(
+            // On a dark card the `border` token is already lighter than the
+            // card, so darkening it would sink the edge into the fill.
+            color: brightness == Brightness.dark ? colors.border : colors.border.darken(_dialogEdgeDarken),
+            width: _dialogEdgeWidth,
+          ),
+        ),
+        shadows: [
+          BoxShadow(color: colors.border.darken(_dialogCollarDarken), offset: const Offset(0, _dialogCollarHeight)),
+        ],
       ),
     ),
     // **Both** places, and they are not the same object.
@@ -67,6 +80,13 @@ FThemeData buildAppTheme({
     extensions: [AppTheme.of(preset, brightness)],
   );
 }
+
+/// The dialog's bevel, in the same numbers as `CatalogCard`'s so the two read
+/// as one material.
+const double _dialogEdgeWidth = 2.5;
+const double _dialogCollarHeight = 6;
+const double _dialogEdgeDarken = 0.12;
+const double _dialogCollarDarken = 0.28;
 
 /// A pointer over anything tappable, and the plain arrow when it is disabled.
 ///
