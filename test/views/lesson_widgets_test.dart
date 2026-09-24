@@ -1189,7 +1189,7 @@ void main() {
       expect(await iconX(AppButtonIconSide.leading), lessThan(labelX));
     });
 
-    testWidgets('an outlined button draws an edge and no fill', (tester) async {
+    testWidgets('an outlined button draws an edge around the page colour', (tester) async {
       await tester.pumpWidget(
         _host(
           Align(
@@ -1211,10 +1211,11 @@ void main() {
                   .decoration
               as ShapeDecoration;
       final neutralButton = AppTheme.of(AppColorPreset.neutral).colors.neutralButton;
+      final page = tester.element(find.byType(AppButton)).theme.colors.background;
 
-      // The page shows through it: an outline that filled would be the neutral
-      // tone with a line round it.
-      expect(decoration.color?.a ?? 0, 0);
+      // The page's own colour, opaque so the collar under it cannot show
+      // through. A fill of its own would make it the neutral tone.
+      expect(decoration.color, page);
       // The colour the neutral tone is *filled* with, so the two read as the
       // same button with and without its fill.
       expect((decoration.shape as ContinuousRectangleBorder).side.color, neutralButton);

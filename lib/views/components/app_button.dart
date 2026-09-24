@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 
@@ -27,7 +28,7 @@ enum AppButtonTone {
   /// read as a hole punched in the cream at that size. See the token's own doc.
   neutral,
 
-  /// Quieter still: an outline and no fill, for a step *back*.
+  /// Quieter still: an outline around the page's own colour, for a step *back*.
   ///
   /// Drawn in the same `neutralButton` colour [neutral] is *filled* with, so
   /// the two read as the same button with and without its fill — which is why
@@ -68,23 +69,17 @@ class AppButton extends StatelessWidget {
   static const double _iconSize = 20;
   static const double _iconGap = 10;
 
-  static const EdgeInsets _labelPadding = EdgeInsets.symmetric(horizontal: 38, vertical: 19);
+  static const EdgeInsets _labelPadding = EdgeInsets.symmetric(horizontal: 38, vertical: 16);
 
   /// Square-ish, for a button with nothing to read in it.
-  static const EdgeInsets _iconPadding = EdgeInsets.symmetric(horizontal: 19, vertical: 19);
+  static const EdgeInsets _iconPadding = EdgeInsets.symmetric(horizontal: 19, vertical: 16);
 
-  /// [AppButtonTone.outline]'s edge. Public because it is a matter of taste:
-  /// thinner than the 2 an outlined card takes, so the button reads as a
-  /// control rather than as a panel.
-  static const double outlineWidth = 1;
-
-  /// A filled button's own edge — [AppButtonTone.primary] and
-  /// [AppButtonTone.neutral]. Thick and playful on purpose, unlike
-  /// [outlineWidth]: this ring is what gives a filled button its toy-block
-  /// look, the same job the collar and the gloss below do.
+  /// Every tone's edge. Thick and playful on purpose: this ring is what gives
+  /// a button its toy-block look, the same job the collar and the gloss below
+  /// do.
   static const double _bevelOutlineWidth = 3;
 
-  /// How far the collar shows beneath a filled button, and how far it sinks
+  /// How far the collar shows beneath a button, and how far it sinks
   /// when pressed. A [BoxShadow] with no blur rather than a second widget: a
   /// [ShapeDecoration]'s shadows are already clipped to its own shape, so one
   /// solid, unblurred, downward shadow reads as a hard-edged rim instead of a
@@ -98,21 +93,11 @@ class AppButton extends StatelessWidget {
   static const double _outlineDarken = 0.28;
   static const double _collarDarken = 0.18;
 
-  /// The gloss along a filled button's top, front to back. A flat highlight
+  /// The gloss along a button's top, front to back. A flat highlight
   /// gradient rather than a lit-from-above shader: cheap, and it is what
   /// turns a flat fill into something that reads as a rounded, pressable cap.
   static const Color _glossTop = Color(0x59FFFFFF);
   static const Color _glossBottom = Color(0x00FFFFFF);
-
-  static const Color _transparent = Color(0x00000000);
-
-  /// [color], darkened by [amount] of its own lightness. Used for a filled
-  /// button's own outline and collar, so neither needs a design token of its
-  /// own — they are a shade of the button's own fill, and move with it.
-  static Color _darken(Color color, double amount) {
-    final hsl = HSLColor.fromColor(color);
-    return hsl.withLightness((hsl.lightness - amount).clamp(0, 1)).toColor();
-  }
 
   /// The label. Null on an icon-only button — see [AppButton.icon].
   final Widget? child;
@@ -178,8 +163,12 @@ class AppButton extends StatelessWidget {
   /// What the button is filled with in [states].
   ///
   /// A filled tone fades its own colour. An outlined one has no colour to fade
-  /// — the fill *is* the page — so it tints with the ink instead, which is the
+  /// — its face *is* the page — so it tints with the ink instead, which is the
   /// only thing that gives it a hover and a press at all.
+  ///
+  /// The outlined face is opaque, blended onto [background], because the collar
+  /// is a shadow drawn under the whole shape and would show through a
+  /// transparent face.
   Color _fillFor(
     Set<FTappableVariant> states, {
     required Color background,
@@ -187,10 +176,12 @@ class AppButton extends StatelessWidget {
   }) {
     if (tone == AppButtonTone.outline) {
       return switch (states) {
-        _ when states.contains(FTappableVariant.disabled) => _transparent,
-        _ when states.contains(FTappableVariant.pressed) => foreground.withValues(alpha: 0.16),
-        _ when states.contains(FTappableVariant.hovered) => foreground.withValues(alpha: 0.08),
-        _ => _transparent,
+        _ when states.contains(FTappableVariant.disabled) => background,
+        _ when states.contains(FTappableVariant.pressed) =>
+          Color.alphaBlend(foreground.withValues(alpha: 0.16), background),
+        _ when states.contains(FTappableVariant.hovered) =>
+          Color.alphaBlend(foreground.withValues(alpha: 0.08), background),
+        _ => background,
       };
     }
 
@@ -277,18 +268,20 @@ class AppButton extends StatelessWidget {
     final semantic = context.appTheme.colors;
     final enabled = onPress != null;
 
-    // Only a filled button gets the bevel — [AppButtonTone.outline] has no
-    // fill for a collar or a gloss to sit on.
-    final bevelled = tone != AppButtonTone.outline;
-
+    // An outlined button MUST sit on the page: its face is the page's colour.
     final (background, foreground) = switch (tone) {
       AppButtonTone.primary => (theme.colors.primary, theme.colors.primaryForeground),
       AppButtonTone.neutral => (semantic.neutralButton, semantic.neutralButtonForeground),
-      AppButtonTone.outline => (_transparent, semantic.neutralButton),
+      AppButtonTone.outline => (theme.colors.background, semantic.neutralButton),
     };
 
-    final outlineColor = _darken(background, _outlineDarken).withValues(alpha: enabled ? 1 : 0.4);
-    final collarColor = _darken(background, _collarDarken).withValues(alpha: enabled ? 1 : 0.4);
+    // The outlined tone's edge and collar are its ink: a darker shade of the
+    // page would be as faint as a card's border.
+    final (edge, collar) = tone == AppButtonTone.outline
+        ? (semantic.neutralButton, semantic.neutralButton)
+        : (background.darken(_outlineDarken), background.darken(_collarDarken));
+    final outlineColor = edge.withValues(alpha: enabled ? 1 : 0.4);
+    final collarColor = collar.withValues(alpha: enabled ? 1 : 0.4);
 
     return FTappable(
       onPress: onPress,
@@ -305,18 +298,9 @@ class AppButton extends StatelessWidget {
             color: _fillFor(states, background: background, foreground: foreground),
             shape: squircle(
               kControlCornerRadius,
-              side: switch (tone) {
-                AppButtonTone.outline => BorderSide(
-                  color: semantic.neutralButton.withValues(alpha: enabled ? 1 : 0.4),
-                  width: outlineWidth,
-                ),
-                AppButtonTone.primary || AppButtonTone.neutral => BorderSide(
-                  color: outlineColor,
-                  width: _bevelOutlineWidth,
-                ),
-              },
+              side: BorderSide(color: outlineColor, width: _bevelOutlineWidth),
             ),
-            shadows: bevelled && !pressed
+            shadows: !pressed
                 ? [BoxShadow(color: collarColor, offset: const Offset(0, _collarHeight))]
                 : null,
           ),
@@ -324,19 +308,18 @@ class AppButton extends StatelessWidget {
             clipper: ShapeBorderClipper(shape: squircle(kControlCornerRadius)),
             child: Stack(
               children: [
-                if (bevelled)
-                  const Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [_glossTop, _glossBottom],
-                          stops: [0, 0.6],
-                        ),
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [_glossTop, _glossBottom],
+                        stops: [0, 0.6],
                       ),
                     ),
                   ),
+                ),
                 if (progress != null) Positioned.fill(child: _buildProgress(context, foreground)),
                 Padding(
                   // The design's own measurements: 38 across, 19 down.
@@ -351,11 +334,15 @@ class AppButton extends StatelessWidget {
         // Transform, not a resize: the same reason `busy` keeps the label's
         // own box laid out. A button that grew or shrank on press would also
         // shift whatever sits below it in an [AppButtonRow].
-        return bevelled ? Transform.translate(offset: Offset(0, pressed ? _collarHeight : 0), child: decorated) : decorated;
+        return Transform.translate(offset: Offset(0, pressed ? _collarHeight : 0), child: decorated);
       },
       child: DefaultTextStyle(
+        // The heading face, so a button reads as part of the same playful set
+        // as the titles rather than as a label in the body face.
         style: context.appTheme.text.label.copyWith(
-          fontSize: 18,
+          fontFamily: kDisplayFontFamily,
+          fontSize: 19,
+          fontWeight: FontWeight.w600,
           letterSpacing: 0,
           color: foreground.withValues(alpha: enabled ? 1 : 0.6),
         ),

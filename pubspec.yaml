@@ -71,18 +71,16 @@ flutter:
     - assets/microbit/
 
   fonts:
-    - family: Figtree
+    - family: Fredoka
       fonts:
-        - asset: assets/fonts/Figtree-400.ttf
+        - asset: assets/fonts/Fredoka-400.ttf
           weight: 400
-        - asset: assets/fonts/Figtree-500.ttf
+        - asset: assets/fonts/Fredoka-500.ttf
           weight: 500
-        - asset: assets/fonts/Figtree-600.ttf
+        - asset: assets/fonts/Fredoka-600.ttf
           weight: 600
-        - asset: assets/fonts/Figtree-700.ttf
+        - asset: assets/fonts/Fredoka-700.ttf
           weight: 700
-        - asset: assets/fonts/Figtree-800.ttf
-          weight: 800
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter-400.ttf

@@ -13,7 +13,7 @@ final Expando<AppTheme> _fallbackCache = Expando<AppTheme>('AppTheme fallback');
 
 /// The heading face. Bundled under `assets/fonts/`, not fetched at runtime.
 /// Shared by every colour preset; only colour is presettable.
-const String kDisplayFontFamily = 'Figtree';
+const String kDisplayFontFamily = 'Fredoka';
 
 /// The body face.
 const String kBodyFontFamily = 'Inter';
@@ -238,8 +238,8 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
           fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 58,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 58 * -0.04,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 58 * -0.01,
           height: 1,
         ),
         h1: TextStyle(
@@ -247,8 +247,8 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
           fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 46,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 46 * -0.035,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 46 * -0.01,
           height: 1.05,
         ),
         h2: TextStyle(
@@ -256,8 +256,8 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
           fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 34,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 34 * -0.03,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 34 * -0.005,
           height: 1.12,
         ),
         h3: TextStyle(
@@ -265,8 +265,8 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> with _$AppTextStylesTa
           fontFamilyFallback: kEmojiFontFallback,
           color: foreground,
           fontSize: 26,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 26 * -0.02,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           height: 1.2,
         ),
         body: TextStyle(
