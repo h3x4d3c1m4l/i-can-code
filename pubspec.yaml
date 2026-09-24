@@ -2,7 +2,7 @@ name: i_can_code
 description: "I Can Code - learn to code, in the browser."
 publish_to: 'none'
 
-version: 0.2.0+1
+version: 0.3.0+1
 
 environment:
   # The package's *language version*, which is what the compiler allows generated
