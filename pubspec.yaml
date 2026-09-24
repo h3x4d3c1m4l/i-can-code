@@ -81,17 +81,17 @@ flutter:
           weight: 600
         - asset: assets/fonts/Fredoka-700.ttf
           weight: 700
-    - family: Inter
+    - family: Lexend
       fonts:
-        - asset: assets/fonts/Inter-400.ttf
+        - asset: assets/fonts/Lexend-400.ttf
           weight: 400
-        - asset: assets/fonts/Inter-500.ttf
+        - asset: assets/fonts/Lexend-500.ttf
           weight: 500
-        - asset: assets/fonts/Inter-600.ttf
+        - asset: assets/fonts/Lexend-600.ttf
           weight: 600
-        - asset: assets/fonts/Inter-700.ttf
+        - asset: assets/fonts/Lexend-700.ttf
           weight: 700
-        - asset: assets/fonts/Inter-800.ttf
+        - asset: assets/fonts/Lexend-800.ttf
           weight: 800
     - family: Noto Color Emoji
       fonts:

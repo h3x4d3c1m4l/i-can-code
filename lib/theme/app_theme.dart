@@ -16,7 +16,7 @@ final Expando<AppTheme> _fallbackCache = Expando<AppTheme>('AppTheme fallback');
 const String kDisplayFontFamily = 'Fredoka';
 
 /// The body face.
-const String kBodyFontFamily = 'Inter';
+const String kBodyFontFamily = 'Lexend';
 
 /// The code face.
 const String kCodeFontFamily = 'JetBrains Mono';
