@@ -127,6 +127,10 @@ class AppButton extends StatelessWidget {
   /// own label.
   final String? semanticsLabel;
 
+  /// Takes the keyboard when first built, unless something else in its focus
+  /// scope already has it.
+  final bool autofocus;
+
   const AppButton({
     required this.child,
     required this.onPress,
@@ -135,6 +139,7 @@ class AppButton extends StatelessWidget {
     this.tone = AppButtonTone.primary,
     this.busy = false,
     this.progress,
+    this.autofocus = false,
     super.key,
   }) : semanticsLabel = null,
        assert(progress == null || !busy, 'a button says how far it has got, or that it is working, not both');
@@ -154,6 +159,7 @@ class AppButton extends StatelessWidget {
     required String this.semanticsLabel,
     required this.onPress,
     this.tone = AppButtonTone.outline,
+    this.autofocus = false,
     super.key,
   }) : child = null,
        busy = false,
@@ -285,6 +291,7 @@ class AppButton extends StatelessWidget {
 
     return FTappable(
       onPress: onPress,
+      autofocus: autofocus,
       semanticsButton: true,
       semanticsLabel: semanticsLabel,
       builder: (context, states, child) {

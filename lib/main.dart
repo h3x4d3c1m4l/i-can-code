@@ -10,6 +10,7 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
+import 'package:i_can_code/services/tour_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,7 @@ void setupServices() {
     ..registerSingleton<LocaleController>(LocaleController())
     ..registerSingleton<ThemeModeController>(ThemeModeController())
     ..registerSingleton<ProgressStore>(ProgressStore())
+    ..registerSingleton<TourStore>(TourStore())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));
 }

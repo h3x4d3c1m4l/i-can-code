@@ -1,11 +1,25 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_header.dart';
+import 'package:i_can_code/views/components/debug_menu.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 import 'package:i_can_code/views/components/overlay_host.dart';
+import 'package:i_can_code/views/components/spotlight_scrim.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
+import 'package:i_can_code/views/components/tour_tip.dart';
+
+part 'app_header_host_tour.dart';
 
 /// What a screen can ask of the header.
 ///
@@ -73,6 +87,11 @@ class AppHeaderScope extends InheritedWidget {
 ///
 /// It is not persisted either. Reading one lesson without the chrome is not a
 /// setting about the app.
+///
+/// ## Introductions
+///
+/// Run here too, by [_HostTour] in `app_header_host_tour.dart`, because the
+/// bar's introduction starts by bringing the bar out of zen mode.
 class AppHeaderHost extends StatefulWidget {
 
   final Widget child;
@@ -84,7 +103,7 @@ class AppHeaderHost extends StatefulWidget {
 
 }
 
-class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot {
+class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements AppHeaderSlot {
 
   /// The bar arriving or leaving. The page does not move with it — see the
   /// band the bar slides in and out of, above.
@@ -105,6 +124,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
   final Map<Object, AppHeaderBuilder> _claims = {};
 
   /// Scoped to the visit, not to the session: [publish] puts it back on.
+  @override
   bool _zen = true;
 
   @override
@@ -133,46 +153,76 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
   Widget build(BuildContext context) {
     return AppHeaderScope(
       slot: this,
-      // The cog's menu and its dialog have nowhere to go otherwise: the bar is
-      // above the router, so the Overlay and Navigator every screen uses are
-      // below it. See [OverlayHost].
-      child: OverlayHost(
-        // The builder is a screen's, so it reads the screen's observables. They
-        // are tracked here rather than there, which is what lets the bar follow
-        // a lesson's step without the screen pushing anything at it.
-        child: Observer(
-          // A header that reads no observables at all is normal here — the
-          // language picker's trail is one fixed word — so the usual warning
-          // would fire on every screen that has nothing to watch.
-          warnWhenNoObservables: false,
-          builder: (context) {
-            final config = _builder?.call(context);
-            final offersZen = config?.offersZen ?? false;
-            final visible = config != null && !(offersZen && _zen);
-            final motion = context.motion(_slide);
+      child: TourTargetScope(
+        registry: _tourTargets,
+        // The cog's menu and its dialog have nowhere to go otherwise: the bar is
+        // above the router, so the Overlay and Navigator every screen uses are
+        // below it. See [OverlayHost].
+        child: OverlayHost(
+          // The builder is a screen's, so it reads the screen's observables. They
+          // are tracked here rather than there, which is what lets the bar follow
+          // a lesson's step without the screen pushing anything at it.
+          child: Observer(
+            // A header that reads no observables at all is normal here — the
+            // language picker's trail is one fixed word — so the usual warning
+            // would fire on every screen that has nothing to watch.
+            warnWhenNoObservables: false,
+            builder: (context) {
+              final config = _builder?.call(context);
+              final offersZen = config?.offersZen ?? false;
+              final visible = config != null && !(offersZen && _zen);
+              final motion = context.motion(_slide);
+              _followTour(context, config);
 
-            return Stack(
-              children: [
-                // The page has the whole window, at every width and whether the
-                // bar is showing or not, and its content passes *under* the bar
-                // rather than being cut off above it. What keeps the first
-                // screenful clear of the bar is the screen's own top padding —
-                // [AppHeader.height], which every screen with a header adds to
-                // it. A page inset from above instead would both clip its own
-                // content against an invisible edge and reflow the lesson every
-                // time either zen button was pressed.
-                Positioned.fill(child: widget.child),
-                // Below the bar in the stack, so the bar covers it on the way in
-                // rather than fading out on top of it. Nothing is behind it
-                // either way: the band it waits in is the bar's own.
-                if (offersZen) _buildShowBar(context, config, visible: visible, motion: motion),
-                _buildBar(context, config, visible: visible, motion: motion),
-              ],
-            );
-          },
+              // Inside the host's Navigator, which its dialog needs.
+              return DebugMenu(
+                child: CallbackShortcuts(
+                  bindings: {if (_touring) const SingleActivator(LogicalKeyboardKey.escape): _endTour},
+                  child: Stack(
+                    children: [
+                      // The page has the whole window, at every width and whether the
+                      // bar is showing or not, and its content passes *under* the bar
+                      // rather than being cut off above it. What keeps the first
+                      // screenful clear of the bar is the screen's own top padding —
+                      // [AppHeader.height], which every screen with a header adds to
+                      // it. A page inset from above instead would both clip its own
+                      // content against an invisible edge and reflow the lesson every
+                      // time either zen button was pressed.
+                      //
+                      // Out of reach under an introduction. Always wrapped and only
+                      // switched, because a wrapper that came and went would rebuild
+                      // the router under it from nothing.
+                      Positioned.fill(
+                        child: ExcludeSemantics(
+                          excluding: _touring,
+                          child: ExcludeFocus(excluding: _touring, child: widget.child),
+                        ),
+                      ),
+                      // Below the bar in the stack, so the bar covers it on the way in
+                      // rather than fading out on top of it. Nothing is behind it
+                      // either way: the band it waits in is the bar's own.
+                      if (offersZen) _buildShowBar(context, config, visible: visible, motion: motion),
+                      _buildBar(context, config, visible: visible, motion: motion),
+                      if (_touring) _buildTour(context),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  void _showBar() {
+    setState(() => _zen = false);
+    _tourBarShown();
+  }
+
+  void _hideBar() {
+    setState(() => _zen = true);
+    _tourBarHidden();
   }
 
   Widget _buildBar(
@@ -184,6 +234,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
     return AnimatedPositioned(
       duration: motion,
       curve: _curve,
+      onEnd: _tourBarSettled,
       top: visible ? 0 : -AppHeader.height,
       left: 0,
       right: 0,
@@ -204,7 +255,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
                     crumbs: config.crumbs,
                     onTapHome: config.onTapHome,
                     trailing: config.trailing,
-                    onHide: config.offersZen ? () => setState(() => _zen = true) : null,
+                    onHide: config.offersZen ? _hideBar : null,
                     version: config.version,
                   ),
                 ),
@@ -255,10 +306,13 @@ class _AppHeaderHostState extends State<AppHeaderHost> implements AppHeaderSlot 
                   ),
                   const SizedBox(width: 12),
                 ],
-                HeaderIconButton(
-                  icon: FLucideIcons.panelTopOpen,
-                  semanticsLabel: context.localizations.appHeader_showBar,
-                  onPress: () => setState(() => _zen = false),
+                TourTarget(
+                  id: AppHeaderPart.showBar,
+                  child: HeaderIconButton(
+                    icon: FLucideIcons.panelTopOpen,
+                    semanticsLabel: context.localizations.appHeader_showBar,
+                    onPress: _showBar,
+                  ),
                 ),
               ],
             ),

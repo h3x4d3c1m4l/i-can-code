@@ -7,6 +7,7 @@ import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_view_model.dart';
 
@@ -41,6 +42,9 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       // Reading progress needs the course loaded, and swallows its own
       // failures.
       await GetIt.I<ProgressStore>().load(course);
+      // Swallows its own failures too: an introduction shown twice costs
+      // nothing worth failing a start over.
+      await GetIt.I<TourStore>().load();
       if (_disposed) return;
     } on Object catch (error) {
       if (!_disposed) viewModel.setError('$error');

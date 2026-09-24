@@ -131,6 +131,28 @@ Three rules behind that shape:
 
 `HeaderIconButton` is the icon button all three are — the cog, and the two that hide and show the bar. Not `AppButton.icon`, which is padded `19 × 19` to stand beside a line of text and is far too big for a 76px bar.
 
+### Introductions
+
+The first time a screen is opened in this browser, it can dim the window and light up one part at a time, with a tip under each explaining what it does. **`AppHeaderHost` runs every introduction**, including ones about a screen's own page, because the bar's introduction starts by bringing the bar out of zen mode and only the host can do that. The code is the host's `_HostTour` mixin, in `app_header_host_tour.dart`. That file is a `part` of the host so the mixin can reach its private state, and the host only calls `_followTour` and reports the bar through three `_tourBar…` hooks. A screen asks for them through its header:
+
+- `AppHeaderConfig.barTourId` introduces the bar: the show-bar button, every crumb with an `AppCrumb.tip`, `trailing` when it has a `trailingTip`, the cog, and the hide button. The lesson screen uses `'lesson'`.
+- `AppHeaderConfig.tours` holds `AppTour`s about the page, offered for as long as the header builder offers them. The lesson screen offers `'deep-dive'` while an optional step is showing, and it points at the whole `OptionalStepBanner` row. A page's parts are named by an enum of their own, as the bar's are by `AppHeaderPart`: `LessonTourPart` for the lesson screen.
+
+A part is found by wrapping it in `TourTarget(id: ...)`, anywhere under the host. **Not a `GlobalKey`**: `FadeThrough` and `StepTransition` keep the outgoing copy mounted while the new one comes in, and two copies of one key throw. With a registry, the later copy wins. A stop whose target is not on screen is skipped.
+
+Rules it keeps:
+
+- **What is lit is live.** `SpotlightScrim` cuts the hole out of its paint *and* its hit test with one `ClipPath`, so a press in the hole reaches the real control and a press anywhere else is swallowed. The show-bar stop has no Next: the reader presses the button. A lit control that navigates ends the introduction, because the screen stops offering it.
+- **The hole is a squircle**, which is why this is not showcaseview or tutorial_coach_mark: both only cut a rounded rectangle or a circle. The path is even-odd, **not `Path.combine`**, which came out as the whole rectangle on the web build, so there was nothing lit and nothing to press. The widget tests passed either way. Check a change to the scrim in a browser.
+- **Seen is recorded however it ends**: Klaar, Overslaan, Escape, the hide button, or a lit control that navigated. `TourStore` keeps it in `shared_preferences` under `tours.seen`, swallows its failures like `ProgressStore` does, and is loaded by the initialization screen. Clearing progress does **not** clear it.
+- The page is out of the focus and semantics trees while one runs. The tip takes the keyboard (`AppButton.autofocus`) and is a `FocusTraversalGroup` rather than a `FocusScope`, so Tab can still reach the show-bar button that the first stop asks for.
+
+**When you build something new that a student has to find or understand, consider giving it a stop.** That means a `TourTarget` on the part and a stop in an existing tour, or a new `AppTour` with an id of its own. A new id reaches every student, including ones who have seen the others. Adding a stop to a tour they have already seen reaches only new students.
+
+### Debug menu
+
+**Alt+B** (Option+B on a Mac) opens `DebugMenu` in debug builds. It registers nothing unless `kDebugMode` is set, so release builds do not get it. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". Today it offers "Show tips again", which clears `TourStore`. The current screen then offers its introduction again right away. Put new developer tools here too. Its text is not localized because no student ever sees it.
+
 ### Motion
 
 **A duration reaches an animated widget through `context.motion(duration)`**, which returns `Duration.zero` when `MediaQueryData.disableAnimations` is set — on the web, `prefers-reduced-motion: reduce`. The animation still ends where it was going, it just gets there in one frame. `ConfettiBurst`, which draws nothing at all under that flag, is the one thing that opts out of animating rather than shortening.

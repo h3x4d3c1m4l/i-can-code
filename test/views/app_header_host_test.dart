@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -11,11 +12,15 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
+import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
+import 'package:i_can_code/views/components/spotlight_scrim.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
+import 'package:i_can_code/views/components/tour_tip.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -24,7 +29,7 @@ const Key _screenKey = ValueKey('screen');
 
 /// Nothing above the host, the way the app shell has nothing above it: the
 /// Overlay and Navigator the bar's own cog needs are the host's to bring.
-Widget _host(ValueListenable<Widget> screen) => FTheme(
+Widget _host(ValueListenable<Widget> screen, {bool disableAnimations = false}) => FTheme(
   data: buildAppTheme(),
   child: Localizations(
     locale: const Locale('nl'),
@@ -32,7 +37,7 @@ Widget _host(ValueListenable<Widget> screen) => FTheme(
     child: Directionality(
       textDirection: TextDirection.ltr,
       child: MediaQuery(
-        data: const MediaQueryData(size: Size(800, 600)),
+        data: MediaQueryData(size: const Size(800, 600), disableAnimations: disableAnimations),
         child: AppHeaderHost(
           child: ValueListenableBuilder<Widget>(
             valueListenable: screen,
@@ -75,6 +80,11 @@ Widget _screen({
   Key? key,
   String? zenLabel,
   String? zenSemanticsLabel,
+  String? tourId,
+  List<AppTour> tours = const [],
+  Widget? trailing,
+  String? trailingTip,
+  Widget child = const SizedBox.expand(key: _screenKey),
 }) => AppHeaderPublisher(
   key: key,
   builder: (context) => AppHeaderConfig(
@@ -83,8 +93,12 @@ Widget _screen({
     offersZen: zen,
     zenLabel: zenLabel,
     zenSemanticsLabel: zenSemanticsLabel,
+    barTourId: tourId,
+    tours: tours,
+    trailing: trailing,
+    trailingTip: trailingTip,
   ),
-  child: const SizedBox.expand(key: _screenKey),
+  child: child,
 );
 
 double _topOf(WidgetTester tester, Finder finder) => tester.getTopLeft(finder).dy;
@@ -117,7 +131,8 @@ void main() {
     GetIt.I
       ..registerSingleton<LocaleController>(LocaleController())
       ..registerSingleton<ThemeModeController>(ThemeModeController())
-      ..registerSingleton<ProgressStore>(ProgressStore());
+      ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<TourStore>(TourStore());
   });
 
   tearDown(GetIt.I.reset);
@@ -416,6 +431,226 @@ void main() {
       expect(_semanticLabels(tester), isNot(contains('Balk tonen')));
       expect(_topOf(tester, find.byType(AppHeader)), 0);
       semantics.dispose();
+    });
+  });
+
+  group('the introduction', () {
+    const trailingKey = ValueKey('trailing');
+    const showBarTip = 'De balk bovenin is weggezet, zodat je rustig kunt lezen. '
+        'Druk op deze knop om hem terug te halen.';
+    const settingsTip = 'Hier kies je de taal en of de app licht of donker is. Je kunt hier ook je voortgang wissen.';
+    const hideBarTip = 'Met deze knop zet je de balk weer weg.';
+
+    /// A lesson's header: a crumb back to the catalog, a progress bar, zen.
+    Widget lesson({VoidCallback? onLeave, Key? key}) => _screen(
+      key: key,
+      // Not the last crumb, which is the current page and takes no press.
+      crumbs: [AppCrumb('Python', onTap: onLeave ?? () {}, tip: 'Terug naar de lijst.'), const AppCrumb('Les 1')],
+      zen: true,
+      tourId: 'lesson',
+      trailing: const SizedBox(key: trailingKey, width: 60, height: 8),
+      trailingTip: 'Elk streepje is een stap.',
+    );
+
+    bool seen() => GetIt.I<TourStore>().hasSeen('lesson');
+
+    testWidgets('lights the bar one part at a time, and the first one is pressed', (tester) async {
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+
+      expect(find.text(showBarTip), findsOneWidget);
+      expect(find.text('1 van 5'), findsOneWidget);
+      // The stop asks for the press itself, so it offers no way round it.
+      expect(find.text('Volgende'), findsNothing);
+
+      // Through the lit hole, onto the real button.
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+
+      expect(_topOf(tester, find.byType(AppHeader)), 0);
+      expect(find.text('Terug naar de lijst.'), findsOneWidget);
+      expect(
+        _topOf(tester, find.byType(TourTip)),
+        greaterThan(tester.getRect(find.text('Python')).bottom),
+        reason: 'the tip hangs under what it explains',
+      );
+
+      await tester.tap(find.text('Volgende'));
+      await tester.pumpAndSettle();
+      expect(find.text('Elk streepje is een stap.'), findsOneWidget);
+
+      await tester.tap(find.text('Volgende'));
+      await tester.pumpAndSettle();
+      expect(find.text(settingsTip), findsOneWidget);
+
+      await tester.tap(find.text('Volgende'));
+      await tester.pumpAndSettle();
+      expect(find.text(hideBarTip), findsOneWidget);
+      expect(find.text('5 van 5'), findsOneWidget);
+      expect(find.text('Overslaan'), findsNothing, reason: '"Klaar" says the same thing on the last stop');
+
+      await tester.tap(find.text('Klaar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+      expect(_topOf(tester, find.byType(AppHeader)), 0, reason: 'finishing leaves the bar where it is');
+      expect(seen(), isTrue);
+    });
+
+    testWidgets('takes no press outside the lit part', (tester) async {
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+
+      // The crumb is lit; the cog beside it is not.
+      await tester.tap(find.byType(SettingsMenu), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Licht'), findsNothing);
+      expect(find.text('Terug naar de lijst.'), findsOneWidget);
+    });
+
+    testWidgets('moves on under reduced motion too', (tester) async {
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen, disableAnimations: true));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+
+      // The slide it waits for takes no time, and still has to end.
+      expect(find.text('Terug naar de lijst.'), findsOneWidget);
+    });
+
+    testWidgets('ends on Escape, and does not come back', (tester) async {
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+      expect(seen(), isTrue);
+
+      screen.value = lesson(key: const ValueKey('next lesson'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+    });
+
+    testWidgets('ends when the lit crumb is followed', (tester) async {
+      final screen = ValueNotifier<Widget>(const SizedBox());
+      addTearDown(screen.dispose);
+      // Keyed, as a new route is: an unkeyed one would update the lesson's own
+      // publisher in place, and the bar hears about a new screen by its claim.
+      screen.value = lesson(
+        onLeave: () => screen.value = _screen(key: const ValueKey('catalog'), crumbs: const [AppCrumb('Python')]),
+      );
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Python'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+      expect(seen(), isTrue);
+    });
+
+    testWidgets('does not run once seen', (tester) async {
+      await GetIt.I<TourStore>().markSeen('lesson');
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+    });
+
+    testWidgets("a screen's own introduction waits for the bar's, and leaves the bar away", (tester) async {
+      const row = #row;
+      final screen = ValueNotifier<Widget>(
+        _screen(
+          zen: true,
+          crumbs: const [AppCrumb('Python')],
+          tourId: 'lesson',
+          tours: const [
+            AppTour('deep-dive', [AppTourStop(row, 'Een verdieping.')]),
+          ],
+          child: const Center(
+            child: TourTarget(id: row, child: SizedBox(width: 200, height: 30)),
+          ),
+        ),
+      );
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      expect(find.text(showBarTip), findsOneWidget, reason: "the bar's comes first");
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Een verdieping.'), findsOneWidget);
+      expect(find.text('1 van 1'), findsOneWidget);
+      expect(_topOf(tester, find.byType(AppHeader)), -AppHeader.height);
+
+      await tester.tap(find.text('Klaar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpotlightScrim), findsNothing);
+      expect(GetIt.I<TourStore>().hasSeen('deep-dive'), isTrue);
+    });
+
+    testWidgets('comes back at once when what was seen is forgotten', (tester) async {
+      await GetIt.I<TourStore>().markSeen('lesson');
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      expect(find.byType(SpotlightScrim), findsNothing);
+
+      await GetIt.I<TourStore>().clear();
+      await tester.pumpAndSettle();
+
+      expect(find.text(showBarTip), findsOneWidget);
+    });
+
+    testWidgets('the debug menu on Alt+B offers the tips again', (tester) async {
+      final screen = ValueNotifier<Widget>(lesson());
+      addTearDown(screen.dispose);
+
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Seen: lesson'), findsOneWidget);
+
+      await tester.tap(find.text('Show tips again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Debug'), findsNothing);
+      expect(find.text(showBarTip), findsOneWidget);
     });
   });
 }

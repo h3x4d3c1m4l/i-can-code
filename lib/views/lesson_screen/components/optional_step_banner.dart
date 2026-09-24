@@ -4,6 +4,8 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
+import 'package:i_can_code/views/lesson_screen/components/lesson_tour_part.dart';
 
 /// What an optional step is — a "Verdieping" — and the way past it, on one line
 /// under the step's title.
@@ -27,52 +29,55 @@ class OptionalStepBanner extends StatelessWidget {
     final theme = context.theme;
     final tokens = context.appTheme;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        DecoratedBox(
-          decoration: ShapeDecoration(
-            color: theme.colors.secondary,
-            shape: squircle(kChipCornerRadius),
+    return TourTarget(
+      id: LessonTourPart.deepDive,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: ShapeDecoration(
+              color: theme.colors.secondary,
+              shape: squircle(kChipCornerRadius),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              child: Text(
+                context.localizations.lessonScreen_optional.toUpperCase(),
+                style: tokens.text.label.copyWith(fontSize: 12, color: theme.colors.secondaryForeground),
+              ),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          const SizedBox(width: 8),
+          // The same mark the catalog puts beside its own Verdieping heading: the
+          // word is the reader's first meeting with it in either place.
+          HintMark(
+            message: context.localizations.lessonScreen_optionalExplained,
+            semanticsLabel: context.localizations.lessonScreen_optionalWhat,
+          ),
+          const SizedBox(width: 16),
+          FTappable(
+            semanticsButton: true,
+            onPress: onSkip,
+            builder: (context, states, child) => Opacity(
+              opacity: states.contains(FTappableVariant.hovered) ? 0.75 : 1,
+              child: child,
+            ),
             child: Text(
-              context.localizations.lessonScreen_optional.toUpperCase(),
-              style: tokens.text.label.copyWith(fontSize: 12, color: theme.colors.secondaryForeground),
+              context.localizations.lessonScreen_skip,
+              style: tokens.text.bodySmall.copyWith(
+                fontSize: 16,
+                height: 1,
+                color: tokens.colors.link,
+                // Underlined as well as coloured: `link` is the only role that
+                // clears AA as text, and the underline is what makes it a link
+                // in a preset whose colours are close together.
+                decoration: TextDecoration.underline,
+                decorationColor: tokens.colors.link,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        // The same mark the catalog puts beside its own Verdieping heading: the
-        // word is the reader's first meeting with it in either place.
-        HintMark(
-          message: context.localizations.lessonScreen_optionalExplained,
-          semanticsLabel: context.localizations.lessonScreen_optionalWhat,
-        ),
-        const SizedBox(width: 16),
-        FTappable(
-          semanticsButton: true,
-          onPress: onSkip,
-          builder: (context, states, child) => Opacity(
-            opacity: states.contains(FTappableVariant.hovered) ? 0.75 : 1,
-            child: child,
-          ),
-          child: Text(
-            context.localizations.lessonScreen_skip,
-            style: tokens.text.bodySmall.copyWith(
-              fontSize: 16,
-              height: 1,
-              color: tokens.colors.link,
-              // Underlined as well as coloured: `link` is the only role that
-              // clears AA as text, and the underline is what makes it a link
-              // in a preset whose colours are close together.
-              decoration: TextDecoration.underline,
-              decorationColor: tokens.colors.link,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

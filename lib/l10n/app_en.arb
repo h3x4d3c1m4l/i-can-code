@@ -44,6 +44,18 @@
   "@lessonScreen_back": {
     "description": "The back button beside every Next. Icon only, so this is what a screen reader announces."
   },
+  "lessonScreen_tourProgress": "Each bar is one step of this lesson. Click one to go straight to that step.",
+  "@lessonScreen_tourProgress": {
+    "description": "The bar's introduction, pointing at the lesson's progress bar."
+  },
+  "lessonScreen_tourLanguage": "This takes you back to the list of lessons.",
+  "@lessonScreen_tourLanguage": {
+    "description": "The bar's introduction, pointing at the language crumb in the trail."
+  },
+  "lessonScreen_tourDeepDive": "This step is a deep dive: it goes beyond the basics. The question mark tells you more, and Skip moves on without it.",
+  "@lessonScreen_tourDeepDive": {
+    "description": "Introduction shown on the first optional step, pointing at its badge, question mark and Skip link."
+  },
   "lessonScreen_optionalExplained": "This step goes further than the core material and may be skipped. It stays open for another time if you do.",
   "@lessonScreen_optionalExplained": {
     "description": "What the question mark beside a step's Verdieping badge explains."
@@ -207,6 +219,42 @@
   "appHeader_showBar": "Show the bar",
   "@appHeader_showBar": {
     "description": "The button that floats over the page while the bar is away, and brings it back."
+  },
+  "appHeader_tourShowBar": "The bar is tucked away so you can read in peace. Press this button to bring it back.",
+  "@appHeader_tourShowBar": {
+    "description": "The first stop of the bar's introduction, pointing at the button that brings the hidden bar back. The reader moves on by pressing that button."
+  },
+  "appHeader_tourHideBar": "This button puts the bar away again.",
+  "@appHeader_tourHideBar": {
+    "description": "The last stop of the bar's introduction, pointing at the button in the bar that hides it."
+  },
+  "appHeader_tourSettings": "Choose the language here, and whether the app is light or dark. You can also clear your progress here.",
+  "@appHeader_tourSettings": {
+    "description": "The bar's introduction, pointing at the settings cog."
+  },
+  "appHeader_tourStop": "{stop} of {total}",
+  "@appHeader_tourStop": {
+    "description": "Which stop of the introduction this is, above the tip's text.",
+    "placeholders": {
+      "stop": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "appHeader_tourNext": "Next",
+  "@appHeader_tourNext": {
+    "description": "Moves the introduction on to the next thing it points at."
+  },
+  "appHeader_tourDone": "Done",
+  "@appHeader_tourDone": {
+    "description": "Ends the introduction, on its last stop."
+  },
+  "appHeader_tourSkip": "Skip",
+  "@appHeader_tourSkip": {
+    "description": "Ends the introduction early. It does not come back."
   },
   "appHeader_settings": "Settings",
   "@appHeader_settings": {},

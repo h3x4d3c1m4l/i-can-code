@@ -8,6 +8,7 @@ import 'package:i_can_code/views/components/app_logo.dart';
 import 'package:i_can_code/views/components/fade_through.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
 
 /// One level of the trail in [AppHeader].
 class AppCrumb {
@@ -18,7 +19,41 @@ class AppCrumb {
   /// grouping with no screen of its own.
   final VoidCallback? onTap;
 
-  const AppCrumb(this.label, {this.onTap});
+  /// What this crumb does, in the bar's introduction. Null leaves it out.
+  final String? tip;
+
+  const AppCrumb(this.label, {this.onTap, this.tip});
+
+}
+
+/// A part of the bar an introduction can point at. A crumb is named together
+/// with its index, as `(AppHeaderPart.crumb, index)`.
+enum AppHeaderPart { showBar, crumb, trailing, settings, hideBar }
+
+/// A short introduction to parts of a screen, run the first time any of it is
+/// offered in this browser. See `app_header_host.dart`.
+class AppTour {
+
+  /// What [TourStore] remembers it by. Two screens offering the same id share
+  /// one introduction.
+  final String id;
+
+  final List<AppTourStop> stops;
+
+  const AppTour(this.id, this.stops);
+
+}
+
+/// One thing an introduction lights up, and what it says about it.
+class AppTourStop {
+
+  /// The [TourTarget.id] of what is lit. The stop is passed over while nothing
+  /// by that id is on screen.
+  final Object target;
+
+  final String tip;
+
+  const AppTourStop(this.target, this.tip);
 
 }
 
@@ -60,6 +95,22 @@ class AppHeaderConfig {
   /// What a screen reader hears in place of [zenLabel], which is digits.
   final String? zenSemanticsLabel;
 
+  /// Introduces the bar the first time a screen carrying this id is opened, in
+  /// this browser. Null on a screen with no introduction to the bar.
+  ///
+  /// The introduction stops at the zen buttons when [offersZen] is set, at
+  /// every crumb with a [AppCrumb.tip], at [trailing] when it has a
+  /// [trailingTip], and at the settings cog.
+  final String? barTourId;
+
+  /// Introductions to the screen's own parts, offered while those parts are
+  /// on screen. Run by the bar's host all the same, one at a time and after
+  /// [barTourId]'s, because the bar may have to come out for one of them.
+  final List<AppTour> tours;
+
+  /// What [trailing] does, in the introduction. Null leaves it out.
+  final String? trailingTip;
+
   const AppHeaderConfig({
     this.crumbs = const [],
     this.onTapHome,
@@ -68,6 +119,9 @@ class AppHeaderConfig {
     this.version,
     this.zenLabel,
     this.zenSemanticsLabel,
+    this.barTourId,
+    this.tours = const [],
+    this.trailingTip,
   });
 
 }
@@ -189,7 +243,7 @@ class AppHeader extends StatelessWidget {
                   child: FadeThrough(child: _buildChrome(context)),
                 ),
                 const SizedBox(width: _gap),
-                const SettingsMenu(),
+                const TourTarget(id: AppHeaderPart.settings, child: SettingsMenu()),
               ],
             ),
           ),
@@ -209,15 +263,18 @@ class AppHeader extends StatelessWidget {
       children: [
         if (trailing case final Widget trailing) ...[
           const SizedBox(width: _gap),
-          trailing,
+          TourTarget(id: AppHeaderPart.trailing, child: trailing),
         ],
         if (onHide case final VoidCallback onHide) ...[
           const SizedBox(width: _gap),
-          HeaderIconButton(
-            // The glyph names what pressing it does: closing the top panel away.
-            icon: FLucideIcons.panelTopClose,
-            semanticsLabel: context.localizations.appHeader_hideBar,
-            onPress: onHide,
+          TourTarget(
+            id: AppHeaderPart.hideBar,
+            child: HeaderIconButton(
+              // The glyph names what pressing it does: closing the top panel away.
+              icon: FLucideIcons.panelTopClose,
+              semanticsLabel: context.localizations.appHeader_hideBar,
+              onPress: onHide,
+            ),
           ),
         ],
       ],
@@ -267,7 +324,7 @@ class AppHeader extends StatelessWidget {
           FBreadcrumbItem(
             current: index == crumbs.length - 1,
             onPress: crumb.onTap,
-            child: Text(crumb.label),
+            child: TourTarget(id: (AppHeaderPart.crumb, index), child: Text(crumb.label)),
           ),
       ],
     );

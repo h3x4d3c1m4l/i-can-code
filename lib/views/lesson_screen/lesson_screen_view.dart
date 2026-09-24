@@ -20,6 +20,7 @@ import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_grou
 import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/lesson_tour_part.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
@@ -176,6 +177,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
 
   AppHeaderConfig _buildHeader(BuildContext context) {
     final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
+    final deepDive = !viewModel.completed && lesson.sections[viewModel.step].optional;
 
     return AppHeaderConfig(
       onTapHome: controller.leave,
@@ -183,6 +185,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         AppCrumb(
           languageLabel(viewModel.lesson.entry.language),
           onTap: () => controller.openLanguage(viewModel.lesson.entry.language),
+          tip: context.localizations.lessonScreen_tourLanguage,
         ),
         // The step is deliberately not a crumb: it is already the page heading
         // and the progress bar, and a third showing made the trail change
@@ -195,8 +198,18 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
         passed: viewModel.passed,
         onTap: controller.goTo,
       ),
+      trailingTip: context.localizations.lessonScreen_tourProgress,
       // A lesson is read. This is the one screen the bar gets out of the way of.
       offersZen: true,
+      // Once per browser, not per lesson: every lesson has the same bar.
+      barTourId: 'lesson',
+      tours: [
+        // Offered on the first Verdieping the reader reaches, wherever it is.
+        if (deepDive)
+          AppTour('deep-dive', [
+            AppTourStop(LessonTourPart.deepDive, context.localizations.lessonScreen_tourDeepDive),
+          ]),
+      ],
       // Kept when the rest of the bar goes: the progress bar is the only thing
       // in it a reader mid-lesson actually needs, and a step number is the least
       // of it that still says where they are. Null on the end page, which is not
