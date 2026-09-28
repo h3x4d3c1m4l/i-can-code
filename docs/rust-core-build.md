@@ -29,7 +29,7 @@ Store apps no USB host API at all.
 |---|---|
 | **Rust nightly**, exactly as `rust/rust-toolchain.toml` pins it | Installed automatically by rustup the first time cargo runs inside `rust/`. |
 | **wasm-pack** | `cargo install wasm-pack --locked` |
-| **wasm-bindgen-cli 0.2.128** | `cargo install wasm-bindgen-cli --version 0.2.128 --locked` |
+| **wasm-bindgen-cli 0.2.129** | `cargo install wasm-bindgen-cli --version 0.2.129 --locked` |
 | **flutter_rust_bridge_codegen 2.13.0** | `cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked` |
 | **cargo-expand** | `cargo install cargo-expand --locked`. What the codegen shells out to when it has to expand a macro to see a type. |
 
