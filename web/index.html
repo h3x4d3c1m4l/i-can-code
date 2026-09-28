@@ -63,9 +63,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="I Can Code">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!--
+    The .ico is for browsers without SVG favicons and for anything that asks
+    for /favicon.ico by convention. icon.svg is a heavier cut of the mark than
+    AppLogo's, because at 16px the regular drawing closes its gaps.
+  -->
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <script>
     /*
@@ -153,19 +158,26 @@
       display: none;
     }
 
-    /* The app's mark, matching the initialization screen it hands over to:
-       40px radius on a 118px tile. */
+    /* The app's mark at the size the initialization screen hands over to. The
+       SVG restates AppLogo's drawing and its tile, which is Flutter's
+       ContinuousRectangleBorder path, and MUST be changed alongside it. */
     .mark {
       width: 118px;
       height: 118px;
-      border-radius: 40px;
-      background: var(--primary);
-      color: var(--primary-foreground);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
-      font-size: 50px;
+    }
+
+    .mark .tile { fill: var(--primary); }
+    .mark .face { stroke: var(--primary-foreground); }
+
+    .mark .eyes {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: blink 4s infinite;
+    }
+
+    @keyframes blink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      96% { transform: scaleY(0.15); }
     }
 
     #loading-message,
@@ -195,6 +207,7 @@
     /* A pulse says as much as a spin, without the vestibular trigger. */
     @media (prefers-reduced-motion: reduce) {
       .spinner { animation: none; opacity: 0.5; }
+      .mark .eyes { animation: none; }
     }
 
     #retry-button {
@@ -218,12 +231,26 @@
 </head>
 <body>
   <div id="loading-container">
-    <div class="mark">&lt;/&gt;</div>
+    <svg class="mark" viewBox="0 0 256 256" aria-hidden="true">
+      <path class="tile" d="M0 128C0 0 0 0 128 0C256 0 256 0 256 128C256 256 256 256 128 256C0 256 0 256 0 128Z"/>
+      <g class="face" fill="none" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"
+         transform="translate(128 128) scale(0.66) translate(-128 -128)">
+        <path class="eyes" d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
+        <path d="M72 153Q128 205 184 153"/>
+      </g>
+    </svg>
     <div class="spinner" role="progressbar" aria-label="Loading"></div>
     <p id="loading-message">Loading…</p>
   </div>
   <div id="error-container">
-    <div class="mark">&lt;/&gt;</div>
+    <svg class="mark" viewBox="0 0 256 256" aria-hidden="true">
+      <path class="tile" d="M0 128C0 0 0 0 128 0C256 0 256 0 256 128C256 256 256 256 128 256C0 256 0 256 0 128Z"/>
+      <g class="face" fill="none" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"
+         transform="translate(128 128) scale(0.66) translate(-128 -128)">
+        <path class="eyes" d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
+        <path d="M72 153Q128 205 184 153"/>
+      </g>
+    </svg>
     <p id="error-message">I Can Code could not be loaded.</p>
     <button id="retry-button" onclick="window.location.reload()">Try again</button>
   </div>

@@ -410,7 +410,6 @@ void main() {
       await tester.pumpWidget(_host(screen));
       await tester.pumpAndSettle();
 
-      // Not `textContaining('/')`: the app's own mark is `</>`.
       expect(
         find.byWidgetPredicate(
           (widget) => widget is Text && RegExp(r'^\d+ / \d+$').hasMatch(widget.data ?? ''),

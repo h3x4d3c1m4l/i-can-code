@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Two things it is deliberately **not** scoped to:
 
-- **It is not a Python app.** Python is the first language it teaches and the only runtime that exists so far (CPython built for `wasm32-wasi`), but the app is meant to teach others. Keep Python out of names, copy and marks that are not specifically about running Python — the app mark is `</>`, not `py`.
+- **It is not a Python app.** Python is the first language it teaches and the only runtime that exists so far (CPython built for `wasm32-wasi`), but the app is meant to teach others. Keep Python out of names, copy and marks that are not specifically about running Python — the app mark is a face drawn from code characters (`AppLogo`), not `py`.
 - **It is not a De Haagse Hogeschool product.** THUAS is one of the colour presets it ships with, nothing more — see *Theming*.
 
 ## Commands
