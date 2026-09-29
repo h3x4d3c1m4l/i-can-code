@@ -24,7 +24,19 @@ class NoticeCard extends StatelessWidget {
 
   final Widget? action;
 
-  const NoticeCard({required this.title, required this.body, this.detail, this.detailLabel, this.action, super.key});
+  /// Whether to draw the card's border and padding. False inside something
+  /// that is already a card, such as a dialog.
+  final bool framed;
+
+  const NoticeCard({
+    required this.title,
+    required this.body,
+    this.detail,
+    this.detailLabel,
+    this.action,
+    this.framed = true,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,30 +44,30 @@ class NoticeCard extends StatelessWidget {
     final detailLabel = this.detailLabel;
     final detailStyle = context.appTheme.text.code.copyWith(color: context.theme.colors.mutedForeground);
 
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: context.appTheme.text.h3),
+        const SizedBox(height: 12),
+        Text(body, style: context.appTheme.text.body.copyWith(color: context.theme.colors.mutedForeground)),
+        if (detail != null && detailLabel == null) ...[
+          const SizedBox(height: 16),
+          Text(detail, style: detailStyle),
+        ],
+        if (action != null) ...[const SizedBox(height: 24), action!],
+        if (detail != null && detailLabel != null) ...[
+          const SizedBox(height: 20),
+          _FoldedDetail(label: detailLabel, detail: detail, detailStyle: detailStyle),
+        ],
+      ],
+    );
+    if (!framed) return content;
+
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: squircle(kCardCornerRadius, side: BorderSide(color: context.theme.colors.border, width: 2)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: context.appTheme.text.h3),
-            const SizedBox(height: 12),
-            Text(body, style: context.appTheme.text.body.copyWith(color: context.theme.colors.mutedForeground)),
-            if (detail != null && detailLabel == null) ...[
-              const SizedBox(height: 16),
-              Text(detail, style: detailStyle),
-            ],
-            if (action != null) ...[const SizedBox(height: 24), action!],
-            if (detail != null && detailLabel != null) ...[
-              const SizedBox(height: 20),
-              _FoldedDetail(label: detailLabel, detail: detail, detailStyle: detailStyle),
-            ],
-          ],
-        ),
-      ),
+      child: Padding(padding: const EdgeInsets.all(32), child: content),
     );
   }
 

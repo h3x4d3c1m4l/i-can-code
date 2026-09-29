@@ -26,11 +26,15 @@ class MicrobitStatePanel extends StatelessWidget {
   /// loses that gesture.
   final VoidCallback onConnect;
 
+  /// Whether each notice draws its own card. See [NoticeCard.framed].
+  final bool framed;
+
   const MicrobitStatePanel({
     required this.status,
     required this.onConnect,
     this.failureKind,
     this.failure,
+    this.framed = true,
     super.key,
   });
 
@@ -42,12 +46,14 @@ class MicrobitStatePanel extends StatelessWidget {
       MicrobitStatus.unavailable => NoticeCard(
         title: l10n.microbitScreen_unavailableTitle,
         body: l10n.microbitScreen_unavailableBody,
+        framed: framed,
       ),
       MicrobitStatus.failed => _buildFailure(context),
       MicrobitStatus.noDevice => NoticeCard(
         title: l10n.microbitScreen_noDeviceTitle,
         body: l10n.microbitScreen_noDeviceBody,
         action: _buildConnectButton(context),
+        framed: framed,
       ),
       // The screen itself draws the session, outside the scroll view a terminal
       // may not sit in.
@@ -56,6 +62,7 @@ class MicrobitStatePanel extends StatelessWidget {
         title: l10n.microbitScreen_connectTitle,
         body: l10n.microbitScreen_connectBody,
         action: _buildConnectButton(context),
+        framed: framed,
       ),
     };
   }
@@ -81,6 +88,7 @@ class MicrobitStatePanel extends StatelessWidget {
       // English, and for whoever helps: folded, as the Tkinter page folds its own.
       detailLabel: l10n.microbitScreen_failureDetails,
       action: _buildConnectButton(context),
+      framed: framed,
     );
   }
 

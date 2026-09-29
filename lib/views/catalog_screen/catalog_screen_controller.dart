@@ -42,18 +42,10 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
   }
 
   /// Opens a lesson where the student left off — its first unfinished step, or
-  /// the beginning if there is none.
+  /// the beginning if there is none. A project opens on its own screen.
   Future<void> openLesson(CourseLesson lesson) async {
     if (!contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.push(
-      lessonRoute(
-        languageSlug: languageSlug(viewModel.language),
-        lessonId: lesson.translations.values.first.id,
-        sectionId: lesson.translations.values.first
-            .sections[viewModel.progress.firstUnfinishedStep(lesson)]
-            .id,
-      ),
-    );
+    await contextAccessor.buildContext.router.push(openingRoute(lesson, viewModel.progress));
   }
 
 }

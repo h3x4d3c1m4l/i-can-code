@@ -36,7 +36,15 @@ enum SectionKind {
   /// program. Checked by **running what was assembled** through the section's
   /// ordinary validator, never by comparing it against the order in the file,
   /// so an arrangement that is different but correct still passes.
-  orderLines;
+  orderLines,
+
+  /// One task of a project: prose, what the program does once the task is done,
+  /// and a button the student presses when theirs does it.
+  ///
+  /// Nothing is run or checked here. The program runs on a board the app cannot
+  /// watch, so the student's own say-so is the verdict. Only a
+  /// [LessonLayout.project] has these, and it has no other kind but [info].
+  task;
 
   /// Whether the student writes and runs code here.
   ///
@@ -66,6 +74,7 @@ enum SectionKind {
     'match-pairs' => SectionKind.matchPairs,
     'predict-output' => SectionKind.predictOutput,
     'order-lines' => SectionKind.orderLines,
+    'task' => SectionKind.task,
     _ => throw FormatException('Unknown section type "$value".'),
   };
 
@@ -79,7 +88,11 @@ enum LessonRuntime {
   python,
 
   /// Python with Tk on the machine behind the Tkinter page.
-  tkinter;
+  tkinter,
+
+  /// MicroPython on a BBC micro:bit, written to the board over USB. Only a
+  /// [LessonLayout.project] runs here, and a project runs nowhere else.
+  microbit;
 
   /// Whether a step on this runtime can be shown today.
   ///
@@ -87,12 +100,34 @@ enum LessonRuntime {
   /// and the harness that would check a window program is a design and not
   /// code yet. A step that asks for it is **left out** by [Lesson.parse] rather
   /// than refused, so a course may carry one before the app can run it.
-  bool get isReady => this == LessonRuntime.python;
+  bool get isReady => this != LessonRuntime.tkinter;
 
   static LessonRuntime parse(String value) => switch (value) {
     'python' => LessonRuntime.python,
     'tkinter' => LessonRuntime.tkinter,
+    'microbit' => LessonRuntime.microbit,
     _ => throw FormatException('Unknown runtime "$value".'),
+  };
+
+}
+
+/// How a lesson is walked through, from `layout` in its document-level
+/// `metadata`.
+enum LessonLayout {
+
+  /// One step on screen at a time, each finished on its own. Every lesson that
+  /// does not say otherwise.
+  steps,
+
+  /// One program, built up over a run of [SectionKind.task]s. Each task appears
+  /// under the one before it once that one works, and all of them share one
+  /// editor. See `docs/lesson-format.md`.
+  project;
+
+  static LessonLayout parse(String value) => switch (value) {
+    'steps' => LessonLayout.steps,
+    'project' => LessonLayout.project,
+    _ => throw FormatException('Unknown layout "$value".'),
   };
 
 }
@@ -211,6 +246,20 @@ class LessonSection {
   /// student sees as their own traceback.
   final String? stdin;
 
+  /// What the program does once a [SectionKind.task] is done, from the
+  /// section's `done-when` block. Inline markdown. Null on every other kind,
+  /// and never null on a task.
+  ///
+  /// Shown right above the button the student presses to say it works, so the
+  /// last thing read before claiming a task is what claiming it means.
+  final String? doneWhen;
+
+  /// The lessons a [SectionKind.task] leans on, by [Lesson.id], from the
+  /// section's `requires`. Empty when it names none, and on every other kind.
+  ///
+  /// Advice, not a gate: the task opens whether or not they are finished.
+  final List<String> requires;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -226,6 +275,8 @@ class LessonSection {
     this.lines = const [],
     this.distractors = const [],
     this.stdin,
+    this.doneWhen,
+    this.requires = const [],
   });
 
 }
@@ -274,6 +325,9 @@ class Lesson {
   /// What this lesson's steps run on unless a step says otherwise.
   final LessonRuntime runtime;
 
+  /// How the lesson is walked through.
+  final LessonLayout layout;
+
   /// The steps the app can show. A step for a runtime that is not ready is not
   /// among them: see [LessonRuntime.isReady]. So this may be empty, which is a
   /// whole lesson written for a runtime this version cannot run, and
@@ -288,11 +342,14 @@ class Lesson {
     this.optional = false,
     this.group,
     this.runtime = LessonRuntime.python,
+    this.layout = LessonLayout.steps,
     required this.sections,
   });
 
   /// How many steps the student walks through.
   int get stepCount => sections.length;
+
+  bool get isProject => layout == LessonLayout.project;
 
   /// Parses [source], one lesson file.
   ///
@@ -310,6 +367,7 @@ class Lesson {
     var optional = false;
     String? group;
     var runtime = LessonRuntime.python;
+    var layout = LessonLayout.steps;
     final sections = <LessonSection>[];
     // Steps left out for a runtime that is not ready, so that a lesson made
     // only of those is empty rather than malformed.
@@ -334,6 +392,8 @@ class Lesson {
     // Nullable for the same reason `explanation` is: no block and an empty one
     // are different mistakes.
     String? stdin;
+    String? doneWhen;
+    List<String>? requires;
 
     void clearSection() {
       sectionKind = null;
@@ -350,6 +410,8 @@ class Lesson {
       ordered = null;
       distractors = null;
       stdin = null;
+      doneWhen = null;
+      requires = null;
     }
 
     void flush() {
@@ -368,10 +430,28 @@ class Lesson {
       if (sectionId == null) {
         throw FormatException('Section "$sectionTitle" declares no `id`. Saved progress keys on it.');
       }
+      // Both ways round: a board is the only thing a project runs on, and a
+      // project is the only screen that has one.
+      if ((layout == LessonLayout.project) != ((sectionRuntime ?? runtime) == LessonRuntime.microbit)) {
+        throw FormatException(
+          'Section "$sectionTitle" runs on ${(sectionRuntime ?? runtime).name}, but only a project runs on a micro:bit, and a '
+          'project runs nowhere else.',
+        );
+      }
+      if (layout == LessonLayout.project &&
+          sectionKind != SectionKind.task &&
+          sectionKind != SectionKind.info) {
+        throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name}; a project holds tasks and info.');
+      }
+      if (layout != LessonLayout.project && sectionKind == SectionKind.task) {
+        throw FormatException('Section "$sectionTitle" is a task, which only a project may hold.');
+      }
       if (sectionKind!.isAssignment && starter == null) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} but has no assignment block.');
       }
-      if (!sectionKind!.isAssignment && starter != null) {
+      // A task may carry the project's starter. Which task may is the
+      // project's question, answered once every section is read.
+      if (!sectionKind!.isAssignment && sectionKind != SectionKind.task && starter != null) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} step but carries an assignment block.');
       }
       // Wider than the editor: an order-lines step runs a program and is
@@ -434,6 +514,16 @@ class Lesson {
           'Section "$sectionTitle" is a ${sectionKind!.name} step but carries an `explanation` block.',
         );
       }
+      if (sectionKind == SectionKind.task) {
+        // The button says "it works", so the task has to say what working is.
+        if (doneWhen == null) {
+          throw FormatException('Section "$sectionTitle" is a task but has no `done-when` block.');
+        }
+      } else if (doneWhen != null || requires != null) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `done-when` or `requires`.',
+        );
+      }
       sections.add(
         LessonSection(
           id: sectionId!,
@@ -450,6 +540,8 @@ class Lesson {
           lines: ordered ?? const [],
           distractors: distractors ?? const [],
           stdin: stdin,
+          doneWhen: doneWhen,
+          requires: requires ?? const [],
         ),
       );
       clearSection();
@@ -490,6 +582,7 @@ class Lesson {
               }
               group = (lessonGroup as String?)?.trim() ?? group;
               runtime = _readRuntime(meta, 'The lesson') ?? runtime;
+              layout = _readLayout(meta) ?? layout;
             } else {
               // Before the type, which a step for another runtime may name in
               // words this version does not know yet.
@@ -513,6 +606,12 @@ class Lesson {
                 throw FormatException('Section "$sectionTitle" declares an `optional` that is not true or false.');
               }
               sectionOptional = optional as bool? ?? false;
+              final required = meta['requires'];
+              if (required != null &&
+                  (required is! YamlList || required.any((id) => id is! String || id.trim().isEmpty))) {
+                throw FormatException('Section "$sectionTitle" declares a `requires` that is not a list of lesson ids.');
+              }
+              requires = (required as YamlList?)?.map((id) => (id as String).trim()).toList();
             }
           case _BlockRole.assignment:
             starter = body.join('\n');
@@ -544,6 +643,15 @@ class Lesson {
             // and a blank line here is one empty answer to `input()`. The
             // terminating newline is what makes the last line a whole line.
             stdin = '${body.join('\n')}\n';
+          case _BlockRole.doneWhen:
+            if (sectionTitle == null) {
+              throw const FormatException('A `done-when` block belongs to a section, not to the lesson.');
+            }
+            final text = body.join('\n').trim();
+            if (text.isEmpty) {
+              throw FormatException('Section "$sectionTitle" declares an empty `done-when` block.');
+            }
+            doneWhen = text;
           case _BlockRole.pairs:
             if (sectionTitle == null) {
               throw const FormatException('A `pairs` block belongs to a section, not to the lesson.');
@@ -583,6 +691,7 @@ class Lesson {
     if (title == null) throw const FormatException('The lesson has no `#` title.');
     // A lesson whose every step was left out is empty on purpose, not broken.
     if (sections.isEmpty && notReady == 0) throw const FormatException('The lesson has no `##` sections.');
+    if (layout == LessonLayout.project && sections.isNotEmpty) _checkProject(sections);
 
     return Lesson(
       id: id,
@@ -592,9 +701,22 @@ class Lesson {
       optional: optional,
       group: group,
       runtime: runtime,
+      layout: layout,
       sections: sections,
     );
   }
+
+  /// What only holds of a project as a whole.
+  static void _checkProject(List<LessonSection> sections) {
+    // Every task shares one editor, so there is one starter, and it is what
+    // the editor opens with.
+    final carriers = sections.where((section) => section.starter != null).toList();
+    if (carriers.length > 1 || (carriers.isNotEmpty && carriers.single != sections.where(_isTask).firstOrNull)) {
+      throw const FormatException('Only the first task of a project may carry an assignment block.');
+    }
+  }
+
+  static bool _isTask(LessonSection section) => section.kind == SectionKind.task;
 
   /// Reads a `pairs` block: one pair per paragraph, two lines each.
   ///
@@ -649,6 +771,19 @@ class Lesson {
     return trimmed;
   }
 
+  /// The `layout` [meta] declares, or null where it declares none.
+  static LessonLayout? _readLayout(YamlMap meta) {
+    final layout = meta['layout'];
+    if (layout == null) return null;
+    if (layout is! String) throw const FormatException('The lesson declares a `layout` that is not text.');
+
+    try {
+      return LessonLayout.parse(layout.trim());
+    } on FormatException catch (error) {
+      throw FormatException('The lesson ${error.message[0].toLowerCase()}${error.message.substring(1)}');
+    }
+  }
+
   /// The `runtime` [meta] declares, or null where it declares none. A name no
   /// runtime has is an author's mistake and throws; a runtime this version
   /// cannot run yet is not.
@@ -666,7 +801,19 @@ class Lesson {
 
 }
 
-enum _BlockRole { metadata, assignment, validator, predict, order, distractors, explanation, stdin, pairs, sample }
+enum _BlockRole {
+  metadata,
+  assignment,
+  validator,
+  predict,
+  order,
+  distractors,
+  explanation,
+  stdin,
+  pairs,
+  doneWhen,
+  sample,
+}
 
 /// An opening code fence, with its role read off the language it declares:
 /// ```` ```python-assignment ````. Stripping the `-assignment` / `-validator`
@@ -708,6 +855,10 @@ class _Fence {
     // a name as an identifier is exactly the wrong reading of it.
     if (declared == 'stdin') {
       return _Fence(marker: marker, role: _BlockRole.stdin, language: null);
+    }
+    // Prose about the program again, like `explanation`.
+    if (declared == 'done-when') {
+      return _Fence(marker: marker, role: _BlockRole.doneWhen, language: null);
     }
     for (final (suffix, role) in const [
       ('-assignment', _BlockRole.assignment),

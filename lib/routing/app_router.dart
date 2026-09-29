@@ -2,6 +2,9 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/routing/bootstrap_guard.dart';
+import 'package:i_can_code/routing/project_guard.dart';
+import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/progress/progress_store.dart';
 
 /// The section id that means "wherever I left off" rather than a real section.
 ///
@@ -54,6 +57,34 @@ LessonRoute lessonRoute({
   sectionId: sectionId,
 );
 
+/// A project, as a route. **Build a [ProjectRoute] through here**, for the
+/// reason [lessonRoute] gives: keyed on the lesson, so opening the next project
+/// from the end of this one is a new screen rather than this one updated.
+///
+/// Under [microbitLesson] because a project is a program for a board, and that
+/// address is where a program for a board already lives. `microbit` is a
+/// reserved lesson id, so no lesson can claim the segment.
+ProjectRoute projectRoute({required String languageSlug, required String lessonId}) => ProjectRoute(
+  key: ValueKey(lessonId),
+  languageSlug: languageSlug,
+  lessonId: lessonId,
+);
+
+/// Where [lesson] opens from outside it: a project on its own screen, and any
+/// other lesson at the first step [progress] does not have as finished.
+PageRouteInfo<void> openingRoute(CourseLesson lesson, ProgressStore progress) {
+  final first = lesson.translations.values.first;
+  final slug = languageSlug(lesson.entry.language);
+
+  if (first.isProject) return projectRoute(languageSlug: slug, lessonId: first.id);
+
+  return lessonRoute(
+    languageSlug: slug,
+    lessonId: first.id,
+    sectionId: first.sections[progress.firstUnfinishedStep(lesson)].id,
+  );
+}
+
 @AutoRouterConfig()
 class AppRouter extends RootStackRouter {
 
@@ -73,6 +104,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: ReplRoute.page, path: '/:languageSlug/$replLesson'),
     AutoRoute(page: MicrobitProgramRoute.page, path: '/:languageSlug/$microbitLesson'),
     AutoRoute(page: MicrobitReplRoute.page, path: '/:languageSlug/$microbitReplLesson'),
+    // Three segments, like a lesson step, so above that route too. `microbit`
+    // is reserved as a lesson id, which keeps the two from ever meaning the
+    // same address.
+    AutoRoute(page: ProjectRoute.page, path: '/:languageSlug/$microbitLesson/:lessonId'),
     // A lesson's bare address means "wherever I left off". auto_route matches on
     // an exact segment count, so that cannot be an optional segment below — and
     // **a page may appear only once**, so a second AutoRoute is out too
@@ -82,7 +117,7 @@ class AppRouter extends RootStackRouter {
     // Hence the redirect to a reserved section id: an unknown id already means
     // "resume" to the screen, which rewrites the address to where it lands.
     RedirectRoute(path: '/:languageSlug/:lessonId', redirectTo: '/:languageSlug/:lessonId/$resumeSection'),
-    AutoRoute(page: LessonRoute.page, path: '/:languageSlug/:lessonId/:sectionId'),
+    AutoRoute(page: LessonRoute.page, path: '/:languageSlug/:lessonId/:sectionId', guards: [ProjectGuard()]),
   ];
 
 }

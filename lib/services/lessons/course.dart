@@ -4,11 +4,19 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 /// One lesson as it appears on disk, before it is read.
 ///
 /// A lesson has one file per locale, all sharing an order prefix and a slug:
-/// `assets/lessons/<language>/<order>-<slug>.<locale>.md`.
+/// `assets/lessons/<language>/<order>-<slug>.<locale>.md`, or one folder deeper
+/// in a [track].
 class LessonEntry {
 
   /// The programming language the lesson teaches — the directory it sits in.
   final String language;
+
+  /// The folder inside the language's directory that holds the lesson, or null
+  /// for a lesson directly in it.
+  ///
+  /// A track is numbered on its own and listed after the lessons outside it, so
+  /// a run of lessons can start again at `00-` without renumbering the course.
+  final String? track;
 
   /// The `NN-` prefix. **The only source of course order** — there is no index
   /// file.
@@ -23,6 +31,7 @@ class LessonEntry {
 
   const LessonEntry({
     required this.language,
+    this.track,
     required this.order,
     required this.slug,
     required this.paths,
@@ -63,10 +72,13 @@ class Course {
 
   static const String root = 'assets/lessons/';
 
-  /// `assets/lessons/<language>/<order>-<slug>.<locale>.md`
-  static final RegExp _filePattern = RegExp(r'^([a-z0-9_]+)/(\d+)-([a-z0-9-]+)\.([a-z]{2})\.md$');
+  /// `assets/lessons/<language>/[<track>/]<order>-<slug>.<locale>.md`
+  static final RegExp _filePattern = RegExp(
+    r'^([a-z0-9_]+)/(?:([a-z0-9_-]+)/)?(\d+)-([a-z0-9-]+)\.([a-z]{2})\.md$',
+  );
 
-  /// In course order: by programming language, then by the filename's prefix.
+  /// In course order: by programming language, then the lessons outside any
+  /// track before each track in turn, then by the filename's prefix.
   final List<CourseLesson> lessons;
 
   const Course({required this.lessons});
@@ -141,13 +153,15 @@ class Course {
       if (match == null) continue;
 
       final language = match.group(1)!;
-      final order = int.parse(match.group(2)!);
-      final slug = match.group(3)!;
-      final locale = match.group(4)!;
+      final track = match.group(2);
+      final order = int.parse(match.group(3)!);
+      final slug = match.group(4)!;
+      final locale = match.group(5)!;
 
-      final key = '$language/$order-$slug';
+      final key = '$language/${track ?? ''}/$order-$slug';
       grouped[key] = LessonEntry(
         language: language,
+        track: track,
         order: order,
         slug: slug,
         paths: {...?grouped[key]?.paths, locale: asset},
@@ -157,7 +171,11 @@ class Course {
     return grouped.values.toList()
       ..sort((a, b) {
         final byLanguage = a.language.compareTo(b.language);
-        return byLanguage != 0 ? byLanguage : a.order.compareTo(b.order);
+        if (byLanguage != 0) return byLanguage;
+        // The empty name sorts first, which puts the lessons outside any track
+        // ahead of every track.
+        final byTrack = (a.track ?? '').compareTo(b.track ?? '');
+        return byTrack != 0 ? byTrack : a.order.compareTo(b.order);
       });
   }
 

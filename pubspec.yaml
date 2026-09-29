@@ -64,6 +64,8 @@ flutter:
     # Flutter's asset globbing is NOT recursive: every directory must be listed.
     - assets/lessons/
     - assets/lessons/python/
+    # A track: lessons numbered on their own, listed after the rest of Python.
+    - assets/lessons/python/microbit/
     # The MicroPython hex a flashed program is built into. Fetched rather than
     # committed, so this directory holds only a README until `just
     # fetch-microbit-firmware` has run; see docs/rust-core-build.md.

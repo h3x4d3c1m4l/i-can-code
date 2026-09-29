@@ -35,6 +35,14 @@ abstract class CodeDraftStoreBase with Store {
   /// section id is only unique within its own lesson.
   static String keyFor(String language, String lessonId, String sectionId) => 'code.$language.$lessonId.$sectionId';
 
+  /// One key per project, for the one program all of its tasks share.
+  static String workKeyFor(String language, String lessonId) => 'work.$language.$lessonId';
+
+  /// One key per task of a project, for the program as it stood when the
+  /// student said the task worked.
+  static String snapshotKeyFor(String language, String lessonId, String sectionId) =>
+      'snapshot.$language.$lessonId.$sectionId';
+
   final SharedPreferencesAsync _preferences;
 
   /// Drafts by [keyFor]. Observable only so the settings menu can tell whether
@@ -58,7 +66,11 @@ abstract class CodeDraftStoreBase with Store {
   Future<void> load(Course course) async {
     final keys = {
       for (final lesson in course.lessons)
-        for (final section in lesson.translations.values.first.sections) _keyIn(lesson, section.id),
+        if (lesson.translations.values.first.isProject) ...[
+          _workKeyIn(lesson),
+          for (final section in lesson.translations.values.first.sections) _snapshotKeyIn(lesson, section.id),
+        ] else
+          for (final section in lesson.translations.values.first.sections) _keyIn(lesson, section.id),
     };
 
     try {
@@ -83,17 +95,42 @@ abstract class CodeDraftStoreBase with Store {
   ///
   /// Returns at once when nothing changed, so a caller MAY call it on every
   /// notification an editor sends, a moved caret included.
-  void keep(CourseLesson lesson, String sectionId, String code) {
-    final key = _keyIn(lesson, sectionId);
+  void keep(CourseLesson lesson, String sectionId, String code) => _put(_keyIn(lesson, sectionId), code);
+
+  /// Drops the draft of [sectionId], so it opens on its starter block again.
+  void forget(CourseLesson lesson, String sectionId) => _drop(_keyIn(lesson, sectionId));
+
+  /// The program a project's tasks share, or null when the student never
+  /// changed its starter block.
+  String? workFor(CourseLesson lesson) => _drafts[_workKeyIn(lesson)];
+
+  /// Keeps [code] as the program [lesson]'s tasks share. Returns at once when
+  /// nothing changed, as [keep] does.
+  void keepWork(CourseLesson lesson, String code) => _put(_workKeyIn(lesson), code);
+
+  /// Drops the shared program, so the project opens on its starter block again.
+  void forgetWork(CourseLesson lesson) => _drop(_workKeyIn(lesson));
+
+  /// The program as it stood when the student said task [sectionId] worked, or
+  /// null when they never did.
+  String? snapshotFor(CourseLesson lesson, String sectionId) => _drafts[_snapshotKeyIn(lesson, sectionId)];
+
+  /// Keeps [code] as task [sectionId]'s snapshot, replacing any before it.
+  ///
+  /// Unlike [keep], a starter block is kept too: the snapshot is what the
+  /// program *was*, and a task that works with the starter untouched still
+  /// worked.
+  void keepSnapshot(CourseLesson lesson, String sectionId, String code) =>
+      _put(_snapshotKeyIn(lesson, sectionId), code);
+
+  void _put(String key, String code) {
     if (_drafts[key] == code) return;
 
     _replace({..._drafts, key: code});
     _schedule(key, code);
   }
 
-  /// Drops the draft of [sectionId], so it opens on its starter block again.
-  void forget(CourseLesson lesson, String sectionId) {
-    final key = _keyIn(lesson, sectionId);
+  void _drop(String key) {
     if (!_drafts.containsKey(key)) return;
 
     _replace({..._drafts}..remove(key));
@@ -153,6 +190,11 @@ abstract class CodeDraftStoreBase with Store {
 
   String _keyIn(CourseLesson lesson, String sectionId) =>
       keyFor(lesson.entry.language, lesson.translations.values.first.id, sectionId);
+
+  String _workKeyIn(CourseLesson lesson) => workKeyFor(lesson.entry.language, lesson.translations.values.first.id);
+
+  String _snapshotKeyIn(CourseLesson lesson, String sectionId) =>
+      snapshotKeyFor(lesson.entry.language, lesson.translations.values.first.id, sectionId);
 
   @action
   void _replace(Map<String, String> value) => _drafts = value;

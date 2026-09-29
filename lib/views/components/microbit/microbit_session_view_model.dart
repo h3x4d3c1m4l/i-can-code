@@ -53,9 +53,7 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// Not observable, like the terminal: it keeps its own state and notifies its
   /// own listeners, and a MobX observable over every keystroke would rebuild the
   /// screen on each one.
-  final CodeLineEditingController code = CodeLineEditingController.fromText(
-    'from microbit import *\n\ndisplay.scroll("Hello")\n',
-  );
+  final CodeLineEditingController code;
 
   /// The emulator the view hands to a `TerminalView`.
   ///
@@ -99,8 +97,11 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   @readonly
   String? _flashPlanFailure;
 
-  MicrobitSessionViewModelBase({required super.contextAccessor, required String languageSlug})
-    : language = languageFromSlug(languageSlug) ?? '';
+  /// [program] is what the editor opens with. Left out, it opens on a
+  /// greeting, the smallest program that shows the board is listening.
+  MicrobitSessionViewModelBase({required super.contextAccessor, required String languageSlug, String? program})
+    : language = languageFromSlug(languageSlug) ?? '',
+      code = CodeLineEditingController.fromText(program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n');
 
   @action
   void setStatus(MicrobitStatus status) => _status = status;

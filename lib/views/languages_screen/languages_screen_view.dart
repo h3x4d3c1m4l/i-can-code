@@ -49,7 +49,10 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
                   const SizedBox(height: 40),
                   for (final (index, language) in languages.indexed) ...[
                     if (index > 0) const SizedBox(height: 16),
-                    Builder(
+                    // An Observer of its own rather than a Builder: a Builder's
+                    // callback runs after the Observer above has stopped
+                    // listening, so a reset left the count where it was.
+                    Observer(
                       builder: (context) {
                         final lessons = viewModel.course.lessonsFor(language);
                         final done = lessons.where(viewModel.progress.isFinished).length;

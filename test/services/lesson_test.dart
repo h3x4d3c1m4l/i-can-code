@@ -31,6 +31,29 @@ void main() {
 
       expect(entries.map((e) => e.slug), ['ok']);
     });
+
+    test('a folder inside a language is a track, numbered on its own and listed after the rest', () {
+      final entries = Course.entriesFrom([
+        'assets/lessons/python/microbit/01-dice.nl.md',
+        'assets/lessons/python/microbit/00-meet.nl.md',
+        'assets/lessons/python/22-files.nl.md',
+        'assets/lessons/python/00-intro.nl.md',
+        'assets/lessons/python/microbit/deeper/01-too-deep.nl.md',
+      ]);
+
+      expect(entries.map((e) => e.slug), ['intro', 'files', 'meet', 'dice']);
+      expect(entries.map((e) => e.track), [null, null, 'microbit', 'microbit']);
+      expect(entries.every((e) => e.language == 'python'), isTrue);
+    });
+
+    test('the same number in a track and outside it are two lessons', () {
+      final entries = Course.entriesFrom([
+        'assets/lessons/python/01-hello.nl.md',
+        'assets/lessons/python/microbit/01-hello.nl.md',
+      ]);
+
+      expect(entries, hasLength(2));
+    });
   });
 
   group('Lesson.parse', () {
@@ -139,6 +162,100 @@ void main() {
       test('a runtime no version has is an author\'s mistake', () {
         expect(
           () => Lesson.parse('# T\n\n```metadata\nid: x\nruntime: basic\n```\n\n$windowStep'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    });
+
+    group('a project', () {
+      const head = '# T\n\n```metadata\nid: x\nlayout: project\nruntime: microbit\n```\n\n';
+      const info = '## Lezen\n\n```metadata\nid: read\ntype: info\n```\n\nprose\n\n';
+      String task(String id, {String extra = '', String blocks = ''}) =>
+          '## $id\n\n```metadata\nid: $id\ntype: task\n$extra```\n\nprose\n\n'
+          '```done-when\nHet lampje brandt.\n```\n\n$blocks';
+      const starter = '```python-assignment\nfrom microbit import *\n```\n\n';
+
+      test('reads its tasks, what each is done when and what each recommends', () {
+        final lesson = Lesson.parse(
+          '$head$info${task('first', extra: 'requires: [lijsten, keuzes-maken]\n', blocks: starter)}${task('second')}',
+        );
+
+        expect(lesson.isProject, isTrue);
+        expect(lesson.runtime, LessonRuntime.microbit);
+        expect(lesson.sections.map((s) => s.kind), [SectionKind.info, SectionKind.task, SectionKind.task]);
+        expect(lesson.sections[1].doneWhen, 'Het lampje brandt.');
+        expect(lesson.sections[1].requires, ['lijsten', 'keuzes-maken']);
+        expect(lesson.sections[1].starter, 'from microbit import *');
+        expect(lesson.sections[2].requires, isEmpty);
+        expect(lesson.sections[1].prose, isNot(contains('done-when')), reason: 'the card is drawn apart');
+      });
+
+      test('runs on a micro:bit, and nothing but a project does', () {
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\nlayout: project\n```\n\n${task('a')}'),
+          throwsA(isA<FormatException>()),
+        );
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\nruntime: microbit\n```\n\n$info'),
+          throwsA(isA<FormatException>()),
+        );
+        expect(
+          () => Lesson.parse('$head## a\n\n```metadata\nid: a\ntype: info\nruntime: python\n```\n\nprose\n\n${task('b')}'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('holds tasks and info, and a task belongs to a project only', () {
+        expect(
+          () => Lesson.parse('$head## E\n\n```metadata\nid: e\ntype: exercise\n```\n\n'
+              '```python-assignment\n```\n\n```python-validator\npass\n```\n\n${task('a')}'),
+          throwsA(isA<FormatException>()),
+        );
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n${task('a')}'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('may end with info, which the student finishes by reading it', () {
+        final lesson = Lesson.parse('$head${task('a')}$info');
+
+        expect(lesson.sections.last.kind, SectionKind.info);
+      });
+
+      test('a task says when it is done', () {
+        expect(
+          () => Lesson.parse('$head## a\n\n```metadata\nid: a\ntype: task\n```\n\nprose\n'),
+          throwsA(isA<FormatException>()),
+        );
+        expect(
+          () => Lesson.parse('$head## a\n\n```metadata\nid: a\ntype: task\n```\n\n```done-when\n\n```\n'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('only its first task carries the starter', () {
+        expect(
+          () => Lesson.parse('$head${task('a')}${task('b', blocks: starter)}'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('recommends lessons by id, as a list', () {
+        expect(
+          () => Lesson.parse('$head${task('a', extra: 'requires: lijsten\n')}'),
+          throwsA(isA<FormatException>()),
+        );
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## a\n\n```metadata\nid: a\ntype: info\n'
+              'requires: [lijsten]\n```\n\nprose\n'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('a layout no version has is an author\'s mistake', () {
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\nlayout: slides\n```\n\n$info'),
           throwsA(isA<FormatException>()),
         );
       });

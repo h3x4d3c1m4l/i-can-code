@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/views/lesson_screen/components/optional_step_banner.dart';
+import 'package:i_can_code/views/components/lesson/optional_step_banner.dart';
 
 /// The title every step opens with, over its badge when it has one. One size
 /// for all three kinds, so the steps read as one lesson.
@@ -16,7 +16,11 @@ class SectionHeading extends StatelessWidget {
   /// is set — it is what puts the "Verdieping" banner under the title.
   final VoidCallback? onSkip;
 
-  const SectionHeading({required this.section, this.onSkip, super.key});
+  /// Whether the section's emoji goes before its title. A project leaves it
+  /// out, where a page of tasks with one each read as busy.
+  final bool showEmoji;
+
+  const SectionHeading({required this.section, this.onSkip, this.showEmoji = true, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +28,7 @@ class SectionHeading extends StatelessWidget {
     final title = Text.rich(
       TextSpan(
         children: [
-          if (section.emoji case final String emoji)
+          if (section.emoji case final String emoji when showEmoji)
             TextSpan(text: '$emoji ', style: TextStyle(letterSpacing: titleSize * 0.12)),
           TextSpan(text: section.title),
         ],

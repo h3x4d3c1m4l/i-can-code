@@ -4,8 +4,8 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
+import 'package:i_can_code/views/components/lesson/lesson_tour_part.dart';
 import 'package:i_can_code/views/components/tour_target.dart';
-import 'package:i_can_code/views/lesson_screen/components/lesson_tour_part.dart';
 
 /// What an optional step is — a "Verdieping" — and the way past it, on one line
 /// under the step's title.

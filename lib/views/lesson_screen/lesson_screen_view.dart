@@ -13,21 +13,21 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/lesson/code_sample.dart';
+import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
+import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
+import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
+import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
+import 'package:i_can_code/views/components/lesson/lesson_tour_part.dart';
+import 'package:i_can_code/views/components/lesson/section_heading.dart';
+import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
-import 'package:i_can_code/views/lesson_screen/components/code_sample.dart';
-import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
-import 'package:i_can_code/views/lesson_screen/components/confetti_burst.dart';
-import 'package:i_can_code/views/lesson_screen/components/lesson_complete_panel.dart';
-import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
-import 'package:i_can_code/views/lesson_screen/components/lesson_tour_part.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
-import 'package:i_can_code/views/lesson_screen/components/section_heading.dart';
-import 'package:i_can_code/views/lesson_screen/components/step_progress_bar.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_controller.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
@@ -167,6 +167,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
                       SectionKind.matchPairs => _buildMatchPairs(context, lesson, section),
                       SectionKind.predictOutput => _buildPredictOutput(context, lesson, section),
                       SectionKind.orderLines => _buildOrderLines(context, lesson, section),
+                      // A project opens on its own screen, and `ProjectGuard`
+                      // sends its lesson address there. Read as prose if one
+                      // gets through anyway.
+                      SectionKind.task => _buildInfo(context, lesson, section),
                     },
             ),
           );

@@ -133,4 +133,63 @@ void main() {
     expect(CodeDraftStoreBase.keyFor('python', 'intro', 'a'), isNot(CodeDraftStoreBase.keyFor('python', 'loops', 'a')));
     expect(CodeDraftStoreBase.keyFor('python', 'intro', 'a'), isNot(CodeDraftStoreBase.keyFor('java', 'intro', 'a')));
   });
+
+  group('a project', () {
+    final project = CourseLesson(
+      entry: const LessonEntry(language: 'python', track: 'microbit', order: 1, slug: 'dice', paths: {'nl': 'x'}),
+      translations: {
+        'nl': const Lesson(
+          id: 'dice',
+          title: 'T',
+          layout: LessonLayout.project,
+          runtime: LessonRuntime.microbit,
+          sections: [
+            LessonSection(id: 'roll', title: 'roll', kind: SectionKind.task, prose: '', doneWhen: 'x'),
+            LessonSection(id: 'shake', title: 'shake', kind: SectionKind.task, prose: '', doneWhen: 'x'),
+          ],
+        ),
+      },
+    );
+
+    Future<CodeDraftStore> reload() async {
+      final reloaded = CodeDraftStore();
+      await reloaded.load(Course(lessons: [project]));
+      return reloaded;
+    }
+
+    test('keeps one program for all its tasks, and a snapshot per task', () async {
+      store
+        ..keepWork(project, 'print(2)')
+        ..keepSnapshot(project, 'roll', 'print(1)');
+      await store.flush();
+
+      final reloaded = await reload();
+      expect(reloaded.workFor(project), 'print(2)');
+      expect(reloaded.snapshotFor(project, 'roll'), 'print(1)');
+      expect(reloaded.snapshotFor(project, 'shake'), isNull);
+    });
+
+    test('forgetting the program leaves the snapshots alone', () async {
+      store
+        ..keepWork(project, 'print(2)')
+        ..keepSnapshot(project, 'roll', 'print(1)')
+        ..forgetWork(project);
+      await store.flush();
+
+      final reloaded = await reload();
+      expect(reloaded.workFor(project), isNull);
+      expect(reloaded.snapshotFor(project, 'roll'), 'print(1)');
+    });
+
+    test('clearing forgets both', () async {
+      store
+        ..keepWork(project, 'print(2)')
+        ..keepSnapshot(project, 'roll', 'print(1)');
+      await store.clear();
+
+      final reloaded = await reload();
+      expect(reloaded.workFor(project), isNull);
+      expect(reloaded.snapshotFor(project, 'roll'), isNull);
+    });
+  });
 }

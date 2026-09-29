@@ -282,11 +282,14 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/repl                             the interactive console
 /learn-python/microbit                         a program of your own, on a board
 /learn-python/microbit-repl                    MicroPython's own prompt, on a board
+/learn-python/microbit/dobbelsteen             a project, on a board
 ```
 
 `repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons by those names.
 
 **The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
+
+**A project has no step in its address.** It shows every task up to the one in front of the student, and which one that is comes from progress, not from the address. It sits under `microbit` because a project is a program for a board, and three segments long it would otherwise read as a lesson step, so it is declared above that route. A project's lesson address, typed or bookmarked, still reaches the lesson route: `ProjectGuard` (`lib/routing/`) sends it on. Everything the app builds itself goes through `openingRoute()`, which picks the right one.
 
 The step is a **`LessonSection.id`, never a position** — the same reason progress keys on it. A pasted or bookmarked link still opens the step it named after the author reorders the lesson, and an id the lesson no longer has resolves like the bare form rather than showing nothing.
 
@@ -403,6 +406,9 @@ Four words, fixed. Drifting off them is what made the folders disagree with the 
 | **section** | One `##` block of a lesson. `LessonSection`. The student-facing word for it is **step**. |
 | **exercise** | A *kind of section* — one that asks for code (`SectionKind.quickExercise`, `exercise`). **Not** a unit of content. |
 | **pair** | The two halves of one item on a match-pairs board. `LessonPair`. |
+| **project** | A lesson with `layout: project`: one program for a micro:bit, built up over its tasks. `LessonLayout.project`, `ProjectScreen`. |
+| **task** | A *kind of section*, and the only one a project has beside `info`. `SectionKind.task`. |
+| **track** | A folder inside a language's directory: lessons numbered on their own and listed after the rest. `LessonEntry.track`. |
 
 A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Assignment* survives only where it names a **block** in a lesson file (```` ```python-assignment ````) and in `SectionKind.isAssignment`; as a word for a step it has been replaced by **exercise**.
 
@@ -421,6 +427,7 @@ A lesson is **one markdown file per locale**, at `assets/lessons/<language>/<ord
 Two things that are easy to get wrong:
 
 - **There is no index file.** Order comes from the `NN-` filename prefix and discovery from Flutter's `AssetManifest`, so the directory *is* the index. Reordering the course is a rename.
+- **A folder inside a language is a track**, numbered on its own and listed after the lessons outside it. Its lesson ids share the language's namespace, and `pubspec.yaml` has to list it like any other asset directory.
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
 **A step says what it runs on, and one this version cannot run is left out.** `runtime:` in a lesson's or a section's metadata is `python` by default — CPython in the page — and `tkinter` is Python with Tk on a machine of its own. No lesson step can run there yet, so `Lesson.parse` **drops** such a step and reads nothing else about it: its `type` and its blocks may be ones this version has never heard of. A lesson whose every step goes that way parses to no steps at all, which is not an error, and `Course.load` leaves it out rather than list a card that opens on nothing. That is what lets the course carry window lessons before the app can run them. A `runtime` no version knows is still an author's mistake.
@@ -484,6 +491,18 @@ Four things in `LineOrderingBoard` (`lib/views/lesson_screen/components/`):
 **The best distractor is one the output cannot catch.** `print("42")` beside `print(42)` prints the same characters, so only `program.calls("print").with_any_args("42")` tells them apart — which is what `kCheckLibrary` is for, and how the step in lesson 01 is built.
 
 Flutter's asset globbing is **not recursive**, so every asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared.
+
+### Projects
+
+A lesson that says `layout: project` is not walked a step at a time. `ProjectScreen` shows it as one page of blocks, one per section, of which one at a time is open: the first unfinished section to begin with, and any finished one the student opens to reread. Blocks ahead show their title and do not open. Beside all of it is **one** editor, the micro:bit's buttons and its output. The header carries the trail and no progress bar, because the blocks already say where the student is. The format is in `docs/lesson-format.md`.
+
+Things that are easy to get wrong:
+
+- **Nothing is checked.** The program runs on a board the app cannot watch, so the student's "Het werkt!" is the verdict. What keeps it honest is the task's `done-when` card right above the button, and the button waiting until the program has been written to the board while that task was open (`ProjectScreenViewModel.flashedHere`, set by `MicrobitSessionController.onFlashed`).
+- **The section in front is the first one after the last finished one**, not the first one unfinished. Skipping a Verdieping stores nothing, as everywhere, so on the next visit the first-unfinished rule would put it back in front of work done after it.
+- **An info section is a step of its own**, finished with **Gelezen**. Only a task needs the board.
+- **One program, kept apart from the drafts.** `CodeDraftStore.workFor` is the program every task shares, and `snapshotFor` the program as it stood when a task was said to work. A snapshot is read-only and can be put back; there is no reset to the starter, which would throw away every task's work at once.
+- **Only a project runs on a micro:bit, and a project runs nowhere else.** The parser refuses either without the other.
 
 ### Running Python
 

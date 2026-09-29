@@ -6,7 +6,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
-import 'package:i_can_code/views/lesson_screen/components/lesson_prose.dart';
+import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// How a board deals its tiles: every half of every one of [count] pairs, in one

@@ -27,6 +27,22 @@ assets/lessons/<language>/<order>-<slug>.<locale>.md
 `Course.entriesFrom` ignores anything that does not match this pattern, so a
 `README.md` or an editor backup in the folder is harmless.
 
+### A folder inside a language is a track
+
+```text
+assets/lessons/python/microbit/01-dobbelsteen.nl.md
+```
+
+One folder deeper, a lesson belongs to a **track**: a run numbered on its own,
+listed after the lessons outside any track, and after any track whose folder
+name sorts before its own. That lets a run start again at `00-` without
+renumbering the course. Nothing else changes: it is a lesson of the same
+language, its `group` puts the heading over it, and its id shares the language's
+namespace, so **a lesson id is unique across the whole language, tracks
+included** (`test/content/lessons_test.dart` holds that).
+
+Only one level. A folder inside a track is not read.
+
 ### There is no index file
 
 Flutter's `AssetManifest` already lists everything bundled, so the directory *is*
@@ -34,8 +50,8 @@ the index. A lesson therefore cannot be added to the app and then forgotten in a
 index — the failure mode the old `index.yaml` had.
 
 **Flutter's asset globbing is not recursive.** Every directory is listed
-separately in `pubspec.yaml`; a new language directory is silently absent at
-runtime until it is declared there.
+separately in `pubspec.yaml`; a new language directory, or a new track, is
+silently absent at runtime until it is declared there.
 
 ## Worked examples of every type
 
@@ -92,7 +108,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional` and `group`. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `group`, `runtime` and `layout`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -102,6 +118,7 @@ if "print(" not in code:
 | `<lang>-distractors` | Lines that belong to no correct program. Optional. |
 | `explanation` | Why that program's output is what it is. Shown after the answer. |
 | `stdin` | What the program reads on standard input. Shown to the student. See below. |
+| `done-when` | What a project's task looks like once it works. See *`layout: project`*. |
 | `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
 
@@ -129,6 +146,7 @@ a position survives none of that.
 | `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
 | `predict-output` | Prose, a program, and a box to say what it prints before it runs. No editor — see below. |
 | `order-lines` | Prose, then the program's own lines shuffled, to be put in order. No editor — see below. |
+| `task` | One task of a project. Prose, a `done-when` card and the button that says it works. Only in a project — see below. |
 
 Which blocks a section may carry follows from its type:
 
@@ -139,6 +157,7 @@ Which blocks a section may carry follows from its type:
 | `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not | Must not |
 | `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not | May carry one |
 | `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one | May carry one |
+| `task` | The first task may | Must not | Must not | Must not | Must not | Must not | Must not |
 
 No type ever *has* to carry a `stdin` block: the four that may are the four that
 hand a program to the interpreter, and a program that reads nothing is the
@@ -227,6 +246,9 @@ id: een-venster
 runtime: tkinter
 ```
 
+`microbit` is MicroPython on a BBC micro:bit, and only a project runs there; see
+*`layout: project`*.
+
 `tkinter` is Python with Tk on the machine behind the Tkinter page. **The app
 cannot run a lesson step there yet**, so a step that asks for it is **left out**:
 it does not appear in the lesson, it counts towards no step count, and nothing
@@ -277,6 +299,98 @@ It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
 makes a step look the same on every platform instead of borrowing Apple's emoji
 on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
 
+## `layout: project` — one program, built up over tasks
+
+A lesson that says `layout: project` in its document-level `metadata` is not
+walked through a step at a time. It is **one program** the student builds up:
+each task appears under the one before it once the student says that one works,
+and every task shares one editor.
+
+````markdown
+# Dobbelsteen
+
+Schud de micro:bit en gooi een getal van 1 tot en met 6.
+
+```metadata
+id: dobbelsteen
+emoji: "🎲"
+layout: project
+runtime: microbit
+group: "Projecten · micro:bit"
+```
+
+## Eén worp
+
+```metadata
+type: task
+id: een-worp
+emoji: "🎲"
+requires: [modules-gebruiken]
+```
+
+Schrijf een programma dat bij het opstarten één willekeurig getal laat zien.
+
+```done-when
+Er verschijnt na het opstarten een getal van 1 tot en met 6.
+```
+
+### 💡 Hint {collapsed}
+
+Willekeurige getallen zitten in de module `random`.
+
+```python-assignment
+from microbit import *
+```
+````
+
+**Nothing in a project is checked.** It runs on a micro:bit, a board the app
+writes the program to and cannot watch, so the student's own "it works" is the
+verdict. What keeps that honest is the task saying exactly what working looks
+like, right above the button, and the button waiting until the program has been
+put on the board at least once while that task was open.
+
+### The rules
+
+- **`layout: project` and `runtime: microbit` come together.** A project runs on a
+  board, and nothing but a project does. Either one without the other is a
+  `FormatException`, and so is a section of a project declaring a runtime of its
+  own.
+- **A project holds `task` and `info` sections, nothing else**, and a `task`
+  belongs to a project only. An `info` section is a step of its own: the
+  student finishes it by saying they read it.
+- **A task MUST carry a `done-when` block.** Inline markdown, one or two
+  sentences about what the program does once the task is done. It is drawn in a
+  card of its own directly above the button, wherever it sits in the file.
+- **A task MAY say `requires`**: the ids of the lessons it leans on, as a YAML
+  list. The task shows them in a row, each with a mark for whether the student
+  finished it, started it or has not opened it, and each opens that lesson. It
+  is advice and never a gate. `test/content/lessons_test.dart` holds every id to
+  a lesson in the same language.
+- **Only the first task MAY carry a `<lang>-assignment` block.** All tasks share
+  one editor, and that block is what it opens with. After that the student's
+  own program comes back on every visit.
+- **No validator, no `stdin`, and none of the other kinds' blocks.** There is
+  nothing to run in the page and nothing to check.
+- **`optional: true` works as it does everywhere**: the task carries the
+  *Verdieping* badge and an **Overslaan** link, and skipping records nothing.
+
+Write a hint as a folded subheading, `### 💡 Hint {collapsed}`, and a
+question to think about as ordinary prose. Neither needs a block of its own.
+
+### What the student gets
+
+Every section is a block with its number and title, and only one block is
+open at a time.
+
+- The first section not finished is open. An `info` section ends in a
+  **Gelezen** button, a task in its `done-when` card and **Het werkt!**. Either
+  one folds the block and opens the next.
+- Finished blocks can be opened again to reread them. A finished task keeps a
+  **snapshot**: the program as it stood when the student said it worked, which
+  they can look at and put back.
+- Blocks further on show their title and do not open, so the student sees how
+  far there is to go without reading ahead.
+
 ## `###` inside a section — foldable subheadings
 
 Within a section's prose, every `###` heading becomes a block the student can
@@ -310,8 +424,8 @@ Three things to know:
 
 ## Why the role rides in the fence language
 
-Four words are reserved outright rather than read as a language: `metadata`,
-`pairs`, `explanation` and `stdin`. None of them is code, so there is no suffix
+Five words are reserved outright rather than read as a language: `metadata`,
+`pairs`, `explanation`, `stdin` and `done-when`. None of them is code, so there is no suffix
 to strip and nothing to hand a highlighter — colouring a student's typed name as
 an identifier is exactly the wrong reading of it.
 

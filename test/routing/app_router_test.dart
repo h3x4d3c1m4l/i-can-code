@@ -21,6 +21,7 @@ void main() {
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
+      '/learn-python/$microbitLesson/dice',
       '/learn-python/hello',
       '/learn-python/hello/print-yourself',
     ]) {
@@ -72,5 +73,23 @@ void main() {
     // The bare form redirects rather than being a second route for the same
     // page, which auto_route forbids.
     expect(matched!.last.params.getString('sectionId'), resumeSection);
+  });
+
+  test('a project has its own address under the board, ahead of a lesson step', () {
+    // Three segments, the same count as a lesson step, and `microbit` is a
+    // reserved lesson id: so this must win rather than read as the step "dice"
+    // of a lesson called "microbit".
+    final matched = AppRouter().matcher.match('/learn-python/$microbitLesson/dice');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'ProjectRoute');
+    expect(matched.single.params.getString('lessonId'), 'dice');
+  });
+
+  test('each project is a screen of its own', () {
+    final first = projectRoute(languageSlug: 'learn-python', lessonId: 'dice');
+    final other = projectRoute(languageSlug: 'learn-python', lessonId: 'marble');
+
+    expect(first.args!.key, isNot(other.args!.key));
   });
 }

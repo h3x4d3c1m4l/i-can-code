@@ -27,11 +27,42 @@ void main() {
   group('every lesson under $root', () {
     for (final entry in lessons) {
       for (final path in entry.paths.values) {
-        test('${entry.language}/${File(path).uri.pathSegments.last}', () {
+        test([entry.language, ?entry.track, File(path).uri.pathSegments.last].join('/'), () {
           _holdsTheRules(Lesson.parse(File(path).readAsStringSync()));
         });
       }
     }
+
+    test('a lesson id is unique within its language, tracks included', () {
+      // Progress and drafts key on the language and the lesson id, so two
+      // lessons sharing one would share a student's ticks and code.
+      final seen = <String, String>{};
+      for (final entry in lessons) {
+        final id = Lesson.parse(File(entry.paths.values.first).readAsStringSync()).id;
+        final key = '${entry.language}/$id';
+        expect(seen[key], isNull, reason: '"$id" is used by ${seen[key]} and ${entry.slug}');
+        seen[key] = entry.slug;
+      }
+    });
+
+    test('every lesson a task recommends is a lesson of its own language', () {
+      final ids = <String, Set<String>>{};
+      final parsed = [
+        for (final entry in lessons)
+          for (final path in entry.paths.values) (entry: entry, lesson: Lesson.parse(File(path).readAsStringSync())),
+      ];
+      for (final (:entry, :lesson) in parsed) {
+        (ids[entry.language] ??= {}).add(lesson.id);
+      }
+
+      for (final (:entry, :lesson) in parsed) {
+        for (final section in lesson.sections) {
+          for (final id in section.requires) {
+            expect(ids[entry.language], contains(id), reason: '${entry.slug}: "${section.title}" recommends "$id"');
+          }
+        }
+      }
+    });
 
     test('every translation of a lesson describes the same lesson', () {
       for (final entry in lessons.where((entry) => entry.locales.length > 1)) {
@@ -110,6 +141,7 @@ List<LessonEntry> _lessonsUnder(String root) {
     for (final entry in Course.entriesFrom(onDisk.keys))
       LessonEntry(
         language: entry.language,
+        track: entry.track,
         order: entry.order,
         slug: entry.slug,
         paths: {for (final MapEntry(key: locale, value: asset) in entry.paths.entries) locale: onDisk[asset]!},
@@ -170,6 +202,13 @@ void _holdsTheRules(Lesson lesson) {
       expect(section.explanation, isNull, reason: '${section.title} has no answer to explain');
     }
 
+    if (section.kind == SectionKind.task) {
+      expect(section.doneWhen?.trim(), isNotEmpty, reason: '${section.title} does not say when it is done');
+    } else {
+      expect(section.doneWhen, isNull, reason: '${section.title} is not a task');
+      expect(section.requires, isEmpty, reason: '${section.title} is not a task');
+    }
+
     expect(section.prose, isNot(contains('&quot;')), reason: 'prose must not be HTML-escaped');
     expect(section.prose, isNot(contains('```metadata')), reason: 'metadata must not reach the reader');
     expect(section.prose, isNot(contains('-validator')), reason: 'validators must never be rendered');
@@ -202,4 +241,8 @@ void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why})
   // The heading's words are translated, but a lesson in a group in one
   // language and loose in another would stand under a different heading.
   expect(lesson.group == null, first.group == null, reason: why);
+  // A project in one language is a project in all of them, and recommends the
+  // same lessons: those are ids, not words.
+  expect(lesson.layout, first.layout, reason: why);
+  expect(lesson.sections.map((s) => s.requires), first.sections.map((s) => s.requires), reason: why);
 }

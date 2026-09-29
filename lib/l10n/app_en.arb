@@ -454,5 +454,49 @@
   "resetCode_body": "Your code goes back to how the exercise started. This cannot be undone.",
   "@resetCode_body": {},
   "resetCode_confirm": "Reset",
-  "@resetCode_confirm": {}
+  "@resetCode_confirm": {},
+  "projectScreen_done": "It works!",
+  "projectScreen_flashFirst": "Write your code to the micro:bit first, then you can press this.",
+  "projectScreen_doneWhen": "Done when",
+  "projectScreen_requires": "Good to do first:",
+  "projectScreen_requirementFinished": "{lesson}: finished",
+  "@projectScreen_requirementFinished": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_requirementStarted": "{lesson}: started",
+  "@projectScreen_requirementStarted": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_requirementNotStarted": "{lesson}: not started",
+  "@projectScreen_requirementNotStarted": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_viewCode": "View code",
+  "projectScreen_snapshotTitle": "Your code at “{task}”",
+  "@projectScreen_snapshotTitle": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_snapshotBody": "This is your program as it was when you said this step worked. Putting it back replaces the code you have now.",
+  "projectScreen_snapshotRestore": "Put this version back",
+  "projectScreen_close": "Close",
+  "projectScreen_skipped": "Skipped",
+  "projectScreen_output": "Output",
+  "projectScreen_notConnected": "No micro:bit connected",
+  "projectScreen_read": "Read"
 }

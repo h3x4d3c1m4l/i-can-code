@@ -262,8 +262,8 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// Opens the next lesson in this language, or the catalog when this was the
   /// last one.
   ///
-  /// Lands on its first unfinished step, the same as opening it from the
-  /// catalog would. The catalog is left under it, so Back still goes there.
+  /// Lands where opening it from the catalog would: its first unfinished step,
+  /// or a project's own screen. The catalog is left under it, so Back still goes there.
   Future<void> openNextLesson() async {
     final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
     if (next == null) {
@@ -272,15 +272,10 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     }
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 
-    final lesson = next.translations.values.first;
     await contextAccessor.buildContext.router.replaceAll([
       const LanguagesRoute(),
       CatalogRoute(languageSlug: languageSlug(next.entry.language)),
-      lessonRoute(
-        languageSlug: languageSlug(next.entry.language),
-        lessonId: lesson.id,
-        sectionId: lesson.sections[_progress.firstUnfinishedStep(next)].id,
-      ),
+      openingRoute(next, _progress),
     ]);
   }
 

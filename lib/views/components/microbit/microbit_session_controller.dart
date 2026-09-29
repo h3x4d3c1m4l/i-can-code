@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
@@ -45,7 +46,16 @@ class MicrobitSessionController extends ScreenControllerBase<MicrobitSessionView
   /// program is: a Ctrl-C would stop it a moment after it started.
   final bool interrupt;
 
-  MicrobitSessionController({required super.viewModel, required super.contextAccessor, required this.interrupt}) {
+  /// Called each time a program has been written to the board and it has
+  /// started again.
+  final VoidCallback? onFlashed;
+
+  MicrobitSessionController({
+    required super.viewModel,
+    required super.contextAccessor,
+    required this.interrupt,
+    this.onFlashed,
+  }) {
     // No line discipline in between: MicroPython echoes, edits and keeps
     // history itself, so the console's would double every character. Ctrl-C
     // rides along and raises a real `KeyboardInterrupt`.
@@ -135,6 +145,7 @@ class MicrobitSessionController extends ScreenControllerBase<MicrobitSessionView
         _clearTerminal();
         _expectBanner();
         viewModel.setFlashed();
+        onFlashed?.call();
       case MicrobitDisconnected():
         // Nothing on the terminal belongs to anything any more: the interpreter
         // that printed it is gone, and a reconnect resets the board.

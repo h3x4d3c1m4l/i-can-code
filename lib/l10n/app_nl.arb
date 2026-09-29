@@ -235,5 +235,49 @@
   "codeEditorCard_reset": "Code herstellen",
   "resetCode_title": "Code herstellen?",
   "resetCode_body": "Je code gaat terug naar hoe de opdracht begon. Dit kun je niet ongedaan maken.",
-  "resetCode_confirm": "Herstel"
+  "resetCode_confirm": "Herstel",
+  "projectScreen_done": "Het werkt!",
+  "projectScreen_flashFirst": "Zet je code eerst op de micro:bit, dan kun je dit aanklikken.",
+  "projectScreen_doneWhen": "Klaar als",
+  "projectScreen_requires": "Handig om eerst te doen:",
+  "projectScreen_requirementFinished": "{lesson}: afgerond",
+  "@projectScreen_requirementFinished": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_requirementStarted": "{lesson}: begonnen",
+  "@projectScreen_requirementStarted": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_requirementNotStarted": "{lesson}: nog niet begonnen",
+  "@projectScreen_requirementNotStarted": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_viewCode": "Code bekijken",
+  "projectScreen_snapshotTitle": "Je code bij „{task}”",
+  "@projectScreen_snapshotTitle": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "projectScreen_snapshotBody": "Zo zag je programma eruit toen je zei dat deze stap werkte. Zet je deze versie terug, dan vervangt hij de code die je nu hebt.",
+  "projectScreen_snapshotRestore": "Zet deze versie terug",
+  "projectScreen_close": "Sluiten",
+  "projectScreen_skipped": "Overgeslagen",
+  "projectScreen_output": "Uitvoer",
+  "projectScreen_notConnected": "Geen micro:bit verbonden",
+  "projectScreen_read": "Gelezen"
 }

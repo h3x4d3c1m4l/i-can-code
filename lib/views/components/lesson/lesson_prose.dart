@@ -5,8 +5,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
-import 'package:i_can_code/views/lesson_screen/components/code_sample.dart';
-import 'package:i_can_code/views/lesson_screen/components/collapsible_prose_group.dart';
+import 'package:i_can_code/views/components/lesson/code_sample.dart';
+import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:markdown/markdown.dart' as md;
 
 /// One `###` group of a section's prose: the heading, and every block under it
