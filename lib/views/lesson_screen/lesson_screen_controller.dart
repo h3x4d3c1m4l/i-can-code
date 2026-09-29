@@ -7,6 +7,7 @@ import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
@@ -18,6 +19,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   final PythonAttemptRunner _runner = GetIt.I<PythonAttemptRunner>();
   final PythonRuntime _runtime = GetIt.I<PythonRuntime>();
   final ProgressStore _progress = GetIt.I<ProgressStore>();
+  final CodeDraftStore _drafts = GetIt.I<CodeDraftStore>();
 
   bool _disposed = false;
 
@@ -29,7 +31,12 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// this, that answer would land on whatever step is showing.
   int _runToken = 0;
 
+  /// Writes the drafts out when the app is hidden. On the web that is also a
+  /// tab being closed or reloaded, which takes the store's pending write with it.
+  late final AppLifecycleListener _lifecycle;
+
   LessonScreenController({required super.viewModel, required super.contextAccessor}) {
+    _lifecycle = AppLifecycleListener(onHide: () => unawaited(_drafts.flush()));
     // `/resume` and stale ids are resolved by the view model, so the address
     // still needs rewriting. After the first frame, because the accessor's
     // context does not exist before the screen has built.
@@ -60,6 +67,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   Future<void> run(LessonSection section, String code) async {
     if (viewModel.running) return;
 
+    unawaited(_drafts.flush());
     final token = ++_runToken;
     viewModel.startRun();
     final result = await _runner.attempt(code: code, validator: section.validator, stdin: section.stdin);
@@ -121,6 +129,30 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
     viewModel.markPassed();
     await _remember(section);
+  }
+
+  /// What the student last typed into [step], or null when they never changed
+  /// its starter block.
+  String? savedCode(int step) => _drafts.codeFor(viewModel.lesson, _sectionAt(step).id);
+
+  /// Keeps [code] for the next visit, or forgets it when it is a starter block
+  /// again.
+  ///
+  /// The view calls this on every change to an editor rather than on Run, so a
+  /// reload also finds what was typed after the last run.
+  void keepCode(int step, String code) {
+    // Every locale's starter, because an editor keeps its text across a change
+    // of language, and a reset after one restores the new language's starter.
+    final starters = {
+      for (final lesson in viewModel.lesson.translations.values) lesson.sections[step].starter ?? '',
+    };
+    final sectionId = _sectionAt(step).id;
+
+    if (starters.contains(code)) {
+      _drafts.forget(viewModel.lesson, sectionId);
+    } else {
+      _drafts.keep(viewModel.lesson, sectionId, code);
+    }
   }
 
   /// What the student's code will run on, in the interpreter's own words.
@@ -192,6 +224,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     // Before the move, not after: `LessonScreenViewModel.goTo` clears `running`
     // itself, and [stop] would then find nothing left to stop.
     await stop();
+    unawaited(_drafts.flush());
     viewModel.goTo(step);
     _warmRuntime();
     if (_disposed || !contextAccessor.buildContext.mounted) return;
@@ -206,8 +239,9 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     );
   }
 
-  LessonSection get _currentSection =>
-      viewModel.lesson.translations.values.first.sections[viewModel.step];
+  LessonSection get _currentSection => _sectionAt(viewModel.step);
+
+  LessonSection _sectionAt(int step) => viewModel.lesson.translations.values.first.sections[step];
 
   /// Records [section] as done, and notes it when that tick is what finished
   /// the lesson.
@@ -274,6 +308,8 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     // settings menu, and a program left running would hold the runtime for
     // whatever screen comes next.
     unawaited(stop());
+    unawaited(_drafts.flush());
+    _lifecycle.dispose();
     super.dispose();
   }
 

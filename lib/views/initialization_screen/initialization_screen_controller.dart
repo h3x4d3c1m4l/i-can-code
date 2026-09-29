@@ -6,6 +6,7 @@ import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
@@ -39,9 +40,10 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       if (GetIt.I.isRegistered<Course>()) await GetIt.I.unregister<Course>();
       GetIt.I.registerSingleton<Course>(course);
 
-      // Reading progress needs the course loaded, and swallows its own
-      // failures.
+      // Reading progress and drafts needs the course loaded, and both swallow
+      // their own failures.
       await GetIt.I<ProgressStore>().load(course);
+      await GetIt.I<CodeDraftStore>().load(course);
       // Swallows its own failures too: an introduction shown twice costs
       // nothing worth failing a start over.
       await GetIt.I<TourStore>().load();

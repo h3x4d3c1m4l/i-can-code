@@ -5,6 +5,7 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/locale_controller.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
@@ -58,7 +59,8 @@ void main() {
     GetIt.I
       ..registerSingleton<LocaleController>(LocaleController())
       ..registerSingleton<ThemeModeController>(ThemeModeController())
-      ..registerSingleton<ProgressStore>(ProgressStore());
+      ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<CodeDraftStore>(CodeDraftStore());
   });
 
   tearDown(GetIt.I.reset);

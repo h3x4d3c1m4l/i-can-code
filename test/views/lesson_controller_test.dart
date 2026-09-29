@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
@@ -137,6 +138,7 @@ void main() {
         ),
       )
       ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<PythonRuntime>(runtime)
       ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(runtime));
   });

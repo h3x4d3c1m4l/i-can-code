@@ -307,6 +307,8 @@ Two things it is deliberately not:
 
 Keyed on `LessonSection.id`, never on a step's position, so a tick survives the author reordering a lesson. See `docs/lesson-format.md`.
 
+**What a student typed comes back too.** `CodeDraftStore`, beside it, keeps each exercise's code under its section id, so a reload or a later visit opens the editor on it. A change is in memory at once and in storage **once typing pauses for `writeDelay` (1 s)**, not on Run: a reload has to find what was typed after the last run as well. The delay is for Android rather than the web. Chrome, Firefox and Safari already batch localStorage writes in the browser process, but DataStore, which `shared_preferences` uses there, rewrites its whole file on every call. `LessonScreenController` flushes at once on Run, on a move to another step, on leaving the lesson and on `AppLifecycleListener.onHide`. That last one is what saves a closed or reloaded tab: Flutter web reports `visibilitychange` as `hidden`, and a tab that closes takes the pending timer with it. Code equal to a starter block, in any locale, is not a draft and removes the one there was, so "Code herstellen" forgets it and a starter the author rewrites still reaches a student who never touched it. "Voortgang wissen" clears drafts along with the ticks.
+
 ### The end of a lesson
 
 The last step does not lead out of the lesson. It leads to the lesson's **end
@@ -449,7 +451,7 @@ Three things hold that board together, and each is in `PairMatchBoard` (`lib/vie
 - **A wrong pick has no timer behind it.** Both tiles stay showing until the next tap, which starts the pick over. A flash that clears itself would need a `Future.delayed` in the controller and a disposal guard around it, to say something the tiles already say.
 - **Colour is never the only answer.** A matched tile takes a tick and a wrong one an ×, and every state's fill is a `*Surface` token, so one text colour stays legible through all four.
 
-What is matched lives in `LessonScreenViewModel` per step, the way typed code does, so stepping away and back finds the board as it was left. It is **not** seeded from `ProgressStore`, which remembers that a step passed and not how: a finished lesson opens on a board that can be played again, with the way on already offered — the same thing an exercise does with its starter code.
+What is matched lives in `LessonScreenViewModel` per step, so stepping away and back finds the board as it was left. It is **not** seeded from `ProgressStore`, which remembers that a step passed and not how: a finished lesson opens on a board that can be played again, with the way on already offered. Typed code is the one thing that does come back, from `CodeDraftStore` (see *Progress*).
 
 **A step may run code the student did not write.** `SectionKind.predictOutput` shows the lesson's own program and asks what it prints *before* it is run — declared `type: predict-output`, filled from a `<lang>-predict` block, and carrying no editor and no validator either. It is why `isAssignment` stays false here: code runs, but the student writes none of it.
 

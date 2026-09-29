@@ -6,6 +6,7 @@ import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
@@ -49,6 +50,7 @@ void setupServices() {
     ..registerSingleton<LocaleController>(LocaleController())
     ..registerSingleton<ThemeModeController>(ThemeModeController())
     ..registerSingleton<ProgressStore>(ProgressStore())
+    ..registerSingleton<CodeDraftStore>(CodeDraftStore())
     ..registerSingleton<TourStore>(TourStore())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));

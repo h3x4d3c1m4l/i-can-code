@@ -19,11 +19,6 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   int _step;
 
-  /// What the student has typed, per step. A step absent from this map has not
-  /// been touched, so its editor still shows the starter block.
-  @readonly
-  Map<int, String> _code = {};
-
   /// The last attempt for the current step, or null before the first Run.
   @readonly
   AttemptResult? _attempt;
@@ -31,8 +26,8 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   /// Which pairs of a match-pairs board have been put together, per step, as
   /// indices into that section's own `pairs`.
   ///
-  /// Per step for the reason [_code] is: stepping back and forward again finds
-  /// the board as it was left. It is **not** seeded from [ProgressStore], which
+  /// Per step, so stepping back and forward again finds the board as it was
+  /// left. It is **not** seeded from [ProgressStore], which
   /// remembers that a step passed and not how — so a finished lesson opens on an
   /// empty board that may be played again, with the way on already offered.
   @readonly
@@ -226,9 +221,6 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
 
   @action
   void addExtraBurst() => _extraBursts++;
-
-  @action
-  void setCode(String code) => _code = {..._code, _step: code};
 
   /// Takes one line of an order-lines board out of the available ones and puts
   /// it into the assembled program at [position].

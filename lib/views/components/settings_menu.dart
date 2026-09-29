@@ -6,6 +6,7 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/locale_controller.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
@@ -41,6 +42,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     final locales = GetIt.I<LocaleController>();
     final themes = GetIt.I<ThemeModeController>();
     final progress = GetIt.I<ProgressStore>();
+    final drafts = GetIt.I<CodeDraftStore>();
 
     return Observer(
       builder: (context) => FPopoverMenu(
@@ -86,7 +88,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
             ],
           ),
           // Only offered when there is something to clear.
-          if (progress.hasProgress)
+          if (progress.hasProgress || drafts.hasDrafts)
             FItemGroup(
               children: [
                 FItem(
@@ -96,7 +98,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
                     // The menu has to be out of the way before the dialog
                     // opens, but the dialog does not wait on its animation.
                     unawaited(_controller.hide());
-                    await _confirmReset(context, progress);
+                    await _confirmReset(context, progress, drafts);
                   },
                 ),
               ],
@@ -112,7 +114,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
   }
 
   /// Asks before forgetting. Irreversible.
-  Future<void> _confirmReset(BuildContext context, ProgressStore progress) async {
+  Future<void> _confirmReset(BuildContext context, ProgressStore progress, CodeDraftStore drafts) async {
     final confirmed = await showFDialog<bool>(
       context: context,
       builder: (context, style, animation) => FDialog(
@@ -151,7 +153,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
       ),
     );
 
-    if (confirmed ?? false) await progress.clear();
+    if (confirmed ?? false) await (progress.clear(), drafts.clear()).wait;
   }
 
   /// Each language named in itself, which is what a reader scans for.

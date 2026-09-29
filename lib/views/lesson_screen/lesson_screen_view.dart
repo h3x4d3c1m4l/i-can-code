@@ -664,10 +664,15 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     return controller.runtimeVersion ?? languageLabel(viewModel.lesson.entry.language);
   }
 
-  /// The editor for [step], created from the section's starter block the first
-  /// time it is shown and kept afterwards.
-  CodeLineEditingController _editorFor(int step, LessonSection section) =>
-      _editors[step] ??= CodeLineEditingController.fromText(viewModel.code[step] ?? section.starter ?? '');
+  /// The editor for [step], opened on what the student last typed there or on
+  /// the section's starter block, and kept afterwards.
+  CodeLineEditingController _editorFor(int step, LessonSection section) => _editors[step] ??= _openEditor(step, section);
+
+  CodeLineEditingController _openEditor(int step, LessonSection section) {
+    final editor = CodeLineEditingController.fromText(controller.savedCode(step) ?? section.starter ?? '');
+    editor.addListener(() => controller.keepCode(step, editor.text));
+    return editor;
+  }
 
   /// The prediction field for [step], seeded from what the view model already
   /// holds — so a step left and come back to opens on the answer as it was

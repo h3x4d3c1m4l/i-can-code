@@ -294,7 +294,7 @@
   "@appHeader_resetProgress": {},
   "resetProgress_title": "Reset progress?",
   "@resetProgress_title": {},
-  "resetProgress_body": "Your ticks disappear and every lesson starts over. This cannot be undone.",
+  "resetProgress_body": "Your ticks and your code disappear, and every lesson starts over. This cannot be undone.",
   "@resetProgress_body": {},
   "resetProgress_confirm": "Reset",
   "@resetProgress_confirm": {},

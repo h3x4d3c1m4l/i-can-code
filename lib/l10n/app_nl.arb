@@ -103,7 +103,7 @@
   "appHeader_themeDark": "Donker",
   "appHeader_resetProgress": "Voortgang wissen",
   "resetProgress_title": "Voortgang wissen?",
-  "resetProgress_body": "Je vinkjes verdwijnen en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",
+  "resetProgress_body": "Je vinkjes en je code verdwijnen, en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",
   "resetProgress_confirm": "Wissen",
   "common_cancel": "Annuleren",
   "replScreen_title": "Vrij {language} uitproberen (browser)",

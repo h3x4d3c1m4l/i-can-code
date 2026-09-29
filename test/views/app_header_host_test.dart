@@ -10,6 +10,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/services/tour_store.dart';
@@ -132,6 +133,7 @@ void main() {
       ..registerSingleton<LocaleController>(LocaleController())
       ..registerSingleton<ThemeModeController>(ThemeModeController())
       ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<TourStore>(TourStore());
   });
 
