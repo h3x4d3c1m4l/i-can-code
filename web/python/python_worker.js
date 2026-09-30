@@ -1,9 +1,9 @@
 // Runs CPython off the main thread.
 //
-// Being in a worker is not about smoothness, it is the stop button: a pupil will
-// write `while True:` and the only reliable way to end that is for the main
-// thread to terminate this worker outright. Nothing here needs to cooperate,
-// because nothing here can be trusted to.
+// Being in a worker is not about smoothness, it is the stop button: a student
+// will write `while True:` and the only reliable way to end that is for the
+// main thread to terminate this worker outright. Nothing here needs to
+// cooperate, because nothing here can be trusted to.
 //
 // Each run instantiates a fresh module. CPython calls proc_exit when its main()
 // finishes, which unwinds the instance, so instances are single-use by nature —
@@ -127,7 +127,7 @@ async function start(wasi) {
   instance.exports._start();
 }
 
-/** What the interpreter says it is — "Python 3.14.7" — asked of the build that
+/** What the interpreter says it is — "Python 3.14.8" — asked of the build that
  *  is actually loaded rather than written down anywhere in the app.
  *
  *  `-V` because the answer then carries the name as well as the number, and
