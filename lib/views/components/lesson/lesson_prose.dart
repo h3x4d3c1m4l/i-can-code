@@ -8,6 +8,7 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:url_launcher/url_launcher.dart';
 
 /// One `###` group of a section's prose: the heading, and every block under it
 /// up to the next `###`.
@@ -205,6 +206,11 @@ class LessonProse extends StatelessWidget {
     MarkdownBody render(String data) => MarkdownBody(
       data: data,
       styleSheet: sheet,
+      // Without it the package draws a link and ignores the press. A new tab,
+      // because leaving the app's own tab throws away the step in progress.
+      onTapLink: (_, href, _) {
+        if (href != null) launchUrl(Uri.parse(href));
+      },
       builders: {
         'pre': _CodeBlockBuilder(
           style: tokens.text.code.copyWith(color: tokens.colors.codeForeground),
