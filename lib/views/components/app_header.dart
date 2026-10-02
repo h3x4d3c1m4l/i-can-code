@@ -4,9 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/views/components/app_logo.dart';
 import 'package:i_can_code/views/components/fade_through.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
+import 'package:i_can_code/views/components/playful_app_logo.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
 import 'package:i_can_code/views/components/tour_target.dart';
 
@@ -213,7 +213,7 @@ class AppHeader extends StatelessWidget {
             constraints: BoxConstraints(maxWidth: maxContentWidth(context)),
             child: Row(
               children: [
-                const AppLogo(),
+                const PlayfulAppLogo(),
                 const SizedBox(width: 12),
                 // MUST be the only flexible child: a second would share the free
                 // space and leave its unused half *after* the cog.

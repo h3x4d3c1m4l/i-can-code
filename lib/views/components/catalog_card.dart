@@ -13,6 +13,10 @@ import 'package:i_can_code/views/components/completed_badge.dart';
 /// the shape of the course stays visible. Only an available row is bevelled.
 class CatalogCard extends StatelessWidget {
 
+  /// The gap between two cards in a list, measured from face to face. The
+  /// collar under the upper card takes [_collarHeight] of it.
+  static const double spacing = 24;
+
   /// The card's bevel, the same device as `AppButton`'s at the scale of a card:
   /// a thick edge and a hard, unblurred collar under it that the card rises
   /// off on hover and sinks into on press. Matters of taste, all of them.

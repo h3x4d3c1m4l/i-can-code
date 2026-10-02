@@ -53,7 +53,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
             onTap: controller.openRepl,
           ),
         if (languageHasRepl(viewModel.language) && languageHasMicrobit(viewModel.language))
-          const SizedBox(height: 16),
+          const SizedBox(height: CatalogCard.spacing),
         if (languageHasMicrobit(viewModel.language)) ...[
           CatalogCard(
             // What the board is for: a program of your own, written here and
@@ -64,7 +64,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
             meta: context.localizations.catalogScreen_extraHardware,
             onTap: controller.openMicrobitProgram,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: CatalogCard.spacing),
           CatalogCard(
             // A prompt again, but this one leaves the browser.
             label: '🔌',
@@ -127,7 +127,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
         ),
         const SizedBox(height: 16),
         for (final (index, lesson) in lessons.indexed) ...[
-          if (index > 0) const SizedBox(height: 16),
+          if (index > 0) const SizedBox(height: CatalogCard.spacing),
           _buildLessonCard(context, lesson, locale),
         ],
       ],
@@ -174,9 +174,9 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                       CatalogGroupHeading(group),
                       const SizedBox(height: 14),
                     ] else if (index > 0)
-                      const SizedBox(height: 16),
+                      const SizedBox(height: CatalogCard.spacing),
                     for (final (position, courseLesson) in run.items.indexed) ...[
-                      if (position > 0) const SizedBox(height: 16),
+                      if (position > 0) const SizedBox(height: CatalogCard.spacing),
                       _buildLessonCard(context, courseLesson, locale),
                     ],
                   ],

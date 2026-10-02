@@ -131,6 +131,8 @@ Three rules behind that shape:
 
 `HeaderIconButton` is the icon button all three are — the cog, and the two that hide and show the bar. Not `AppButton.icon`, which is padded `19 × 19` to stand beside a line of text and is far too big for a 76px bar.
 
+**The mark in the bar is an easter egg.** Pressed, `PlayfulAppLogo` plays a random `LogoTrick`, so a new trick is a new case of that enum and nothing else. It gives nothing away: no pointer cursor, no tab stop, no semantics. Every trick MUST start and end on `LogoPose.rest`, and `test/views/playful_app_logo_test.dart` holds that for every case. The mark everywhere else stays still.
+
 ### Introductions
 
 The first time a screen is opened in this browser, it can dim the window and light up one part at a time, with a tip under each explaining what it does. **`AppHeaderHost` runs every introduction**, including ones about a screen's own page, because the bar's introduction starts by bringing the bar out of zen mode and only the host can do that. The code is the host's `_HostTour` mixin, in `app_header_host_tour.dart`. That file is a `part` of the host so the mixin can reach its private state, and the host only calls `_followTour` and reports the bar through three `_tourBar…` hooks. A screen asks for them through its header:
