@@ -28,7 +28,7 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
   }
 
   Widget _buildContent() {
-    return Observer(
+    return Builder(
       builder: (context) {
         final languages = viewModel.course.languages;
 

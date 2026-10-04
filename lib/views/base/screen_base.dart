@@ -51,6 +51,9 @@ class _ScreenBaseState<TViewModel extends ScreenViewModelBase, TController exten
             right: 0,
             height: MediaQuery.paddingOf(context).top,
             child: Observer(
+              // A view that keeps the default colour reads nothing, which is
+              // every view today, so the warning would fire on each screen.
+              warnWhenNoObservables: false,
               builder: (context) {
                 final topSafeAreaColor = _view.topSafeAreaColor(context);
                 if (topSafeAreaColor == null) return const SizedBox.shrink();
