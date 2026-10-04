@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
@@ -20,6 +21,13 @@ import 'package:i_can_code/views/components/app_header_host.dart';
 ///   release could empty a bar the next screen has already filled. Deferring
 ///   puts the claim and the release in the queue in the order they happened,
 ///   and the host keeps the claims of every screen still standing.
+///
+/// It also tells the bar whether this screen's page has content scrolled under
+/// it, which is what gives the bar its edge. That is read off the scroll
+/// notifications bubbling up from the page, so a screen needs nothing of its
+/// own for it. Only a vertical scroll view whose top is under the bar counts:
+/// a code editor or a terminal further down the page scrolls inside itself,
+/// and nothing of it passes under the bar.
 class AppHeaderPublisher extends StatefulWidget {
 
   final AppHeaderBuilder builder;
@@ -35,6 +43,16 @@ class AppHeaderPublisher extends StatefulWidget {
 class _AppHeaderPublisherState extends State<AppHeaderPublisher> {
 
   AppHeaderSlot? _slot;
+
+  /// The scroll views of this page that have content under the bar. More than
+  /// one, because a lesson's two columns scroll apart.
+  final Set<BuildContext> _scrolledUnder = {};
+
+  /// What the bar was last told.
+  bool _reported = false;
+
+  bool _reportScheduled = false;
+  bool _watchingForGone = false;
 
   /// Delegates to whichever builder the widget currently carries, so the bar is
   /// published **once**: a screen that rebuilds does not have to hand its
@@ -59,7 +77,77 @@ class _AppHeaderPublisherState extends State<AppHeaderPublisher> {
     super.dispose();
   }
 
+  bool _onNotification(Notification notification) {
+    switch (notification) {
+      // A scroll view announces itself with a metrics notification once it is
+      // laid out, so one that opens part way down is heard without a scroll.
+      case ScrollNotification(:final metrics, context: final BuildContext scrollable) ||
+          ScrollMetricsNotification(:final metrics, context: final scrollable):
+        _track(scrollable, metrics);
+    }
+    return false;
+  }
+
+  void _track(BuildContext scrollable, ScrollMetrics metrics) {
+    final under = switch (metrics.axisDirection) {
+      AxisDirection.down => metrics.extentBefore > 0,
+      AxisDirection.up => metrics.extentAfter > 0,
+      AxisDirection.left || AxisDirection.right => false,
+    };
+
+    if (under && _startsUnderBar(scrollable)) {
+      _scrolledUnder.add(scrollable);
+      _watchForGone();
+    } else {
+      _scrolledUnder.remove(scrollable);
+    }
+    _report();
+  }
+
+  bool _startsUnderBar(BuildContext scrollable) {
+    final box = scrollable.findRenderObject();
+    final page = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || page == null) return false;
+
+    return box.localToGlobal(Offset.zero, ancestor: page).dy < AppHeader.height;
+  }
+
+  /// Drops a scroll view that has gone, once per frame for as long as any is
+  /// tracked.
+  ///
+  /// A scroll view that is disposed sends nothing on its way out. A lesson's
+  /// step is swapped for the next one that way, and without this the bar would
+  /// keep the edge the old step left it until the next scroll.
+  void _watchForGone() {
+    if (_watchingForGone) return;
+    _watchingForGone = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _watchingForGone = false;
+      if (!mounted || _scrolledUnder.isEmpty) return;
+      _scrolledUnder.removeWhere((scrollable) => !scrollable.mounted);
+      _report();
+      if (_scrolledUnder.isNotEmpty) _watchForGone();
+    });
+  }
+
+  /// Deferred for the reason the publish is: a scroll view can be corrected
+  /// during layout, and the bar is not to be rebuilt from inside one.
+  void _report() {
+    if (_reportScheduled) return;
+    _reportScheduled = true;
+    scheduleMicrotask(() {
+      _reportScheduled = false;
+      final slot = _slot;
+      final scrolledUnder = _scrolledUnder.isNotEmpty;
+      if (!mounted || slot == null || scrolledUnder == _reported) return;
+      _reported = scrolledUnder;
+      slot.reportScrolledUnder(this, scrolledUnder: scrolledUnder);
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    return NotificationListener<Notification>(onNotification: _onNotification, child: widget.child);
+  }
 
 }

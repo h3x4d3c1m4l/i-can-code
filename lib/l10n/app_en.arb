@@ -292,6 +292,8 @@
   "@appHeader_themeDark": {},
   "appHeader_resetProgress": "Reset progress",
   "@appHeader_resetProgress": {},
+  "appHeader_resetProgressNothing": "There are no ticks or code to clear yet.",
+  "@appHeader_resetProgressNothing": {},
   "resetProgress_title": "Reset progress?",
   "@resetProgress_title": {},
   "resetProgress_body": "Your ticks and your code disappear, and every lesson starts over. This cannot be undone.",

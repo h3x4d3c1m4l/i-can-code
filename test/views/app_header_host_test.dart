@@ -52,7 +52,7 @@ Widget _host(ValueListenable<Widget> screen, {bool disableAnimations = false}) =
 
 /// The bar with a real page stack under it: one screen pushed over another, the
 /// way the catalog goes over the language picker.
-Widget _stackedHost(GlobalKey<NavigatorState> pages) => FTheme(
+Widget _stackedHost(GlobalKey<NavigatorState> pages, {Widget page = const SizedBox.expand(key: _screenKey)}) => FTheme(
   data: buildAppTheme(),
   child: Localizations(
     locale: const Locale('nl'),
@@ -65,7 +65,7 @@ Widget _stackedHost(GlobalKey<NavigatorState> pages) => FTheme(
           child: Navigator(
             key: pages,
             onGenerateRoute: (_) => PageRouteBuilder<void>(
-              pageBuilder: (_, _, _) => _screen(crumbs: const [AppCrumb('Python')]),
+              pageBuilder: (_, _, _) => _screen(crumbs: const [AppCrumb('Python')], child: page),
             ),
           ),
         ),
@@ -103,6 +103,21 @@ Widget _screen({
 );
 
 double _topOf(WidgetTester tester, Finder finder) => tester.getTopLeft(finder).dy;
+
+/// A page that scrolls from [top] down, which for every real screen is the top
+/// of the window.
+Widget _scrollingPage({Key? key, double top = 0}) => Padding(
+  padding: EdgeInsets.only(top: top),
+  child: ListView(key: key, children: [for (var row = 0; row < 40; row++) const SizedBox(height: 100)]),
+);
+
+/// Whether the bar is drawing its edge, once its fade has settled.
+bool _hasEdge(WidgetTester tester) {
+  final surface = tester.widget<DecoratedBox>(
+    find.ancestor(of: find.byType(AppHeader), matching: find.byType(DecoratedBox)).first,
+  );
+  return (surface.decoration as BoxDecoration).boxShadow!.single.color.a > 0;
+}
 
 /// Every label in the live semantics tree.
 ///
@@ -230,6 +245,81 @@ void main() {
     expect(find.text('Python'), findsOneWidget);
   });
 
+
+  group('the edge under the bar', () {
+    testWidgets('comes with content scrolled under the bar, and goes at the top', (tester) async {
+      await tester.pumpWidget(_host(ValueNotifier(_screen(child: _scrollingPage()))));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isFalse, reason: 'at the top the bar and the page are one surface');
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isTrue);
+
+      await tester.drag(find.byType(ListView), const Offset(0, 600));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isFalse);
+    });
+
+    testWidgets('waits for a hidden bar to come back', (tester) async {
+      await tester.pumpWidget(_host(ValueNotifier(_screen(zen: true, child: _scrollingPage()))));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isFalse, reason: 'its shadow would hang into the window it has left');
+
+      await tester.tap(find.bySemanticsLabel('Balk tonen'));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isTrue);
+    });
+
+    testWidgets('a scroll view further down the page does not count', (tester) async {
+      // An editor or a terminal: it scrolls inside itself, under nothing.
+      await tester.pumpWidget(_host(ValueNotifier(_screen(child: _scrollingPage(top: 200)))));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+
+      expect(_hasEdge(tester), isFalse);
+    });
+
+    testWidgets('a scroll view that goes takes its edge with it', (tester) async {
+      // The publisher stays and only its page changes, the way a lesson swaps
+      // one step for the next.
+      final screen = ValueNotifier(_screen(key: const ValueKey('lesson'), child: _scrollingPage(key: const ValueKey(1))));
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isTrue);
+
+      screen.value = _screen(key: const ValueKey('lesson'), child: _scrollingPage(key: const ValueKey(2)));
+      await tester.pumpAndSettle();
+
+      expect(_hasEdge(tester), isFalse);
+    });
+
+    testWidgets('the screen underneath brings its own back', (tester) async {
+      final pages = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(_stackedHost(pages, page: _scrollingPage()));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isTrue);
+
+      unawaited(pages.currentState!.push<void>(
+        PageRouteBuilder<void>(pageBuilder: (_, _, _) => _screen(crumbs: const [AppCrumb('Invoer')])),
+      ));
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isFalse, reason: 'the screen on top has scrolled nothing under the bar');
+
+      // Nothing scrolls on the way back down, so nothing would say so again.
+      pages.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(_hasEdge(tester), isTrue);
+    });
+  });
 
   group('the cog, with nothing above the bar to hang off', () {
     testWidgets('opens its menu, and past the bar it stands in', (tester) async {

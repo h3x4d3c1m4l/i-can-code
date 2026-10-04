@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -9,6 +10,7 @@ import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
+import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_logo.dart';
@@ -191,8 +193,76 @@ void main() {
     // no gesture of its own and something must call the controller.
     expect(find.text('Nederlands'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
-    // Nothing done yet, so there is nothing to offer to clear.
-    expect(find.text('Voortgang wissen'), findsNothing);
+    // Offered before there is anything to clear, so it can be found.
+    expect(find.text('Voortgang wissen'), findsOneWidget);
+  });
+
+  testWidgets('every corner of the menu is the app\'s squircle, a hovered item\'s included', (tester) async {
+    await tester.pumpWidget(_host(const AppHeader()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SettingsMenu));
+    await tester.pumpAndSettle();
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.text('English')));
+    await tester.pumpAndSettle();
+
+    // forui draws its own superellipse, which is a different curve.
+    Iterable<ShapeBorder> shapes() => tester
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+        .map((box) => box.decoration)
+        .whereType<ShapeDecoration>()
+        .map((decoration) => decoration.shape);
+    expect(shapes().whereType<RoundedSuperellipseBorder>(), isEmpty);
+    expect(shapes().whereType<ContinuousRectangleBorder>(), isNotEmpty);
+  });
+
+  testWidgets('an item\'s corner runs parallel to the menu\'s', (tester) async {
+    await tester.pumpWidget(_host(const AppHeader()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SettingsMenu));
+    await tester.pumpAndSettle();
+
+    /// The nearest box around [of] drawn as a squircle of [radius].
+    Rect boxOf(Finder of, double radius) => tester.getRect(
+      find
+          .ancestor(
+            of: of,
+            matching: find.byWidgetPredicate(
+              (widget) => switch (widget) {
+                DecoratedBox(decoration: ShapeDecoration(shape: final ContinuousRectangleBorder shape)) =>
+                  shape.borderRadius == BorderRadius.circular(radius * kSquircleScale),
+                _ => false,
+              },
+            ),
+          )
+          .first,
+    );
+
+    // The last item sits in the panel's bottom corners, which is where a
+    // mismatch shows.
+    final item = find.text('Voortgang wissen');
+    const inset = 4.0;
+    final panel = boxOf(item, kControlCornerRadius);
+    final fill = boxOf(item, concentricRadius(kControlCornerRadius, inset: inset));
+
+    expect(fill.left - panel.left, closeTo(inset, 0.01), reason: 'the radius assumes forui\'s inset');
+    expect(panel.right - fill.right, closeTo(inset, 0.01));
+    expect(panel.bottom - fill.bottom, closeTo(inset, 0.01));
+  });
+
+  testWidgets('reset with nothing to clear says why, instead of asking', (tester) async {
+    await tester.pumpWidget(_host(const AppHeader()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SettingsMenu));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Voortgang wissen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Er zijn nog geen vinkjes of code om te wissen.'), findsOneWidget);
+    expect(find.text('Voortgang wissen?'), findsNothing);
   });
 
   testWidgets('reset is offered once there is progress, and asks first', (tester) async {

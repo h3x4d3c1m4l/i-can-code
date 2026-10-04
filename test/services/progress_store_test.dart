@@ -140,6 +140,20 @@ void main() {
     expect(reloaded.hasProgress, isFalse, reason: 'the clear has to reach storage, not just memory');
   });
 
+  test('progress of a lesson that is gone still counts, and clearing reaches it', () async {
+    // Finished under the lesson's old id, which a rename leaves behind.
+    await store.markFinished(_lesson(id: 'input-and-output', sectionIds: ['a']), 'a');
+
+    final renamed = ProgressStore();
+    await renamed.load(Course(lessons: [_lesson(id: 'output', sectionIds: ['a'])]));
+    expect(renamed.hasProgress, isTrue, reason: 'nothing shows it, but there is something to clear');
+
+    await renamed.clear();
+    final reloaded = ProgressStore();
+    await reloaded.load(Course(lessons: [_lesson(id: 'output', sectionIds: ['a'])]));
+    expect(reloaded.hasProgress, isFalse);
+  });
+
   test('lessons of the same name in different languages are kept apart', () {
     expect(
       ProgressStoreBase.keyFor('python', 'intro'),

@@ -112,6 +112,21 @@ void main() {
     expect(await _stored(_intro, 'b'), isNull);
   });
 
+  test('code of a section that is gone still counts, and clearing reaches it', () async {
+    // Typed under the lesson's old id, which a rename leaves behind.
+    store.keep(_lesson(id: 'input-and-output', sectionIds: ['a']), 'a', 'print(1)');
+    await store.flush();
+
+    final renamed = CodeDraftStore();
+    await renamed.load(Course(lessons: [_intro]));
+    expect(renamed.hasDrafts, isTrue, reason: 'nothing shows it, but there is something to clear');
+
+    await renamed.clear();
+    final reloaded = CodeDraftStore();
+    await reloaded.load(Course(lessons: [_intro]));
+    expect(reloaded.hasDrafts, isFalse);
+  });
+
   test('clearing also reaches a draft forgotten since the last write', () async {
     store.keep(_intro, 'a', 'print(1)');
     await store.flush();

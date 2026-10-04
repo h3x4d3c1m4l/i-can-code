@@ -61,6 +61,14 @@ const double kSquircleScale = 1.5;
 ShapeBorder squircle(double radius, {BorderSide side = BorderSide.none}) =>
     ContinuousRectangleBorder(borderRadius: BorderRadius.circular(radius * kSquircleScale), side: side);
 
+/// The radius, in the design's numbers, of a squircle set [inset] logical pixels
+/// inside one of [outer], so that the two corners run parallel.
+///
+/// A [ContinuousRectangleBorder] starts to curve its scaled radius away from
+/// the corner along each edge. The inner shape has to leave its edges on the
+/// same lines, which is [inset] closer to its own corner.
+double concentricRadius(double outer, {required double inset}) => outer - inset / kSquircleScale;
+
 /// [squircle] clamped to what a box of [size] can take. For small square tiles,
 /// where the scaled radius would otherwise deform the shape.
 ShapeBorder squircleOf(double radius, {required double size, BorderSide side = BorderSide.none}) =>

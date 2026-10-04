@@ -19,7 +19,9 @@ abstract class ProgressStoreBase with Store {
 
   /// One key per lesson. The language is part of it because a lesson id is only
   /// unique within its own language directory.
-  static String keyFor(String language, String lessonId) => 'progress.$language.$lessonId';
+  static String keyFor(String language, String lessonId) => '$_prefix$language.$lessonId';
+
+  static const String _prefix = 'progress.';
 
   final SharedPreferencesAsync _preferences;
 
@@ -27,6 +29,12 @@ abstract class ProgressStoreBase with Store {
   /// catalog the moment a step is passed.
   @readonly
   Map<String, Set<String>> _finished = {};
+
+  /// Whether storage holds progress [load] did not read back: a lesson renamed
+  /// or removed since leaves its old key behind. Nothing shows it, but a
+  /// [clear] still has something to clear.
+  @readonly
+  bool _hasUnlisted = false;
 
   ProgressStoreBase({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
@@ -48,7 +56,8 @@ abstract class ProgressStoreBase with Store {
       }
     }
 
-    _replace(loaded);
+    final stored = await _storedKeys();
+    _reset(loaded, hasUnlisted: stored.any((key) => !loaded.containsKey(key)));
   }
 
   /// The finished sections of [lesson].
@@ -67,9 +76,9 @@ abstract class ProgressStoreBase with Store {
   bool isStarted(CourseLesson lesson) => completedSteps(lesson) > 0;
 
   /// Whether anything at all has been recorded, which is what decides if
-  /// offering to clear it is worth showing.
+  /// clearing it can be offered. Counts what no lesson shows any more too.
   @computed
-  bool get hasProgress => _finished.values.any((sections) => sections.isNotEmpty);
+  bool get hasProgress => _hasUnlisted || _finished.values.any((sections) => sections.isNotEmpty);
 
   /// The step to open [lesson] at — the first one not yet finished, as an index.
   /// A finished lesson returns 0 and so restarts from the beginning.
@@ -95,19 +104,35 @@ abstract class ProgressStoreBase with Store {
     }
   }
 
-  /// Forgets everything, in storage as well as in memory.
+  /// Forgets everything, in storage as well as in memory, including progress
+  /// in lessons the course no longer has.
   Future<void> clear() async {
-    for (final key in _finished.keys) {
+    for (final key in {..._finished.keys, ...await _storedKeys()}) {
       try {
         await _preferences.remove(key);
       } on Object {
         // Nothing to do about a storage that will not forget.
       }
     }
-    _replace({});
+    _reset({}, hasUnlisted: false);
+  }
+
+  /// Every progress key in storage, read or not.
+  Future<Set<String>> _storedKeys() async {
+    try {
+      return {...(await _preferences.getKeys()).where((key) => key.startsWith(_prefix))};
+    } on Object {
+      return const {};
+    }
   }
 
   @action
   void _replace(Map<String, Set<String>> value) => _finished = value;
+
+  @action
+  void _reset(Map<String, Set<String>> finished, {required bool hasUnlisted}) {
+    _finished = finished;
+    _hasUnlisted = hasUnlisted;
+  }
 
 }

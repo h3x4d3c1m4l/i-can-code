@@ -8,6 +8,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
@@ -34,6 +35,11 @@ abstract interface class AppHeaderSlot {
   /// Gives up [owner]'s claim. The bar falls back to the screen underneath it
   /// when there still is one, and empties only when there is not.
   void release(Object owner);
+
+  /// Whether [owner]'s page has content scrolled under the bar, which gives
+  /// the bar its edge. Kept per screen, so a screen that comes back on top
+  /// brings its own answer with it.
+  void reportScrolledUnder(Object owner, {required bool scrolledUnder});
 
 }
 
@@ -119,9 +125,21 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
   /// under the pointer without either of them having moved.
   static const double _showBarTop = (AppHeader.height - HeaderIconButton.size) / 2;
 
+  /// The bar's edge coming and going as the page scrolls under it.
+  static const Duration _edgeFade = Duration(milliseconds: 160);
+
+  /// The shadow under the edge. Matters of taste.
+  static const double _edgeShadowDarken = 0.3;
+  static const double _edgeShadowOpacity = 0.45;
+  static const double _edgeShadowBlur = 14;
+  static const double _edgeShadowDrop = 3;
+
   /// Every screen still standing, in the order they arrived. Insertion order is
   /// what makes the last entry the top of the stack.
   final Map<Object, AppHeaderBuilder> _claims = {};
+
+  /// The screens whose page has content under the bar.
+  final Set<Object> _scrolledUnder = {};
 
   /// Scoped to the visit, not to the session: [publish] puts it back on.
   @override
@@ -142,7 +160,16 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
   @override
   void release(Object owner) {
     if (!mounted || !_claims.containsKey(owner)) return;
-    setState(() => _claims.remove(owner));
+    setState(() {
+      _claims.remove(owner);
+      _scrolledUnder.remove(owner);
+    });
+  }
+
+  @override
+  void reportScrolledUnder(Object owner, {required bool scrolledUnder}) {
+    if (!mounted || _scrolledUnder.contains(owner) == scrolledUnder) return;
+    setState(() => scrolledUnder ? _scrolledUnder.add(owner) : _scrolledUnder.remove(owner));
   }
 
   /// The header of the last screen still standing, or null below no screen that
@@ -171,6 +198,9 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
               final config = _builder?.call(context);
               final offersZen = config?.offersZen ?? false;
               final visible = config != null && !(offersZen && _zen);
+              // A hidden bar's shadow still hangs below it, into the top of the
+              // window it has left.
+              final edge = visible && _scrolledUnder.contains(_claims.keys.lastOrNull);
               final motion = context.motion(_slide);
               _followTour(context, config);
 
@@ -202,7 +232,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
                       // rather than fading out on top of it. Nothing is behind it
                       // either way: the band it waits in is the bar's own.
                       if (offersZen) _buildShowBar(context, config, visible: visible, motion: motion),
-                      _buildBar(context, config, visible: visible, motion: motion),
+                      _buildBar(context, config, visible: visible, edge: edge, motion: motion),
                       if (_touring) _buildTour(context),
                     ],
                   ),
@@ -229,6 +259,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
     BuildContext context,
     AppHeaderConfig? config, {
     required bool visible,
+    required bool edge,
     required Duration motion,
   }) {
     return AnimatedPositioned(
@@ -249,8 +280,9 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
               excluding: !visible,
               child: ExcludeFocus(
                 excluding: !visible,
-                child: ColoredBox(
-                  color: context.theme.colors.background,
+                child: _buildSurface(
+                  context,
+                  edge: edge,
                   child: AppHeader(
                     crumbs: config.crumbs,
                     onTapHome: config.onTapHome,
@@ -261,6 +293,38 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
                 ),
               ),
             ),
+    );
+  }
+
+  /// The bar's own fill, with a line and a shadow along its bottom while the
+  /// page has content under it.
+  ///
+  /// Only then: at the top of a page the bar and the page are one surface, and
+  /// an edge there would split them for nothing. Without one once content is
+  /// under it, that content is cut off sharp against a bar of the same colour.
+  Widget _buildSurface(BuildContext context, {required bool edge, required Widget child}) {
+    final colors = context.theme.colors;
+    final shadow = colors.border.darken(_edgeShadowDarken);
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: edge ? 1 : 0),
+      duration: context.motion(_edgeFade),
+      curve: Curves.easeOut,
+      builder: (context, amount, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.background,
+          border: Border(bottom: BorderSide(color: colors.border.withValues(alpha: colors.border.a * amount))),
+          boxShadow: [
+            BoxShadow(
+              color: shadow.withValues(alpha: _edgeShadowOpacity * amount),
+              blurRadius: _edgeShadowBlur,
+              offset: const Offset(0, _edgeShadowDrop),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+      child: child,
     );
   }
 

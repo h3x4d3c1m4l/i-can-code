@@ -87,13 +87,18 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
                 ),
             ],
           ),
-          // Only offered when there is something to clear.
-          if (progress.hasProgress || drafts.hasDrafts)
-            FItemGroup(
-              children: [
-                FItem(
+          FItemGroup(
+            children: [
+              // Always there, so it can be found before it is needed. Greyed
+              // out while there is nothing to clear, and saying so when pressed.
+              _DisabledReason(
+                enabled: progress.hasProgress || drafts.hasDrafts,
+                reason: context.localizations.appHeader_resetProgressNothing,
+                builder: (enabled) => FItem(
+                  enabled: enabled,
                   title: Text(context.localizations.appHeader_resetProgress),
                   prefix: const Icon(FLucideIcons.rotateCcw),
+                  semanticsTooltip: enabled ? null : context.localizations.appHeader_resetProgressNothing,
                   onPress: () async {
                     // The menu has to be out of the way before the dialog
                     // opens, but the dialog does not wait on its animation.
@@ -101,8 +106,9 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
                     await _confirmReset(context, progress, drafts);
                   },
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         ],
         child: HeaderIconButton(
           icon: FLucideIcons.settings,
@@ -174,5 +180,78 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     AppThemeMode.light => FLucideIcons.sun,
     AppThemeMode.dark => FLucideIcons.moon,
   };
+
+}
+
+/// A menu item that says why it cannot be used when it is pressed anyway.
+///
+/// forui's [FItem] hands its [FTappable] no callback at all while disabled, and
+/// has no `onDisabledPress` to pass on, although the tappable has one. A
+/// tappable without callbacks claims no pointer, so the [GestureDetector]
+/// around it is the only thing that sees the press.
+///
+/// The reason is an [FPopover] and not an [FTooltip] for the reason [HintMark]
+/// gives: forui's tooltip hides itself on every pointer down.
+class _DisabledReason extends StatefulWidget with FItemMixin {
+
+  final bool enabled;
+
+  /// What the popover says while the item is disabled. A sentence.
+  final String reason;
+
+  /// Builds the item itself, enabled or not.
+  final Widget Function(bool enabled) builder;
+
+  const _DisabledReason({required this.enabled, required this.reason, required this.builder});
+
+  @override
+  State<_DisabledReason> createState() => _DisabledReasonState();
+
+}
+
+class _DisabledReasonState extends State<_DisabledReason> with SingleTickerProviderStateMixin {
+
+  /// As narrow as [HintMark]'s, for the same reason.
+  static const double _panelWidth = 300;
+  static const EdgeInsets _panelPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
+  late final FPopoverController _controller = FPopoverController(vsync: this);
+
+  @override
+  void didUpdateWidget(_DisabledReason oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled) unawaited(_controller.hide());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.enabled) return widget.builder(true);
+
+    return FPopover(
+      popoverAnchor: Alignment.topCenter,
+      childAnchor: Alignment.bottomCenter,
+      control: FPopoverControl.managed(controller: _controller),
+      popoverBuilder: (context, _) => ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _panelWidth),
+        child: Padding(
+          padding: _panelPadding,
+          child: Text(widget.reason, style: context.appTheme.text.bodySmall),
+        ),
+      ),
+      child: GestureDetector(
+        // Opaque, so a press on the item's padding counts as well.
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: _controller.show,
+        child: widget.builder(false),
+      ),
+    );
+  }
 
 }

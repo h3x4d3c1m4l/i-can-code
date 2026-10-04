@@ -38,6 +38,16 @@ FThemeData buildAppTheme({
     tappableStyle: _clickCursor,
   );
 
+  // forui insets an item from the group's edge by `spacing` above the first and
+  // below the last, and by an item padding of the same 4 at the sides.
+  final menu = FPopoverMenuStyle.inherit(
+    colors: colors,
+    style: style,
+    typography: typography,
+    hapticFeedback: const FHapticFeedback(),
+    touch: _touch,
+  );
+
   return FThemeData(
     touch: _touch,
     debugLabel: '${preset.name} ${brightness.name}',
@@ -67,6 +77,38 @@ FThemeData buildAppTheme({
         ],
       ),
     ),
+    // forui shapes its surfaces with a `RoundedSuperellipseBorder` of its own,
+    // which is a different curve from the app's, so each layer is reshaped:
+    // the panel, the item group drawn on top of it, and an item's hover fill.
+    popoverStyle: FPopoverStyle.inherit(colors: colors, style: style).copyWith(
+      decoration: DecorationDelta.shapeDelta(shape: squircle(_hintCornerRadius, side: _surfaceEdge(colors, style))),
+    ),
+    popoverMenuStyle: menu.copyWith(
+          decoration: DecorationDelta.shapeDelta(
+            shape: squircle(kControlCornerRadius, side: _surfaceEdge(colors, style)),
+          ),
+          itemGroupStyle: FItemGroupStyleDelta.delta(
+            // The same shape as the panel, so the two edges lie on each other.
+            decoration: DecorationDelta.shapeDelta(
+              shape: squircle(kControlCornerRadius, side: _surfaceEdge(colors, style)),
+            ),
+            itemStyles: FVariantsDelta.delta([
+              FVariantOperation.all(
+                FItemStyleDelta.delta(
+                  contentDecoration: FVariantsDelta.delta([
+                    // Inside the panel's corner, so the two curves run parallel
+                    // rather than meeting at the ends of a gap that varies.
+                    FVariantOperation.all(
+                      DecorationDelta.shapeDelta(
+                        shape: squircle(concentricRadius(kControlCornerRadius, inset: menu.itemGroupStyle.spacing)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+        ),
     // **Both** places, and they are not the same object.
     //
     // A bare `FTappable` reads `FThemeData.tappableStyle` — the top-level field
@@ -80,6 +122,13 @@ FThemeData buildAppTheme({
     extensions: [AppTheme.of(preset, brightness)],
   );
 }
+
+/// A popover that only explains something. A control's radius would bow one
+/// line of text inward.
+const double _hintCornerRadius = kChipCornerRadius;
+
+/// The quiet outline forui gives its floating surfaces.
+BorderSide _surfaceEdge(FColors colors, FStyle style) => BorderSide(color: colors.border, width: style.borderWidth);
 
 /// The dialog's bevel, in the same numbers as `CatalogCard`'s so the two read
 /// as one material.

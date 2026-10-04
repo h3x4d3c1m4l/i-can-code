@@ -15,7 +15,7 @@ class CatalogCard extends StatelessWidget {
 
   /// The gap between two cards in a list, measured from face to face. The
   /// collar under the upper card takes [_collarHeight] of it.
-  static const double spacing = 24;
+  static const double spacing = 20;
 
   /// The card's bevel, the same device as `AppButton`'s at the scale of a card:
   /// a thick edge and a hard, unblurred collar under it that the card rises

@@ -33,15 +33,20 @@ abstract class CodeDraftStoreBase with Store {
 
   /// One key per section. The language and lesson are part of it because a
   /// section id is only unique within its own lesson.
-  static String keyFor(String language, String lessonId, String sectionId) => 'code.$language.$lessonId.$sectionId';
+  static String keyFor(String language, String lessonId, String sectionId) =>
+      '$_codePrefix$language.$lessonId.$sectionId';
 
   /// One key per project, for the one program all of its tasks share.
-  static String workKeyFor(String language, String lessonId) => 'work.$language.$lessonId';
+  static String workKeyFor(String language, String lessonId) => '$_workPrefix$language.$lessonId';
 
   /// One key per task of a project, for the program as it stood when the
   /// student said the task worked.
   static String snapshotKeyFor(String language, String lessonId, String sectionId) =>
-      'snapshot.$language.$lessonId.$sectionId';
+      '$_snapshotPrefix$language.$lessonId.$sectionId';
+
+  static const String _codePrefix = 'code.';
+  static const String _workPrefix = 'work.';
+  static const String _snapshotPrefix = 'snapshot.';
 
   final SharedPreferencesAsync _preferences;
 
@@ -49,6 +54,12 @@ abstract class CodeDraftStoreBase with Store {
   /// there is anything to clear.
   @readonly
   Map<String, String> _drafts = {};
+
+  /// Whether storage holds code [load] did not read back: a lesson or section
+  /// renamed or removed since leaves its old key behind. Nothing shows it, but
+  /// a [clear] still has something to clear.
+  @readonly
+  bool _hasUnlisted = false;
 
   /// Changes not yet in storage, by [keyFor]. Null is a draft to remove.
   final Map<String, String?> _unwritten = {};
@@ -75,17 +86,20 @@ abstract class CodeDraftStoreBase with Store {
 
     try {
       final stored = await _preferences.getAll(allowList: keys);
-      _replace({
+      final unlisted = (await _storedKeys()).difference(keys);
+      _reset({
         for (final MapEntry(:key, :value) in stored.entries)
           if (value is String) key: value,
-      });
+      }, hasUnlisted: unlisted.isNotEmpty);
     } on Object {
       // Treated as "nothing saved".
     }
   }
 
+  /// Whether there is anything to clear. Counts code no section shows any
+  /// more too.
   @computed
-  bool get hasDrafts => _drafts.isNotEmpty;
+  bool get hasDrafts => _hasUnlisted || _drafts.isNotEmpty;
 
   /// What the student last typed into [sectionId], or null when they never
   /// changed its starter block.
@@ -162,16 +176,17 @@ abstract class CodeDraftStoreBase with Store {
     }
   }
 
-  /// Forgets every draft, in storage as well as in memory.
+  /// Forgets every draft, in storage as well as in memory, including code of
+  /// sections the course no longer has.
   Future<void> clear() async {
     _writeTimer?.cancel();
     _writeTimer = null;
 
     // Unwritten keys too: a draft forgotten since the last write is gone from
     // memory but still in storage.
-    final keys = {..._drafts.keys, ..._unwritten.keys};
+    final keys = {..._drafts.keys, ..._unwritten.keys, ...await _storedKeys()};
     _unwritten.clear();
-    _replace({});
+    _reset({}, hasUnlisted: false);
 
     for (final key in keys) {
       try {
@@ -196,7 +211,26 @@ abstract class CodeDraftStoreBase with Store {
   String _snapshotKeyIn(CourseLesson lesson, String sectionId) =>
       snapshotKeyFor(lesson.entry.language, lesson.translations.values.first.id, sectionId);
 
+  /// Every key in storage this store writes, read or not.
+  Future<Set<String>> _storedKeys() async {
+    try {
+      return {
+        ...(await _preferences.getKeys()).where(
+          (key) => key.startsWith(_codePrefix) || key.startsWith(_workPrefix) || key.startsWith(_snapshotPrefix),
+        ),
+      };
+    } on Object {
+      return const {};
+    }
+  }
+
   @action
   void _replace(Map<String, String> value) => _drafts = value;
+
+  @action
+  void _reset(Map<String, String> drafts, {required bool hasUnlisted}) {
+    _drafts = drafts;
+    _hasUnlisted = hasUnlisted;
+  }
 
 }
