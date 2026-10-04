@@ -7,6 +7,7 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
+import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// How a board deals its tiles: every half of every one of [count] pairs, in one
@@ -165,11 +166,13 @@ class PairMatchBoard extends StatelessWidget {
         ),
         if (_solved) ...[
           const SizedBox(height: 20),
-          VerdictBanner(
-            background: context.appTheme.colors.successSurface,
-            child: Text(
-              context.localizations.lessonScreen_passed,
-              style: context.appTheme.text.h3.copyWith(fontSize: 18),
+          ScrollToOnArrival(
+            child: VerdictBanner(
+              background: context.appTheme.colors.successSurface,
+              child: Text(
+                context.localizations.lessonScreen_passed,
+                style: context.appTheme.text.h3.copyWith(fontSize: 18),
+              ),
             ),
           ),
         ],

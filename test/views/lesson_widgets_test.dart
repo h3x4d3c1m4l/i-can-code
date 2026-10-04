@@ -33,6 +33,7 @@ import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
+import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:material_ui/material_ui.dart' show InputBorder, InputDecorator;
 import 'package:re_editor/re_editor.dart';
@@ -1568,6 +1569,84 @@ void main() {
     });
   });
 
+  group('ScrollToOnArrival', () {
+    const result = ValueKey('result');
+
+    /// A page taller than the window, whose result starts below the fold.
+    /// [after] is what the page still has under the result.
+    Widget page({Object? token, double after = 900, bool motion = true}) => _host(
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
+          child: Column(
+            children: [
+              const SizedBox(height: 900),
+              if (token != null) ScrollToOnArrival(token: token, child: const SizedBox(key: result, height: 200)),
+              SizedBox(height: after),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    ScrollPosition position(WidgetTester tester) => tester.state<ScrollableState>(find.byType(Scrollable)).position;
+
+    testWidgets('a result that arrives travels up to just under the bar', (tester) async {
+      await tester.pumpWidget(page());
+      await tester.pumpWidget(page(token: Object()));
+      // The scroll starts after the frame that laid the result out, and its
+      // clock starts on the frame after that.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(position(tester).pixels, greaterThan(0));
+      expect(tester.getTopLeft(find.byKey(result)).dy, greaterThan(ScrollToOnArrival.clearance), reason: 'on its way');
+
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.byKey(result)).dy, ScrollToOnArrival.clearance);
+    });
+
+    testWidgets('the next result scrolls again, and a rebuild of the same one does not', (tester) async {
+      final first = Object();
+      await tester.pumpWidget(page(token: first));
+      await tester.pumpAndSettle();
+
+      position(tester).jumpTo(0);
+      await tester.pumpWidget(page(token: first));
+      await tester.pumpAndSettle();
+      expect(position(tester).pixels, 0, reason: 'the reader scrolled away, and nothing new arrived');
+
+      await tester.pumpWidget(page(token: Object()));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.byKey(result)).dy, ScrollToOnArrival.clearance);
+    });
+
+    testWidgets('a page with little under the result stops at its end', (tester) async {
+      await tester.pumpWidget(page(after: 50));
+      await tester.pumpWidget(page(token: Object(), after: 50));
+      await tester.pumpAndSettle();
+
+      expect(position(tester).pixels, position(tester).maxScrollExtent);
+      expect(tester.getTopLeft(find.byKey(result)).dy, greaterThan(ScrollToOnArrival.clearance));
+    });
+
+    testWidgets('a reader who asked for less motion is taken there in one step', (tester) async {
+      await tester.pumpWidget(page(motion: false));
+      await tester.pumpWidget(page(token: Object(), motion: false));
+      await tester.pump();
+
+      expect(tester.getTopLeft(find.byKey(result)).dy, ScrollToOnArrival.clearance);
+    });
+
+    testWidgets('a page that opens with its result already on it opens at its top', (tester) async {
+      // A step come back to, such as a board that was solved before leaving.
+      await tester.pumpWidget(page(token: Object()));
+      await tester.pumpAndSettle();
+
+      expect(position(tester).pixels, 0);
+    });
+  });
+
   group('bankOrder', () {
     test('deals every line once', () {
       expect(bankOrder('order-countdown', 5), unorderedEquals([0, 1, 2, 3, 4]));
@@ -2085,6 +2164,35 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Goed!'), findsOneWidget);
+    });
+
+    /// The board with a step's prose above it and its buttons below, so that
+    /// what it says once solved starts under the 600 high test surface.
+    Widget lowBoard(Set<int> matched) => _host(
+      Column(
+        children: [
+          const SizedBox(height: 500),
+          PairMatchBoard(seed: 'printing-pairs', pairs: pairs, matched: matched, picked: const {}, onPick: (_) {}),
+          const SizedBox(height: 400),
+        ],
+      ),
+    );
+
+    testWidgets('the last pair brings what the board says into view', (tester) async {
+      await tester.pumpWidget(lowBoard(const {0, 1}));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(lowBoard(const {0, 1, 2}));
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(find.text('Goed!')).bottom, lessThan(600));
+    });
+
+    testWidgets('a board that is solved when its step opens stays at its top', (tester) async {
+      await tester.pumpWidget(lowBoard(const {0, 1, 2}));
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(find.text('Goed!')).top, greaterThan(600));
     });
   });
 }

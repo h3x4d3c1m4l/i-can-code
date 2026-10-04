@@ -28,6 +28,7 @@ import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
+import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_controller.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
@@ -408,13 +409,15 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           // The answer comes *before* the buttons, unlike on an exercise, so the
           // way on sits after what the step has to say rather than above it: the
           // explanation is the point of a prediction, and a Next button over it
-          // is an invitation to skip it. It also lands the verdict where the eye
-          // already is, on the spot of the button just pressed. An exercise keeps
-          // Run above its output because it is run again and again, and scrolling
-          // past your own error to try once more would be the price of this.
+          // is an invitation to skip it. An exercise keeps Run above its output
+          // because it is run again and again, and scrolling past your own error
+          // to try once more would be the price of this.
           if (attempt != null && asked != null) ...[
             _pastGutter(
-              PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
+              ScrollToOnArrival(
+                token: attempt,
+                child: PredictionVerdict(result: attempt, prediction: asked, explanation: section.explanation),
+              ),
             ),
             const SizedBox(height: 24),
           ],
@@ -506,7 +509,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           ),
           if (attempt != null) ...[
             const SizedBox(height: 16),
-            _pastGutter(OutputPanel(result: attempt)),
+            _pastGutter(ScrollToOnArrival(token: attempt, child: OutputPanel(result: attempt))),
           ],
         ],
       ),
@@ -600,7 +603,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       ),
       if (attempt != null) ...[
         const SizedBox(height: 16),
-        OutputPanel(result: attempt),
+        ScrollToOnArrival(token: attempt, child: OutputPanel(result: attempt)),
       ],
     ];
   }
