@@ -42,7 +42,7 @@ class _IdleRuntime implements PythonRuntime {
 /// One exercise whose starter differs per locale, which is what a comment in the
 /// starter block does.
 final CourseLesson _lesson = CourseLesson(
-  entry: LessonEntry(language: 'python', order: 1, slug: 'loops', paths: const {'nl': 'x', 'en': 'y'}),
+  entry: LessonEntry(subject: 'python', order: 1, slug: 'loops', paths: const {'nl': 'x', 'en': 'y'}),
   translations: {
     for (final (locale, starter) in [('nl', '# Schrijf hier'), ('en', '# Write here')])
       locale: Lesson(
@@ -74,7 +74,7 @@ Widget _app(Widget child) => FTheme(
 );
 
 Future<CodeLineEditingController> _openLesson(WidgetTester tester) async {
-  await tester.pumpWidget(_app(const LessonScreen(languageSlug: 'learn-python', lessonId: 'loops', sectionId: 'first')));
+  await tester.pumpWidget(_app(const LessonScreen(subjectSlug: 'learn-python', lessonId: 'loops', sectionId: 'first')));
   await tester.pumpAndSettle();
   return tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
 }

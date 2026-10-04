@@ -52,7 +52,7 @@ class CodeSample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final corner = label ?? (language == null ? null : languageLabel(language!));
+    final corner = label ?? (language == null ? null : subjectLabel(language!));
 
     return SizedBox(
       // Full width, so a one-line sample is not shrink-wrapped around its text.

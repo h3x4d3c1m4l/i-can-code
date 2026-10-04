@@ -221,18 +221,18 @@ class MicrobitSessionController extends ScreenControllerBase<MicrobitSessionView
     _tail = '';
   }
 
-  /// Back to the language picker, which is the app's home.
+  /// Back to the subject picker, which is the app's home.
   Future<void> goHome() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
+    await contextAccessor.buildContext.router.replaceAll([const SubjectsRoute()]);
   }
 
   /// The catalog this board belongs to.
   Future<void> goToCatalog() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.replaceAll([
-      const LanguagesRoute(),
-      CatalogRoute(languageSlug: languageSlug(viewModel.language)),
+      const SubjectsRoute(),
+      CatalogRoute(subjectSlug: subjectSlug(viewModel.subject)),
     ]);
   }
 

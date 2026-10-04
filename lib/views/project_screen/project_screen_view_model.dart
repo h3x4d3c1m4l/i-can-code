@@ -58,12 +58,12 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
 
   ProjectScreenViewModelBase({
     required super.contextAccessor,
-    required String languageSlug,
+    required String subjectSlug,
     required String lessonId,
   }) : lesson = GetIt.I<Course>().lessons.firstWhere((l) => l.translations.values.first.id == lessonId) {
     board = MicrobitSessionViewModel(
       contextAccessor: contextAccessor,
-      languageSlug: languageSlug,
+      subjectSlug: subjectSlug,
       program: GetIt.I<CodeDraftStore>().workFor(lesson) ?? _starterOf(lesson.translations.values.first),
     );
 
@@ -104,7 +104,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
     return null;
   }
 
-  /// Whether this language has another lesson after this one.
+  /// Whether this subject has another lesson after this one.
   bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
 
   @action

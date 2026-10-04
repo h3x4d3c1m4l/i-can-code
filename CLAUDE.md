@@ -111,7 +111,7 @@ A screen fills it by wrapping its body in `AppHeaderPublisher` and handing over 
 Two rules it exists to keep:
 
 - **Publishing and releasing are deferred by a microtask.** The bar is built before the screen under it, so filling it from `initState` would rebuild a widget Flutter has already built this frame.
-- **The bar belongs to the last screen still standing**, not to whoever spoke last. More than one screen is mounted at a time: a pushed screen leaves the one under it standing, and a replaced one is disposed only *after* its successor is built. So the host keeps a claim per screen in arrival order — bottom to top of the page stack — and a screen that leaves hands the bar back to the one underneath instead of emptying it. Emptying on release is what left the language picker with no bar at all once the catalog above it was closed: auto_route keeps the page it already has, so nothing publishes on the way back down.
+- **The bar belongs to the last screen still standing**, not to whoever spoke last. More than one screen is mounted at a time: a pushed screen leaves the one under it standing, and a replaced one is disposed only *after* its successor is built. So the host keeps a claim per screen in arrival order — bottom to top of the page stack — and a screen that leaves hands the bar back to the one underneath instead of emptying it. Emptying on release is what left the subject picker with no bar at all once the catalog above it was closed: auto_route keeps the page it already has, so nothing publishes on the way back down.
 
 **Zen mode.** A lesson is read, so its bar starts out of the way: on a screen whose header says `offersZen` — only the lesson screen — the bar is gone when the lesson opens. It is **one thing the reader turns on and off, by a button each way**: the host floats one in the band the bar left behind to bring it back, and the bar carries one to put it away again. The answer is scoped to the lesson being read — **every lesson opens without the bar**, because asking for it back was about the lesson in front of the reader and not about every lesson after it — and it is not persisted either, since reading one lesson without the chrome is not a setting about the app.
 
@@ -254,7 +254,7 @@ Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwi
 
 `context.appTheme` falls back to the neutral preset when the ambient theme carries no extension (a widget test that builds its own `FTheme`), so it never null-checks.
 
-**Emoji are Noto Color Emoji, bundled, and never the platform's.** `kEmojiFontFamily` is the last entry of `fontFamilyFallback` on every style in `AppTextStyles` and on both of forui's typefaces, so it is reached only for a glyph Fredoka, Lexend and JetBrains Mono cannot draw. It is a fallback and never a `fontFamily`. Left to the platform the same lesson would show Apple's emoji on a Mac, Google's on Android and Microsoft's on Windows; on the web the engine downloads Noto from `fonts.gstatic.com` per student, on demand, which is the request the other three fonts were bundled to avoid. The COLRv1 build ships rather than the CBDT one — vector, and half the size. Every lesson step carries an `emoji` in its metadata, and so does every lesson — the lesson's fills the tile on its catalog card in place of the order number. A programming language has no file, so its emoji is a case in `languageEmoji()` beside `languageLabel()`; a language the table does not name keeps the initial on its card. See `docs/lesson-format.md`.
+**Emoji are Noto Color Emoji, bundled, and never the platform's.** `kEmojiFontFamily` is the last entry of `fontFamilyFallback` on every style in `AppTextStyles` and on both of forui's typefaces, so it is reached only for a glyph Fredoka, Lexend and JetBrains Mono cannot draw. It is a fallback and never a `fontFamily`. Left to the platform the same lesson would show Apple's emoji on a Mac, Google's on Android and Microsoft's on Windows; on the web the engine downloads Noto from `fonts.gstatic.com` per student, on demand, which is the request the other three fonts were bundled to avoid. The COLRv1 build ships rather than the CBDT one — vector, and half the size. Every lesson step carries an `emoji` in its metadata, and so does every lesson — the lesson's fills the tile on its catalog card in place of the order number. A subject has no file, so its emoji is a case in `subjectEmoji()` beside `subjectLabel()`; a subject the table does not name keeps the initial on its card. See `docs/lesson-format.md`.
 
 Fonts are **bundled** under `assets/fonts/`, not fetched by `google_fonts` at runtime — a font request per student to a third party is both a privacy question and a flash of unstyled text on every cold load. `google_fonts` is still in `pubspec.yaml` but unused.
 
@@ -281,8 +281,8 @@ No service worker means no console — private browsing, storage disabled, no ht
 ### Addresses
 
 ```text
-/                                              the language picker
-/learn-python                                  that language's lessons
+/                                              the subject picker
+/learn-python                                  that subject's lessons
 /learn-python/uitvoer                          resume: wherever you left off
 /learn-python/uitvoer/zelf-printen             one step, named by its section id
 /learn-python/repl                             the interactive console
@@ -291,7 +291,7 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/microbit/dobbelsteen             a project, on a board
 ```
 
-`repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the language catch-all, because auto_route would otherwise read them as lessons by those names.
+`repl`, `microbit` and `microbit-repl` sit where a lesson id goes, so all three are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the subject catch-all, because auto_route would otherwise read them as lessons by those names.
 
 **The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
 
@@ -303,7 +303,7 @@ The step is a **`LessonSection.id`, never a position** — the same reason progr
 
 `test/routing/app_router_test.dart` builds the router, which is the only place that validation happens. Add to it when you touch the table — a green analyze and a green build prove nothing here.
 
-`/:languageSlug` is a catch-all, so `/initialization` must stay declared above it.
+`/:subjectSlug` is a catch-all, so `/initialization` must stay declared above it.
 
 ### Progress
 
@@ -405,18 +405,19 @@ Two things it deliberately is not:
 
 ### Vocabulary
 
-Four words, fixed. Drifting off them is what made the folders disagree with the code once already.
+These words are fixed. Drifting off them is what made the folders disagree with the code once already.
 
 | Word | Means |
 | --- | --- |
 | **course** | Everything the app ships. `Course`. |
-| **lesson** | One markdown file per locale, under `assets/lessons/<language>/`. `Lesson`. |
+| **subject** | One directory under `assets/lessons/`, and one card on the home screen. Python is the first. `LessonEntry.subject`. |
+| **lesson** | One markdown file per locale, under `assets/lessons/<subject>/`. `Lesson`. |
 | **section** | One `##` block of a lesson. `LessonSection`. The student-facing word for it is **step**. |
 | **exercise** | A *kind of section* — one that asks for code (`SectionKind.quickExercise`, `exercise`). **Not** a unit of content. |
 | **pair** | The two halves of one item on a match-pairs board. `LessonPair`. |
 | **project** | A lesson with `layout: project`: one program for a micro:bit, built up over its tasks. `LessonLayout.project`, `ProjectScreen`. |
 | **task** | A *kind of section*, and the only one a project has beside `info`. `SectionKind.task`. |
-| **track** | A folder inside a language's directory: lessons numbered on their own and listed after the rest. `LessonEntry.track`. |
+| **track** | A folder inside a subject's directory: lessons numbered on their own and listed after the rest. `LessonEntry.track`. |
 
 A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunner`). *Assignment* survives only where it names a **block** in a lesson file (```` ```python-assignment ````) and in `SectionKind.isAssignment`; as a word for a step it has been replaced by **exercise**.
 
@@ -426,16 +427,16 @@ A **whole lesson** may be optional too, by saying `optional: true` in its docume
 
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
-**Catalog** and **languages** name listing *screens*, not content, which is why they sit outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing.
+**Catalog** names a listing *screen*, not content, which is why it sits outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing.
 
 ### Lessons
 
-A lesson is **one markdown file per locale**, at `assets/lessons/<language>/<order>-<slug>.<locale>.md`. Metadata, prose, starter code and the hidden validators all live in that one file. The full spec is in `docs/lesson-format.md`. **Read it before touching the format.**
+A lesson is **one markdown file per locale**, at `assets/lessons/<subject>/<order>-<slug>.<locale>.md`. Metadata, prose, starter code and the hidden validators all live in that one file. The full spec is in `docs/lesson-format.md`. **Read it before touching the format.**
 
 Two things that are easy to get wrong:
 
 - **There is no index file.** Order comes from the `NN-` filename prefix and discovery from Flutter's `AssetManifest`, so the directory *is* the index. Reordering the course is a rename.
-- **A folder inside a language is a track**, numbered on its own and listed after the lessons outside it. Its lesson ids share the language's namespace, and `pubspec.yaml` has to list it like any other asset directory.
+- **A folder inside a subject is a track**, numbered on its own and listed after the lessons outside it. Its lesson ids share the subject's namespace, and `pubspec.yaml` has to list it like any other asset directory.
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
 **A step says what it runs on, and one this version cannot run is left out.** `runtime:` in a lesson's or a section's metadata is `python` by default — CPython in the page — and `tkinter` is Python with Tk on a machine of its own. No lesson step can run there yet, so `Lesson.parse` **drops** such a step and reads nothing else about it: its `type` and its blocks may be ones this version has never heard of. A lesson whose every step goes that way parses to no steps at all, which is not an error, and `Course.load` leaves it out rather than list a card that opens on nothing. That is what lets the course carry window lessons before the app can run them. A `runtime` no version knows is still an author's mistake.
@@ -518,7 +519,7 @@ Things that are easy to get wrong:
 
 `PythonRuntime` is named for what it is. A second language means a second runtime beside it and an interface above them both — not renaming this one. `PythonAttemptRunner` sits on top and is the only thing that should call `run()`: it wraps the student's code and the section's validator into **one** program, because the checks must see the exact output that run produced. A validator-less `attempt` is a plain run, which is what a `predict-output` step is.
 
-**The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `languageLabel()`, the same name without the number.
+**The interpreter names itself.** `PythonRuntime.version` is what `python -V` printed inside the loaded build — the worker asks once at startup and reports it with its `ready`, so the strip over the editor cannot claim a CPython the app is not shipping. It costs one extra instantiate (~4ms) beside a 7 MB compile. It is null wherever there is no host to ask — the stub, and so every widget test — and a caller MUST have something to show in its place: the lesson screen falls back to `subjectLabel()`, the same name without the number.
 
 The student's source is carried into that program as **base64 of JSON**, never interpolated. Interpolation needs escaping their code can always defeat — a triple quote, a stray backslash — and base64's alphabet contains no quote, so the payload cannot terminate the literal holding it. `test/services/python_attempt_runner_test.dart` runs the wrapper through the machine's own `python3` (skipped when absent), so the capture, traceback trimming and `output` stripping are tested without a browser.
 

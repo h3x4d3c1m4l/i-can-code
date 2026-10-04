@@ -26,7 +26,7 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
     return AppHeaderConfig(
       onTapHome: controller.goHome,
       crumbs: [
-        AppCrumb(languageLabel(viewModel.language), onTap: controller.goToCatalog),
+        AppCrumb(subjectLabel(viewModel.subject), onTap: controller.goToCatalog),
         AppCrumb(context.localizations.replScreen_crumb),
       ],
     );
@@ -35,7 +35,7 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
   Widget _buildContent() {
     return Builder(
       builder: (context) {
-        final title = context.localizations.replScreen_title(languageLabel(viewModel.language));
+        final title = context.localizations.replScreen_title(subjectLabel(viewModel.subject));
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(32, AppHeader.height + 40, 32, 40),

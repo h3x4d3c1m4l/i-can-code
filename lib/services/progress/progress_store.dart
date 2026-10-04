@@ -17,9 +17,9 @@ class ProgressStore = ProgressStoreBase with _$ProgressStore;
 /// being right.
 abstract class ProgressStoreBase with Store {
 
-  /// One key per lesson. The language is part of it because a lesson id is only
-  /// unique within its own language directory.
-  static String keyFor(String language, String lessonId) => '$_prefix$language.$lessonId';
+  /// One key per lesson. The subject is part of it because a lesson id is only
+  /// unique within its own subject directory.
+  static String keyFor(String subject, String lessonId) => '$_prefix$subject.$lessonId';
 
   static const String _prefix = 'progress.';
 
@@ -47,7 +47,7 @@ abstract class ProgressStoreBase with Store {
     final loaded = <String, Set<String>>{};
 
     for (final lesson in course.lessons) {
-      final key = keyFor(lesson.entry.language, lesson.translations.values.first.id);
+      final key = keyFor(lesson.entry.subject, lesson.translations.values.first.id);
       try {
         final stored = await _preferences.getStringList(key);
         if (stored != null && stored.isNotEmpty) loaded[key] = stored.toSet();
@@ -62,7 +62,7 @@ abstract class ProgressStoreBase with Store {
 
   /// The finished sections of [lesson].
   Set<String> finishedIn(CourseLesson lesson) =>
-      _finished[keyFor(lesson.entry.language, lesson.translations.values.first.id)] ?? const {};
+      _finished[keyFor(lesson.entry.subject, lesson.translations.values.first.id)] ?? const {};
 
   /// How many of [lesson]'s steps are done. Counts only sections the lesson
   /// still has, so a section removed by an author stops counting on its own.
@@ -91,7 +91,7 @@ abstract class ProgressStoreBase with Store {
 
   /// Records [sectionId] as done and writes it out.
   Future<void> markFinished(CourseLesson lesson, String sectionId) async {
-    final key = keyFor(lesson.entry.language, lesson.translations.values.first.id);
+    final key = keyFor(lesson.entry.subject, lesson.translations.values.first.id);
     if (_finished[key]?.contains(sectionId) ?? false) return;
 
     final updated = {...?_finished[key], sectionId};

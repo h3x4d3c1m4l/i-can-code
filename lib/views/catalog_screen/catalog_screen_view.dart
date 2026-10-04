@@ -35,13 +35,13 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
     return AppHeaderPublisher(
       builder: (context) => AppHeaderConfig(
         onTapHome: controller.goHome,
-        crumbs: [AppCrumb(languageLabel(viewModel.language))],
+        crumbs: [AppCrumb(subjectLabel(viewModel.subject))],
       ),
       child: _buildContent(),
     );
   }
 
-  /// Everything this language offers beside the course itself.
+  /// Everything this subject offers beside the course itself.
   ///
   /// Under its own heading on purpose: the cards above are a path with progress
   /// on it, and this is not part of that path. Nothing here is checked and
@@ -53,20 +53,20 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
         const SizedBox(height: 48),
         Text(context.localizations.catalogScreen_extra, style: context.appTheme.text.h2),
         const SizedBox(height: 16),
-        if (languageHasRepl(viewModel.language))
+        if (subjectHasRepl(viewModel.subject))
           CatalogCard(
             // A prompt, in the code face the tile already uses. The lessons above
             // are numbered and this is not one of them, so it does not get a
             // number.
             label: '>_',
-            title: context.localizations.replScreen_title(languageLabel(viewModel.language)),
+            title: context.localizations.replScreen_title(subjectLabel(viewModel.subject)),
             subtitle: context.localizations.replScreen_subtitle,
             meta: context.localizations.catalogScreen_extraFreePlay,
             onTap: controller.openRepl,
           ),
-        if (languageHasRepl(viewModel.language) && languageHasMicrobit(viewModel.language))
+        if (subjectHasRepl(viewModel.subject) && subjectHasMicrobit(viewModel.subject))
           const SizedBox(height: CatalogCard.spacing),
-        if (languageHasMicrobit(viewModel.language)) ...[
+        if (subjectHasMicrobit(viewModel.subject)) ...[
           CatalogCard(
             // What the board is for: a program of your own, written here and
             // run there. Not a number, and not a prompt.
@@ -80,7 +80,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
           CatalogCard(
             // A prompt again, but this one leaves the browser.
             label: '🔌',
-            title: context.localizations.microbitReplScreen_title(languageLabel(viewModel.language)),
+            title: context.localizations.microbitReplScreen_title(subjectLabel(viewModel.subject)),
             subtitle: context.localizations.microbitReplScreen_subtitle,
             meta: context.localizations.catalogScreen_extraHardware,
             onTap: controller.openMicrobitRepl,
@@ -202,7 +202,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            languageLabel(viewModel.language),
+                            subjectLabel(viewModel.subject),
                             style: context.appTheme.text.h1.copyWith(fontSize: 42),
                           ),
                           const SizedBox(height: 8),
@@ -219,7 +219,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                   ),
                   for (final (index, run) in runs.indexed) ..._buildRun(run, locale, first: index == 0),
                   if (optional.isNotEmpty) SliverToBoxAdapter(child: _buildDeepDive(context, optional, locale)),
-                  if (languageHasRepl(viewModel.language) || languageHasMicrobit(viewModel.language))
+                  if (subjectHasRepl(viewModel.subject) || subjectHasMicrobit(viewModel.subject))
                     SliverToBoxAdapter(child: _buildExtra(context)),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],

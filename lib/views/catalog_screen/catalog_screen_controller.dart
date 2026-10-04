@@ -9,19 +9,19 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
 
   CatalogScreenController({required super.viewModel, required super.contextAccessor});
 
-  /// Back to the language picker, which is the app's home.
+  /// Back to the subject picker, which is the app's home.
   Future<void> goHome() async {
     if (!contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
+    await contextAccessor.buildContext.router.replaceAll([const SubjectsRoute()]);
   }
 
-  /// Opens this language's interactive console. Not a lesson: nothing in it is
+  /// Opens this subject's interactive console. Not a lesson: nothing in it is
   /// checked and nothing is recorded, which is why it sits under its own
   /// heading rather than at the end of the list.
   Future<void> openRepl() async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(
-      ReplRoute(languageSlug: languageSlug(viewModel.language)),
+      ReplRoute(subjectSlug: subjectSlug(viewModel.subject)),
     );
   }
 
@@ -29,7 +29,7 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
   Future<void> openMicrobitProgram() async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(
-      MicrobitProgramRoute(languageSlug: languageSlug(viewModel.language)),
+      MicrobitProgramRoute(subjectSlug: subjectSlug(viewModel.subject)),
     );
   }
 
@@ -37,7 +37,7 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
   Future<void> openMicrobitRepl() async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(
-      MicrobitReplRoute(languageSlug: languageSlug(viewModel.language)),
+      MicrobitReplRoute(subjectSlug: subjectSlug(viewModel.subject)),
     );
   }
 

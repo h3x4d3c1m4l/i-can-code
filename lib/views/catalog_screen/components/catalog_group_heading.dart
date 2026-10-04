@@ -8,7 +8,7 @@ import 'package:i_can_code/theme/app_theme.dart';
 ///
 /// Small and set in capitals, in the style the output card names its blocks
 /// in, rather than as another `h2`: it names the cards under it without
-/// competing with them, and the page's real headings — the language, the
+/// competing with them, and the page's real headings — the subject, the
 /// *Verdieping* and *Extra* sections — stay the only large type on it.
 class CatalogGroupHeading extends StatelessWidget {
 

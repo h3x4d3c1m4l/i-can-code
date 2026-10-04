@@ -8,11 +8,11 @@ import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
 @RoutePage()
 class CatalogScreen extends ScreenBase<CatalogScreenViewModel, CatalogScreenController, CatalogScreenView> {
 
-  /// Which language's lessons to list, as it appears in the address —
+  /// Which subject's lessons to list, as it appears in the address —
   /// `learn-python`. A path parameter, so a reload lands on the same catalog.
-  final String languageSlug;
+  final String subjectSlug;
 
-  const CatalogScreen({@PathParam('languageSlug') required this.languageSlug, super.key});
+  const CatalogScreen({@PathParam('subjectSlug') required this.subjectSlug, super.key});
 
   @override
   CatalogScreenController createController({
@@ -33,7 +33,7 @@ class CatalogScreen extends ScreenBase<CatalogScreenViewModel, CatalogScreenCont
 
   @override
   CatalogScreenViewModel createViewModel({required BuildContextAccessor contextAccessor}) {
-    return CatalogScreenViewModel(contextAccessor: contextAccessor, languageSlug: languageSlug);
+    return CatalogScreenViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug);
   }
 
 }

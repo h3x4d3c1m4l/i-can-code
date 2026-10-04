@@ -14,7 +14,7 @@ const String resumeSection = 'resume';
 
 /// The lesson id the interactive console sits on.
 ///
-/// Reserved for the same reason and in the same place: it occupies a language's
+/// Reserved for the same reason and in the same place: it occupies a subject's
 /// second address segment, where a lesson id would otherwise go, so a lesson
 /// with this id would be unreachable. `test/content/lessons_test.dart` holds it.
 const String replLesson = 'repl';
@@ -22,7 +22,7 @@ const String replLesson = 'repl';
 /// The lesson id writing a program to a micro:bit sits on.
 ///
 /// Reserved exactly as [replLesson] is, for the same reason and held by the same
-/// test: it occupies a language's second address segment, so a lesson with this
+/// test: it occupies a subject's second address segment, so a lesson with this
 /// id would be unreachable.
 const String microbitLesson = 'microbit';
 
@@ -47,12 +47,12 @@ const String microbitReplLesson = 'microbit-repl';
 /// move away from a cold-loaded step rebuilds the screen once. Nothing is at
 /// stake there beyond code typed on the step being left.
 LessonRoute lessonRoute({
-  required String languageSlug,
+  required String subjectSlug,
   required String lessonId,
   required String sectionId,
 }) => LessonRoute(
   key: ValueKey(lessonId),
-  languageSlug: languageSlug,
+  subjectSlug: subjectSlug,
   lessonId: lessonId,
   sectionId: sectionId,
 );
@@ -64,9 +64,9 @@ LessonRoute lessonRoute({
 /// Under [microbitLesson] because a project is a program for a board, and that
 /// address is where a program for a board already lives. `microbit` is a
 /// reserved lesson id, so no lesson can claim the segment.
-ProjectRoute projectRoute({required String languageSlug, required String lessonId}) => ProjectRoute(
+ProjectRoute projectRoute({required String subjectSlug, required String lessonId}) => ProjectRoute(
   key: ValueKey(lessonId),
-  languageSlug: languageSlug,
+  subjectSlug: subjectSlug,
   lessonId: lessonId,
 );
 
@@ -74,12 +74,12 @@ ProjectRoute projectRoute({required String languageSlug, required String lessonI
 /// other lesson at the first step [progress] does not have as finished.
 PageRouteInfo<void> openingRoute(CourseLesson lesson, ProgressStore progress) {
   final first = lesson.translations.values.first;
-  final slug = languageSlug(lesson.entry.language);
+  final slug = subjectSlug(lesson.entry.subject);
 
-  if (first.isProject) return projectRoute(languageSlug: slug, lessonId: first.id);
+  if (first.isProject) return projectRoute(subjectSlug: slug, lessonId: first.id);
 
   return lessonRoute(
-    languageSlug: slug,
+    subjectSlug: slug,
     lessonId: first.id,
     sectionId: first.sections[progress.firstUnfinishedStep(lesson)].id,
   );
@@ -94,20 +94,20 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-    AutoRoute(page: LanguagesRoute.page, initial: true, path: '/'),
+    AutoRoute(page: SubjectsRoute.page, initial: true, path: '/'),
     // Before the catch-all below, which would otherwise claim it.
     AutoRoute(page: InitializationRoute.page, path: '/initialization'),
-    AutoRoute(page: CatalogRoute.page, path: '/:languageSlug'),
+    AutoRoute(page: CatalogRoute.page, path: '/:subjectSlug'),
     // Above the lesson addresses below, which it would otherwise match as a
     // lesson called "repl". Same arrangement as /initialization above the
-    // language catch-all, and the reason [replLesson] is a reserved id.
-    AutoRoute(page: ReplRoute.page, path: '/:languageSlug/$replLesson'),
-    AutoRoute(page: MicrobitProgramRoute.page, path: '/:languageSlug/$microbitLesson'),
-    AutoRoute(page: MicrobitReplRoute.page, path: '/:languageSlug/$microbitReplLesson'),
+    // subject catch-all, and the reason [replLesson] is a reserved id.
+    AutoRoute(page: ReplRoute.page, path: '/:subjectSlug/$replLesson'),
+    AutoRoute(page: MicrobitProgramRoute.page, path: '/:subjectSlug/$microbitLesson'),
+    AutoRoute(page: MicrobitReplRoute.page, path: '/:subjectSlug/$microbitReplLesson'),
     // Three segments, like a lesson step, so above that route too. `microbit`
     // is reserved as a lesson id, which keeps the two from ever meaning the
     // same address.
-    AutoRoute(page: ProjectRoute.page, path: '/:languageSlug/$microbitLesson/:lessonId'),
+    AutoRoute(page: ProjectRoute.page, path: '/:subjectSlug/$microbitLesson/:lessonId'),
     // A lesson's bare address means "wherever I left off". auto_route matches on
     // an exact segment count, so that cannot be an optional segment below — and
     // **a page may appear only once**, so a second AutoRoute is out too
@@ -116,8 +116,8 @@ class AppRouter extends RootStackRouter {
     //
     // Hence the redirect to a reserved section id: an unknown id already means
     // "resume" to the screen, which rewrites the address to where it lands.
-    RedirectRoute(path: '/:languageSlug/:lessonId', redirectTo: '/:languageSlug/:lessonId/$resumeSection'),
-    AutoRoute(page: LessonRoute.page, path: '/:languageSlug/:lessonId/:sectionId', guards: [ProjectGuard()]),
+    RedirectRoute(path: '/:subjectSlug/:lessonId', redirectTo: '/:subjectSlug/:lessonId/$resumeSection'),
+    AutoRoute(page: LessonRoute.page, path: '/:subjectSlug/:lessonId/:sectionId', guards: [ProjectGuard()]),
   ];
 
 }

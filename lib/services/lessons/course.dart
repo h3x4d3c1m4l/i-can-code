@@ -4,14 +4,14 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 /// One lesson as it appears on disk, before it is read.
 ///
 /// A lesson has one file per locale, all sharing an order prefix and a slug:
-/// `assets/lessons/<language>/<order>-<slug>.<locale>.md`, or one folder deeper
+/// `assets/lessons/<subject>/<order>-<slug>.<locale>.md`, or one folder deeper
 /// in a [track].
 class LessonEntry {
 
-  /// The programming language the lesson teaches — the directory it sits in.
-  final String language;
+  /// The subject the lesson teaches — the directory it sits in.
+  final String subject;
 
-  /// The folder inside the language's directory that holds the lesson, or null
+  /// The folder inside the subject's directory that holds the lesson, or null
   /// for a lesson directly in it.
   ///
   /// A track is numbered on its own and listed after the lessons outside it, so
@@ -30,7 +30,7 @@ class LessonEntry {
   final Map<String, String> paths;
 
   const LessonEntry({
-    required this.language,
+    required this.subject,
     this.track,
     required this.order,
     required this.slug,
@@ -72,12 +72,12 @@ class Course {
 
   static const String root = 'assets/lessons/';
 
-  /// `assets/lessons/<language>/[<track>/]<order>-<slug>.<locale>.md`
+  /// `assets/lessons/<subject>/[<track>/]<order>-<slug>.<locale>.md`
   static final RegExp _filePattern = RegExp(
     r'^([a-z0-9_]+)/(?:([a-z0-9_-]+)/)?(\d+)-([a-z0-9-]+)\.([a-z]{2})\.md$',
   );
 
-  /// In course order: by programming language, then the lessons outside any
+  /// In course order: by subject, then the lessons outside any
   /// track before each track in turn, then by the filename's prefix.
   final List<CourseLesson> lessons;
 
@@ -113,29 +113,29 @@ class Course {
     return Course(lessons: lessons);
   }
 
-  /// The programming languages the course teaches, in the order lessons are
-  /// listed. One directory under [root] is one language.
-  List<String> get languages {
+  /// The subjects the course teaches, in the order lessons are
+  /// listed. One directory under [root] is one subject.
+  List<String> get subjects {
     // `Set.add` answers whether the value was new, which keeps first-seen order
     // while deduplicating in one pass.
     final seen = <String>{};
     return [
       for (final lesson in lessons)
-        if (seen.add(lesson.entry.language)) lesson.entry.language,
+        if (seen.add(lesson.entry.subject)) lesson.entry.subject,
     ];
   }
 
-  /// The lessons that teach [language], in course order.
-  List<CourseLesson> lessonsFor(String language) =>
-      lessons.where((lesson) => lesson.entry.language == language).toList();
+  /// The lessons that teach [subject], in course order.
+  List<CourseLesson> lessonsFor(String subject) =>
+      lessons.where((lesson) => lesson.entry.subject == subject).toList();
 
-  /// The lesson after [lesson] in its own language, or null when it is the last
+  /// The lesson after [lesson] in its own subject, or null when it is the last
   /// one. Course order is the filename's `NN-` prefix, so this follows a rename.
   ///
   /// Matched on [Lesson.id] rather than on identity, so it still answers for a
   /// lesson that came from a second parse of the same course.
   CourseLesson? lessonAfter(CourseLesson lesson) {
-    final siblings = lessonsFor(lesson.entry.language);
+    final siblings = lessonsFor(lesson.entry.subject);
     final id = lesson.translations.values.first.id;
     final index = siblings.indexWhere((sibling) => sibling.translations.values.first.id == id);
 
@@ -152,15 +152,15 @@ class Course {
       final match = _filePattern.firstMatch(asset.substring(root.length));
       if (match == null) continue;
 
-      final language = match.group(1)!;
+      final subject = match.group(1)!;
       final track = match.group(2);
       final order = int.parse(match.group(3)!);
       final slug = match.group(4)!;
       final locale = match.group(5)!;
 
-      final key = '$language/${track ?? ''}/$order-$slug';
+      final key = '$subject/${track ?? ''}/$order-$slug';
       grouped[key] = LessonEntry(
-        language: language,
+        subject: subject,
         track: track,
         order: order,
         slug: slug,
@@ -170,8 +170,8 @@ class Course {
 
     return grouped.values.toList()
       ..sort((a, b) {
-        final byLanguage = a.language.compareTo(b.language);
-        if (byLanguage != 0) return byLanguage;
+        final bySubject = a.subject.compareTo(b.subject);
+        if (bySubject != 0) return bySubject;
         // The empty name sorts first, which puts the lessons outside any track
         // ahead of every track.
         final byTrack = (a.track ?? '').compareTo(b.track ?? '');
@@ -181,44 +181,44 @@ class Course {
 
 }
 
-/// A programming language's name as a reader would write it. Derived from the
+/// A subject's name as a reader would write it. Derived from the
 /// lower-case directory name; anything not simply capitalised — `csharp`, say —
 /// needs a case here.
-String languageLabel(String language) => switch (language) {
+String subjectLabel(String subject) => switch (subject) {
   'python' => 'Python',
-  _ => language.isEmpty ? language : language[0].toUpperCase() + language.substring(1),
+  _ => subject.isEmpty ? subject : subject[0].toUpperCase() + subject.substring(1),
 };
 
-/// The emoji on a language's card, or null for one this table does not name.
+/// The emoji on a subject's card, or null for one this table does not name.
 ///
-/// A language is a directory, so unlike a lesson it has no file to carry its
-/// own. A new language MAY be added without touching this — the card falls back
-/// to the initial [languageLabel] gives it.
-String? languageEmoji(String language) => switch (language) {
+/// A subject is a directory, so unlike a lesson it has no file to carry its
+/// own. A new subject MAY be added without touching this — the card falls back
+/// to the initial [subjectLabel] gives it.
+String? subjectEmoji(String subject) => switch (subject) {
   'python' => '🐍',
   _ => null,
 };
 
-/// Whether this language has an interactive console to offer beside its
+/// Whether this subject has an interactive console to offer beside its
 /// lessons, which is what puts an "Extra" section on its catalog.
 ///
-/// A fact about the runtime, not about the lessons: it is true where a language
-/// has a REPL the app can host, and a language whose lessons exist without one
+/// A fact about the runtime, not about the lessons: it is true where a subject
+/// has a REPL the app can host, and a subject whose lessons exist without one
 /// simply has no Extra section.
-bool languageHasRepl(String language) => language == 'python';
+bool subjectHasRepl(String subject) => subject == 'python';
 
-/// Whether this language can be put on a micro:bit, which is the other thing an
+/// Whether this subject's code can be put on a micro:bit, which is the other thing an
 /// "Extra" section offers.
 ///
 /// True for Python because the board runs MicroPython. A fact about what the
 /// hardware speaks, not about the lessons — the lessons stay browser-only.
-bool languageHasMicrobit(String language) => language == 'python';
+bool subjectHasMicrobit(String subject) => subject == 'python';
 
-/// The URL segment a language's pages live under: `python` -> `learn-python`.
-/// MUST stay in step with [languageFromSlug], which is its inverse.
-String languageSlug(String language) => 'learn-$language';
+/// The URL segment a subject's pages live under: `python` -> `learn-python`.
+/// MUST stay in step with [subjectFromSlug], which is its inverse.
+String subjectSlug(String subject) => 'learn-$subject';
 
-/// The language a [slug] names, or null if it is not one of ours.
-String? languageFromSlug(String slug) => slug.startsWith(_slugPrefix) ? slug.substring(_slugPrefix.length) : null;
+/// The subject a [slug] names, or null if it is not one of ours.
+String? subjectFromSlug(String slug) => slug.startsWith(_slugPrefix) ? slug.substring(_slugPrefix.length) : null;
 
 const String _slugPrefix = 'learn-';

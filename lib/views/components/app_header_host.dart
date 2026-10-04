@@ -191,7 +191,7 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
           // a lesson's step without the screen pushing anything at it.
           child: Observer(
             // A header that reads no observables at all is normal here — the
-            // language picker's trail is one fixed word — so the usual warning
+            // subject picker's trail is one fixed word — so the usual warning
             // would fire on every screen that has nothing to watch.
             warnWhenNoObservables: false,
             builder: (context) {

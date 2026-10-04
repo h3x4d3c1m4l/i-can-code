@@ -32,7 +32,7 @@ class LessonCompletePanel extends StatelessWidget {
   final int stepCount;
 
   /// Opens the lesson after this one. Null when this was the last one in the
-  /// language, which leaves [onLeave] as the only way on.
+  /// subject, which leaves [onLeave] as the only way on.
   final VoidCallback? onNextLesson;
 
   /// Fires another burst of confetti. Null leaves the button out.

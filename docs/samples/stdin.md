@@ -20,7 +20,7 @@ komt terug als tekst.
 
 Vraag om een naam en groet die daarna.
 
-De invoer staat hieronder al klaar, zodat je programma iedere keer hetzelfde te
+De invoer staat al klaar, zodat je programma iedere keer hetzelfde te
 lezen krijgt.
 
 ```stdin

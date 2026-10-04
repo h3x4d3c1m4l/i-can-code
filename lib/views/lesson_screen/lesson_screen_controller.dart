@@ -198,7 +198,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// left the catalog unreachable without the browser's own Back button.
   Future<void> previous(int stepCount) async {
     if (viewModel.completed) return goTo(stepCount - 1);
-    if (viewModel.step == 0) return openLanguage(viewModel.lesson.entry.language);
+    if (viewModel.step == 0) return openSubject(viewModel.lesson.entry.subject);
 
     await goTo(viewModel.step - 1);
   }
@@ -232,7 +232,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     final lesson = viewModel.lesson.translations.values.first;
     await contextAccessor.buildContext.router.replace(
       lessonRoute(
-        languageSlug: languageSlug(viewModel.lesson.entry.language),
+        subjectSlug: subjectSlug(viewModel.lesson.entry.subject),
         lessonId: lesson.id,
         sectionId: lesson.sections[step].id,
       ),
@@ -259,7 +259,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// One more burst over the end page, for the fun of it.
   void moreConfetti() => viewModel.addExtraBurst();
 
-  /// Opens the next lesson in this language, or the catalog when this was the
+  /// Opens the next lesson in this subject, or the catalog when this was the
   /// last one.
   ///
   /// Lands where opening it from the catalog would: its first unfinished step,
@@ -267,24 +267,24 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   Future<void> openNextLesson() async {
     final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
     if (next == null) {
-      await openLanguage(viewModel.lesson.entry.language);
+      await openSubject(viewModel.lesson.entry.subject);
       return;
     }
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 
     await contextAccessor.buildContext.router.replaceAll([
-      const LanguagesRoute(),
-      CatalogRoute(languageSlug: languageSlug(next.entry.language)),
+      const SubjectsRoute(),
+      CatalogRoute(subjectSlug: subjectSlug(next.entry.subject)),
       openingRoute(next, _progress),
     ]);
   }
 
-  /// Opens the catalog for [language].
-  Future<void> openLanguage(String language) async {
+  /// Opens the catalog for [subject].
+  Future<void> openSubject(String subject) async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.replaceAll([
-      const LanguagesRoute(),
-      CatalogRoute(languageSlug: languageSlug(language)),
+      const SubjectsRoute(),
+      CatalogRoute(subjectSlug: subjectSlug(subject)),
     ]);
   }
 
@@ -292,7 +292,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// assigned once the screen has built, so it MUST NOT be touched before.
   Future<void> leave() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
+    await contextAccessor.buildContext.router.replaceAll([const SubjectsRoute()]);
   }
 
   @override

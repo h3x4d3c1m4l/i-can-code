@@ -37,9 +37,9 @@ abstract class ReplScreenViewModelBase extends ScreenViewModelBase with Store {
   /// is a line of characters.
   static const int _scrollback = 5000;
 
-  /// The programming language this console runs. Empty when the address named
-  /// something that is not a language of ours.
-  final String language;
+  /// The subject this console belongs to. Empty when the address named
+  /// something that is not a subject of ours.
+  final String subject;
 
   /// The emulator itself, which the view hands to a `TerminalView`.
   ///
@@ -56,8 +56,8 @@ abstract class ReplScreenViewModelBase extends ScreenViewModelBase with Store {
   @readonly
   String? _failure;
 
-  ReplScreenViewModelBase({required super.contextAccessor, required String languageSlug})
-    : language = languageFromSlug(languageSlug) ?? '';
+  ReplScreenViewModelBase({required super.contextAccessor, required String subjectSlug})
+    : subject = subjectFromSlug(subjectSlug) ?? '';
 
   @action
   void setStatus(ReplStatus status) => _status = status;

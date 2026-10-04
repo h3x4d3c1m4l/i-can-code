@@ -16,7 +16,7 @@ class ProjectGuard extends AutoRouteGuard {
 
   @override
   void onNavigation(NavigationResolver resolver, StackRouter router) {
-    final slug = resolver.route.params.optString('languageSlug');
+    final slug = resolver.route.params.optString('subjectSlug');
     final lessonId = resolver.route.params.optString('lessonId');
 
     // Before the bootstrap there is no course to ask. `BootstrapGuard` parks
@@ -42,9 +42,9 @@ class ProjectGuard extends AutoRouteGuard {
     scheduleMicrotask(
       () => unawaited(
         router.replaceAll([
-          const LanguagesRoute(),
-          CatalogRoute(languageSlug: slug),
-          projectRoute(languageSlug: slug, lessonId: lessonId),
+          const SubjectsRoute(),
+          CatalogRoute(subjectSlug: slug),
+          projectRoute(subjectSlug: slug, lessonId: lessonId),
         ]),
       ),
     );

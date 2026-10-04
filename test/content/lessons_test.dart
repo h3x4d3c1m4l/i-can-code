@@ -27,38 +27,38 @@ void main() {
   group('every lesson under $root', () {
     for (final entry in lessons) {
       for (final path in entry.paths.values) {
-        test([entry.language, ?entry.track, File(path).uri.pathSegments.last].join('/'), () {
+        test([entry.subject, ?entry.track, File(path).uri.pathSegments.last].join('/'), () {
           _holdsTheRules(Lesson.parse(File(path).readAsStringSync()));
         });
       }
     }
 
-    test('a lesson id is unique within its language, tracks included', () {
-      // Progress and drafts key on the language and the lesson id, so two
+    test('a lesson id is unique within its subject, tracks included', () {
+      // Progress and drafts key on the subject and the lesson id, so two
       // lessons sharing one would share a student's ticks and code.
       final seen = <String, String>{};
       for (final entry in lessons) {
         final id = Lesson.parse(File(entry.paths.values.first).readAsStringSync()).id;
-        final key = '${entry.language}/$id';
+        final key = '${entry.subject}/$id';
         expect(seen[key], isNull, reason: '"$id" is used by ${seen[key]} and ${entry.slug}');
         seen[key] = entry.slug;
       }
     });
 
-    test('every lesson a task recommends is a lesson of its own language', () {
+    test('every lesson a task recommends is a lesson of its own subject', () {
       final ids = <String, Set<String>>{};
       final parsed = [
         for (final entry in lessons)
           for (final path in entry.paths.values) (entry: entry, lesson: Lesson.parse(File(path).readAsStringSync())),
       ];
       for (final (:entry, :lesson) in parsed) {
-        (ids[entry.language] ??= {}).add(lesson.id);
+        (ids[entry.subject] ??= {}).add(lesson.id);
       }
 
       for (final (:entry, :lesson) in parsed) {
         for (final section in lesson.sections) {
           for (final id in section.requires) {
-            expect(ids[entry.language], contains(id), reason: '${entry.slug}: "${section.title}" recommends "$id"');
+            expect(ids[entry.subject], contains(id), reason: '${entry.slug}: "${section.title}" recommends "$id"');
           }
         }
       }
@@ -140,7 +140,7 @@ List<LessonEntry> _lessonsUnder(String root) {
   return [
     for (final entry in Course.entriesFrom(onDisk.keys))
       LessonEntry(
-        language: entry.language,
+        subject: entry.subject,
         track: entry.track,
         order: entry.order,
         slug: entry.slug,

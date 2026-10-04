@@ -31,18 +31,18 @@ abstract class CodeDraftStoreBase with Store {
   /// wear on flash.
   static const Duration writeDelay = Duration(seconds: 1);
 
-  /// One key per section. The language and lesson are part of it because a
+  /// One key per section. The subject and lesson are part of it because a
   /// section id is only unique within its own lesson.
-  static String keyFor(String language, String lessonId, String sectionId) =>
-      '$_codePrefix$language.$lessonId.$sectionId';
+  static String keyFor(String subject, String lessonId, String sectionId) =>
+      '$_codePrefix$subject.$lessonId.$sectionId';
 
   /// One key per project, for the one program all of its tasks share.
-  static String workKeyFor(String language, String lessonId) => '$_workPrefix$language.$lessonId';
+  static String workKeyFor(String subject, String lessonId) => '$_workPrefix$subject.$lessonId';
 
   /// One key per task of a project, for the program as it stood when the
   /// student said the task worked.
-  static String snapshotKeyFor(String language, String lessonId, String sectionId) =>
-      '$_snapshotPrefix$language.$lessonId.$sectionId';
+  static String snapshotKeyFor(String subject, String lessonId, String sectionId) =>
+      '$_snapshotPrefix$subject.$lessonId.$sectionId';
 
   static const String _codePrefix = 'code.';
   static const String _workPrefix = 'work.';
@@ -204,12 +204,12 @@ abstract class CodeDraftStoreBase with Store {
   }
 
   String _keyIn(CourseLesson lesson, String sectionId) =>
-      keyFor(lesson.entry.language, lesson.translations.values.first.id, sectionId);
+      keyFor(lesson.entry.subject, lesson.translations.values.first.id, sectionId);
 
-  String _workKeyIn(CourseLesson lesson) => workKeyFor(lesson.entry.language, lesson.translations.values.first.id);
+  String _workKeyIn(CourseLesson lesson) => workKeyFor(lesson.entry.subject, lesson.translations.values.first.id);
 
   String _snapshotKeyIn(CourseLesson lesson, String sectionId) =>
-      snapshotKeyFor(lesson.entry.language, lesson.translations.values.first.id, sectionId);
+      snapshotKeyFor(lesson.entry.subject, lesson.translations.values.first.id, sectionId);
 
   /// Every key in storage this store writes, read or not.
   Future<Set<String>> _storedKeys() async {

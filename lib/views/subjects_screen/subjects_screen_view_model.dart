@@ -4,11 +4,11 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
 
-part 'languages_screen_view_model.g.dart';
+part 'subjects_screen_view_model.g.dart';
 
-class LanguagesScreenViewModel = LanguagesScreenViewModelBase with _$LanguagesScreenViewModel;
+class SubjectsScreenViewModel = SubjectsScreenViewModelBase with _$SubjectsScreenViewModel;
 
-abstract class LanguagesScreenViewModelBase extends ScreenViewModelBase with Store {
+abstract class SubjectsScreenViewModelBase extends ScreenViewModelBase with Store {
 
   /// Read straight from the singleton the initialization screen registered; the
   /// route guard guarantees it is there.
@@ -17,6 +17,6 @@ abstract class LanguagesScreenViewModelBase extends ScreenViewModelBase with Sto
   /// Observed by the view, so finishing a lesson updates this screen too.
   final ProgressStore progress = GetIt.I<ProgressStore>();
 
-  LanguagesScreenViewModelBase({required super.contextAccessor});
+  SubjectsScreenViewModelBase({required super.contextAccessor});
 
 }

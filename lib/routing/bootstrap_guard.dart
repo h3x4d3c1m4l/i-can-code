@@ -17,7 +17,7 @@ class BootstrapGuard extends AutoRouteGuard {
 
     if (resolver.routeName == InitializationRoute.name) {
       if (started) {
-        resolver.redirectUntil(const LanguagesRoute());
+        resolver.redirectUntil(const SubjectsRoute());
       } else {
         resolver.next();
       }

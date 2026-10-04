@@ -10,18 +10,18 @@ class CatalogScreenViewModel = CatalogScreenViewModelBase with _$CatalogScreenVi
 
 abstract class CatalogScreenViewModelBase extends ScreenViewModelBase with Store {
 
-  /// The programming language whose lessons this catalog lists. Empty when the
-  /// address named something that is not a language of ours.
-  final String language;
+  /// The subject whose lessons this catalog lists. Empty when the
+  /// address named something that is not a subject of ours.
+  final String subject;
 
-  /// This language's lessons, read straight from the singleton the
+  /// This subject's lessons, read straight from the singleton the
   /// initialization screen registered — so this screen has no loading state.
-  late final List<CourseLesson> lessons = GetIt.I<Course>().lessonsFor(language);
+  late final List<CourseLesson> lessons = GetIt.I<Course>().lessonsFor(subject);
 
   /// Observed by the view, so a tick appears the moment a lesson is finished.
   final ProgressStore progress = GetIt.I<ProgressStore>();
 
-  CatalogScreenViewModelBase({required super.contextAccessor, required String languageSlug})
-    : language = languageFromSlug(languageSlug) ?? '';
+  CatalogScreenViewModelBase({required super.contextAccessor, required String subjectSlug})
+    : subject = subjectFromSlug(subjectSlug) ?? '';
 
 }

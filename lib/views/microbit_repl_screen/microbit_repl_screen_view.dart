@@ -33,8 +33,8 @@ class MicrobitReplScreenView extends ScreenViewBase<MicrobitSessionViewModel, Mi
     return AppHeaderConfig(
       onTapHome: controller.goHome,
       crumbs: [
-        AppCrumb(languageLabel(viewModel.language), onTap: controller.goToCatalog),
-        // The short form: the crumb beside it already names the language.
+        AppCrumb(subjectLabel(viewModel.subject), onTap: controller.goToCatalog),
+        // The short form: the crumb beside it already names the subject.
         AppCrumb(context.localizations.microbitReplScreen_crumb),
       ],
     );
@@ -136,7 +136,7 @@ class MicrobitReplScreenView extends ScreenViewBase<MicrobitSessionViewModel, Mi
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          context.localizations.microbitReplScreen_title(languageLabel(viewModel.language)),
+          context.localizations.microbitReplScreen_title(subjectLabel(viewModel.subject)),
           style: context.appTheme.text.h1.copyWith(fontSize: 42),
         ),
         const SizedBox(height: 8),

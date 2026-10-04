@@ -27,7 +27,7 @@ Widget _catalog() => FTheme(
       // width the page actually has.
       child: MediaQuery(
         data: MediaQueryData(size: Size(800, 600)),
-        child: CatalogScreen(languageSlug: 'learn-python'),
+        child: CatalogScreen(subjectSlug: 'learn-python'),
       ),
     ),
   ),

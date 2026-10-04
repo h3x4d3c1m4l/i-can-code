@@ -7,7 +7,7 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/completed_badge.dart';
 
 /// One row of a list of things to open: a tile, a title and subtitle, and a
-/// count on the right. Shared by the language picker and the lesson catalog.
+/// count on the right. Shared by the subject picker and the lesson catalog.
 ///
 /// An unavailable row is drawn as a half-opacity outline rather than hidden, so
 /// the shape of the course stays visible. Only an available row is bevelled.
@@ -47,7 +47,7 @@ class CatalogCard extends StatelessWidget {
   final String label;
 
   /// The row's own emoji, drawn in the tile in place of [label]. Null falls back
-  /// to [label]: a lesson whose file declares none, or a language this app has
+  /// to [label]: a lesson whose file declares none, or a subject this app has
   /// no emoji for.
   final String? emoji;
 
@@ -63,7 +63,7 @@ class CatalogCard extends StatelessWidget {
   /// Everything in this row is done.
   final bool finished;
 
-  /// Null while the chapter cannot be opened yet.
+  /// Null while the row cannot be opened yet.
   final VoidCallback? onTap;
 
   const CatalogCard({

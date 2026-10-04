@@ -17,7 +17,7 @@ void main() {
       expect(entries.map((e) => e.slug), ['hello', 'variables']);
       expect(entries.first.locales, unorderedEquals(['nl', 'en']));
       expect(entries.first.order, 1);
-      expect(entries.first.language, 'python');
+      expect(entries.first.subject, 'python');
     });
 
     test('ignores anything that is not a lesson file', () {
@@ -32,7 +32,7 @@ void main() {
       expect(entries.map((e) => e.slug), ['ok']);
     });
 
-    test('a folder inside a language is a track, numbered on its own and listed after the rest', () {
+    test('a folder inside a subject is a track, numbered on its own and listed after the rest', () {
       final entries = Course.entriesFrom([
         'assets/lessons/python/microbit/01-dice.nl.md',
         'assets/lessons/python/microbit/00-meet.nl.md',
@@ -43,7 +43,7 @@ void main() {
 
       expect(entries.map((e) => e.slug), ['intro', 'files', 'meet', 'dice']);
       expect(entries.map((e) => e.track), [null, null, 'microbit', 'microbit']);
-      expect(entries.every((e) => e.language == 'python'), isTrue);
+      expect(entries.every((e) => e.subject == 'python'), isTrue);
     });
 
     test('the same number in a track and outside it are two lessons', () {

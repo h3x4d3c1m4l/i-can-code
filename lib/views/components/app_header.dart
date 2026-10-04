@@ -64,7 +64,7 @@ class AppTourStop {
 /// outlives every screen that fills it. See `app_header_host.dart`.
 class AppHeaderConfig {
 
-  /// Levels below the app name: the language, the lesson.
+  /// Levels below the app name: the subject, the lesson.
   final List<AppCrumb> crumbs;
 
   /// Tapping the app name goes home. Null on the screen that *is* home, so it
@@ -154,7 +154,7 @@ class AppHeader extends StatelessWidget {
   /// it by taking the same number.
   static const double horizontalPadding = 32;
 
-  /// Levels below the app name: the language, the lesson, the step.
+  /// Levels below the app name: the subject, the lesson, the step.
   final List<AppCrumb> crumbs;
 
   /// Tapping the app name goes home. Null on the screen that *is* home, so it

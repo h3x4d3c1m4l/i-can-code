@@ -10,9 +10,9 @@ class MicrobitReplScreen extends ScreenBase<MicrobitSessionViewModel, MicrobitSe
 
   /// Whose board this is, as it appears in the address, such as `learn-python`.
   /// A path parameter, so a reload lands on the same one.
-  final String languageSlug;
+  final String subjectSlug;
 
-  const MicrobitReplScreen({@PathParam('languageSlug') required this.languageSlug, super.key});
+  const MicrobitReplScreen({@PathParam('subjectSlug') required this.subjectSlug, super.key});
 
   @override
   MicrobitSessionController createController({
@@ -35,7 +35,7 @@ class MicrobitReplScreen extends ScreenBase<MicrobitSessionViewModel, MicrobitSe
 
   @override
   MicrobitSessionViewModel createViewModel({required BuildContextAccessor contextAccessor}) {
-    return MicrobitSessionViewModel(contextAccessor: contextAccessor, languageSlug: languageSlug);
+    return MicrobitSessionViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug);
   }
 
 }

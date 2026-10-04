@@ -264,7 +264,7 @@ void main() {
                 initialEntries: [
                   OverlayEntry(
                     builder: (_) =>
-                        const LessonScreen(languageSlug: 'learn-python', lessonId: 'loops', sectionId: 'guess'),
+                        const LessonScreen(subjectSlug: 'learn-python', lessonId: 'loops', sectionId: 'guess'),
                   ),
                 ],
               ),

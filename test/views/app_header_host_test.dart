@@ -51,7 +51,7 @@ Widget _host(ValueListenable<Widget> screen, {bool disableAnimations = false}) =
 );
 
 /// The bar with a real page stack under it: one screen pushed over another, the
-/// way the catalog goes over the language picker.
+/// way the catalog goes over the subject picker.
 Widget _stackedHost(GlobalKey<NavigatorState> pages, {Widget page = const SizedBox.expand(key: _screenKey)}) => FTheme(
   data: buildAppTheme(),
   child: Localizations(
@@ -343,7 +343,7 @@ void main() {
 
     testWidgets('and opens the dialog that asks before wiping progress', (tester) async {
       final lesson = CourseLesson(
-        entry: const LessonEntry(language: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
+        entry: const LessonEntry(subject: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
         translations: {
           'nl': const Lesson(
             id: 'intro',

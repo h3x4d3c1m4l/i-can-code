@@ -325,7 +325,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The language's *name*, through `languageLabel`, and not the fence's own
+      // The language's *name*, through `subjectLabel`, and not the fence's own
       // token: the corner of the card reads the way the editor's strip does.
       expect(find.text('Python'), findsOneWidget);
 
@@ -1116,7 +1116,7 @@ void main() {
       expect(decorationOf('Volgende les').color, primary);
       expect(decorationOf('Terug naar Python').color, isNot(primary));
 
-      // The last lesson of a language has nowhere else to go, so the catalog
+      // The last lesson of a subject has nowhere else to go, so the catalog
       // becomes the way forward rather than the quiet option beside it.
       await tester.pumpWidget(_host(panel()));
       await tester.pumpAndSettle();

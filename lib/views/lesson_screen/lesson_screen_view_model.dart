@@ -141,7 +141,7 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
     };
   }
 
-  /// Whether this language has another lesson after this one, which is what
+  /// Whether this subject has another lesson after this one, which is what
   /// puts "Volgende les" on the end page.
   bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
 

@@ -94,7 +94,7 @@ void main() {
 
   (ProjectScreenController, ProjectScreenViewModel, BuildContextAccessor) open() {
     final accessor = BuildContextAccessor();
-    final viewModel = ProjectScreenViewModel(contextAccessor: accessor, languageSlug: 'learn-python', lessonId: 'dice');
+    final viewModel = ProjectScreenViewModel(contextAccessor: accessor, subjectSlug: 'learn-python', lessonId: 'dice');
 
     return (ProjectScreenController(viewModel: viewModel, contextAccessor: accessor), viewModel, accessor);
   }

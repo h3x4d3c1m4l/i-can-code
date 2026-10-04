@@ -90,11 +90,11 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   /// is what catches it, and a student can do nothing about it.
   List<Requirement> requirementsOf(LessonSection section, String locale) {
     final course = GetIt.I<Course>();
-    final language = viewModel.lesson.entry.language;
+    final subject = viewModel.lesson.entry.subject;
 
     return [
       for (final id in section.requires)
-        if (course.lessonsFor(language).where((l) => l.translations.values.first.id == id).firstOrNull
+        if (course.lessonsFor(subject).where((l) => l.translations.values.first.id == id).firstOrNull
             case final CourseLesson lesson)
           (
             title: lesson.forLocale(locale).title,
@@ -120,29 +120,29 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   /// Opens the lesson after this one, the way [LessonScreenController] does.
   Future<void> openNextLesson() async {
     final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
-    if (next == null) return openLanguage();
+    if (next == null) return openSubject();
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 
     await contextAccessor.buildContext.router.replaceAll([
-      const LanguagesRoute(),
-      CatalogRoute(languageSlug: languageSlug(next.entry.language)),
+      const SubjectsRoute(),
+      CatalogRoute(subjectSlug: subjectSlug(next.entry.subject)),
       openingRoute(next, _progress),
     ]);
   }
 
   /// Opens this project's catalog.
-  Future<void> openLanguage() async {
+  Future<void> openSubject() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.replaceAll([
-      const LanguagesRoute(),
-      CatalogRoute(languageSlug: languageSlug(viewModel.lesson.entry.language)),
+      const SubjectsRoute(),
+      CatalogRoute(subjectSlug: subjectSlug(viewModel.lesson.entry.subject)),
     ]);
   }
 
   /// Returns to the app's home.
   Future<void> leave() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.replaceAll([const LanguagesRoute()]);
+    await contextAccessor.buildContext.router.replaceAll([const SubjectsRoute()]);
   }
 
   @override

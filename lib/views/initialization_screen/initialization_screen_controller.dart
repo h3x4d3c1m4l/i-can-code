@@ -59,7 +59,7 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
     // A reload aimed at a lesson was diverted here; take it the rest of the
     // way.
     final pending = GetIt.I<PendingNavigationService>().consumePendingRoute();
-    await _replaceAll([pending ?? const LanguagesRoute()]);
+    await _replaceAll([pending ?? const SubjectsRoute()]);
   }
 
   /// Runs [body] as [step], retrying up to [_maxAttempts] times with a widening

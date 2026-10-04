@@ -101,7 +101,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     return AppHeaderConfig(
       onTapHome: controller.leave,
       crumbs: [
-        AppCrumb(languageLabel(viewModel.lesson.entry.language), onTap: controller.openLanguage),
+        AppCrumb(subjectLabel(viewModel.lesson.entry.subject), onTap: controller.openSubject),
         AppCrumb(lesson.title),
       ],
       offersZen: true,
@@ -334,8 +334,8 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
       onBack: () => _openAndReveal(lesson.stepCount - 1),
       backLabel: context.localizations.lessonScreen_back,
-      onLeave: controller.openLanguage,
-      leaveLabel: context.localizations.lessonScreen_finish(languageLabel(viewModel.lesson.entry.language)),
+      onLeave: controller.openSubject,
+      leaveLabel: context.localizations.lessonScreen_finish(subjectLabel(viewModel.lesson.entry.subject)),
     );
   }
 
@@ -534,7 +534,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       context,
       task: section.title,
       code: code,
-      language: viewModel.lesson.entry.language,
+      language: viewModel.lesson.entry.subject,
     );
     if (restore) controller.restore(code);
   }

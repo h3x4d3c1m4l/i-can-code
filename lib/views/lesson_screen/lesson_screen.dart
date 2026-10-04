@@ -13,9 +13,9 @@ class LessonScreen extends ScreenBase<LessonScreenViewModel, LessonScreenControl
   /// `metadata` block. A path parameter, so a reload lands back here.
   final String lessonId;
 
-  /// The language segment the lesson sits under. Not used to find the lesson,
+  /// The subject segment the lesson sits under. Not used to find the lesson,
   /// but it lets a reload rebuild the trail before the course is loaded.
-  final String languageSlug;
+  final String subjectSlug;
 
   /// Which step to open, by [LessonSection.id] rather than by position, so a
   /// bookmarked link survives the author reordering the lesson.
@@ -25,7 +25,7 @@ class LessonScreen extends ScreenBase<LessonScreenViewModel, LessonScreenControl
   final String? sectionId;
 
   const LessonScreen({
-    @PathParam('languageSlug') required this.languageSlug,
+    @PathParam('subjectSlug') required this.subjectSlug,
     @PathParam('lessonId') required this.lessonId,
     @PathParam('sectionId') this.sectionId,
     super.key,

@@ -20,7 +20,7 @@
   "@initializationScreen_failed": {},
   "initializationScreen_retry": "Try again",
   "@initializationScreen_retry": {},
-  "catalogScreen_title": "Pick a topic",
+  "catalogScreen_title": "Pick a lesson",
   "@catalogScreen_title": {},
   "lessonScreen_run": "Check code",
   "@lessonScreen_run": {},
@@ -48,9 +48,9 @@
   "@lessonScreen_tourProgress": {
     "description": "The bar's introduction, pointing at the lesson's progress bar."
   },
-  "lessonScreen_tourLanguage": "This takes you back to the list of lessons.",
-  "@lessonScreen_tourLanguage": {
-    "description": "The bar's introduction, pointing at the language crumb in the trail."
+  "lessonScreen_tourSubject": "This takes you back to the list of lessons.",
+  "@lessonScreen_tourSubject": {
+    "description": "The bar's introduction, pointing at the subject crumb in the trail."
   },
   "lessonScreen_tourDeepDive": "This step is a deep dive: it goes beyond the basics. The question mark tells you more, and Skip moves on without it.",
   "@lessonScreen_tourDeepDive": {
@@ -155,10 +155,10 @@
   },
   "lessonScreen_nextLesson": "Next lesson",
   "@lessonScreen_nextLesson": {},
-  "lessonScreen_finish": "Back to {language}",
+  "lessonScreen_finish": "Back to {subject}",
   "@lessonScreen_finish": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }
@@ -258,8 +258,8 @@
   },
   "appHeader_settings": "Settings",
   "@appHeader_settings": {},
-  "languagesScreen_title": "What do you want to learn?",
-  "@languagesScreen_title": {},
+  "subjectsScreen_title": "What do you want to learn?",
+  "@subjectsScreen_title": {},
   "catalogScreen_progress": "{done} / {total}",
   "@catalogScreen_progress": {
     "placeholders": {
@@ -271,8 +271,8 @@
       }
     }
   },
-  "languagesScreen_progress": "{done} / {total} lessons",
-  "@languagesScreen_progress": {
+  "subjectsScreen_progress": "{done} / {total} lessons",
+  "@subjectsScreen_progress": {
     "placeholders": {
       "done": {
         "type": "int"
@@ -302,10 +302,10 @@
   "@resetProgress_confirm": {},
   "common_cancel": "Cancel",
   "@common_cancel": {},
-  "replScreen_title": "Try {language} freely (browser)",
+  "replScreen_title": "Try {subject} freely (browser)",
   "@replScreen_title": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }
@@ -350,10 +350,10 @@
   "@catalogScreen_extra": {},
   "catalogScreen_extraFreePlay": "Free play",
   "@catalogScreen_extraFreePlay": {},
-  "microbitReplScreen_title": "Try {language} freely (micro:bit)",
+  "microbitReplScreen_title": "Try {subject} freely (micro:bit)",
   "@microbitReplScreen_title": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }

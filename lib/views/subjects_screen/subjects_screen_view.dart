@@ -8,12 +8,12 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
-import 'package:i_can_code/views/languages_screen/languages_screen_controller.dart';
-import 'package:i_can_code/views/languages_screen/languages_screen_view_model.dart';
+import 'package:i_can_code/views/subjects_screen/subjects_screen_controller.dart';
+import 'package:i_can_code/views/subjects_screen/subjects_screen_view_model.dart';
 
-class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, LanguagesScreenController> {
+class SubjectsScreenView extends ScreenViewBase<SubjectsScreenViewModel, SubjectsScreenController> {
 
-  const LanguagesScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
+  const SubjectsScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
 
   @override
   Widget get body {
@@ -30,7 +30,7 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
   Widget _buildContent() {
     return Builder(
       builder: (context) {
-        final languages = viewModel.course.languages;
+        final subjects = viewModel.course.subjects;
 
         return Padding(
           // The bar is over the page, not above it, so the first screenful
@@ -43,31 +43,31 @@ class LanguagesScreenView extends ScreenViewBase<LanguagesScreenViewModel, Langu
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    context.localizations.languagesScreen_title,
+                    context.localizations.subjectsScreen_title,
                     style: context.appTheme.text.h1.copyWith(fontSize: 42),
                   ),
                   const SizedBox(height: 40),
-                  for (final (index, language) in languages.indexed) ...[
+                  for (final (index, subject) in subjects.indexed) ...[
                     if (index > 0) const SizedBox(height: CatalogCard.spacing),
                     // An Observer of its own rather than a Builder: a Builder's
                     // callback runs after the Observer above has stopped
                     // listening, so a reset left the count where it was.
                     Observer(
                       builder: (context) {
-                        final lessons = viewModel.course.lessonsFor(language);
+                        final lessons = viewModel.course.lessonsFor(subject);
                         final done = lessons.where(viewModel.progress.isFinished).length;
 
                         return CatalogCard(
-                          // The language's own initial, rather than its
+                          // The subject's own initial, rather than its
                           // position in the list.
-                          label: languageLabel(language).substring(0, 1),
-                          emoji: languageEmoji(language),
-                          title: languageLabel(language),
+                          label: subjectLabel(subject).substring(0, 1),
+                          emoji: subjectEmoji(subject),
+                          title: subjectLabel(subject),
                           finished: done == lessons.length,
                           // The fraction from the first visit on, for the
                           // reason the catalog gives.
-                          meta: context.localizations.languagesScreen_progress(done, lessons.length),
-                          onTap: () => controller.openLanguage(language),
+                          meta: context.localizations.subjectsScreen_progress(done, lessons.length),
+                          onTap: () => controller.openSubject(subject),
                         );
                       },
                     ),

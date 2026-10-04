@@ -187,9 +187,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       onTapHome: controller.leave,
       crumbs: [
         AppCrumb(
-          languageLabel(viewModel.lesson.entry.language),
-          onTap: () => controller.openLanguage(viewModel.lesson.entry.language),
-          tip: context.localizations.lessonScreen_tourLanguage,
+          subjectLabel(viewModel.lesson.entry.subject),
+          onTap: () => controller.openSubject(viewModel.lesson.entry.subject),
+          tip: context.localizations.lessonScreen_tourSubject,
         ),
         // The step is deliberately not a crumb: it is already the page heading
         // and the progress bar, and a third showing made the trail change
@@ -247,9 +247,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
           onBack: () => controller.previous(lesson.stepCount),
           backLabel: context.localizations.lessonScreen_back,
-          onLeave: () => controller.openLanguage(viewModel.lesson.entry.language),
+          onLeave: () => controller.openSubject(viewModel.lesson.entry.subject),
           leaveLabel: context.localizations.lessonScreen_finish(
-            languageLabel(viewModel.lesson.entry.language),
+            subjectLabel(viewModel.lesson.entry.subject),
           ),
         ),
       ),
@@ -381,7 +381,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           _pastGutter(
             CodeSample(
               source: section.program ?? '',
-              language: viewModel.lesson.entry.language,
+              language: viewModel.lesson.entry.subject,
               // The interpreter that is about to run it, the way the editor's
               // own strip names it — this code really does get run.
               label: _statusLabel(context),
@@ -631,7 +631,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
     // catalog, and `lessonScreen_finish` is already the sentence about that
     // same destination — there is no text in an icon button to fall back on.
     semanticsLabel: viewModel.step == 0
-        ? context.localizations.lessonScreen_finish(languageLabel(viewModel.lesson.entry.language))
+        ? context.localizations.lessonScreen_finish(subjectLabel(viewModel.lesson.entry.subject))
         : context.localizations.lessonScreen_back,
     onPress: () => controller.previous(lesson.stepCount),
   );
@@ -660,12 +660,12 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   ///
   /// The version is the runtime's own answer, so the strip cannot claim a build
   /// the app is not shipping. Where there is none to ask — every non-web build,
-  /// and so every widget test — the lesson's own language stands in, which is
+  /// and so every widget test — the lesson's own subject stands in, which is
   /// the same name without the number.
   String _statusLabel(BuildContext context) {
     if (viewModel.running) return context.localizations.lessonScreen_running;
 
-    return controller.runtimeVersion ?? languageLabel(viewModel.lesson.entry.language);
+    return controller.runtimeVersion ?? subjectLabel(viewModel.lesson.entry.subject);
   }
 
   /// The editor for [step], opened on what the student last typed there or on

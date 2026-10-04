@@ -14,11 +14,11 @@ assets/lessons/
 ## The filename carries three things
 
 ```text
-assets/lessons/<language>/<order>-<slug>.<locale>.md
+assets/lessons/<subject>/<order>-<slug>.<locale>.md
 ```
 
-- **`<language>`** — the programming language the lesson teaches, as a directory.
-  Python is the first; a second language is a second directory, not a rewrite.
+- **`<subject>`** — what the lesson teaches, as a directory.
+  Python is the first; a second subject is a second directory, not a rewrite.
 - **`<order>`** — a zero-padded number. **This is the only source of course
   order.** Reordering the course is a rename.
 - **`<slug>`** — what the file is about, in kebab case.
@@ -27,7 +27,7 @@ assets/lessons/<language>/<order>-<slug>.<locale>.md
 `Course.entriesFrom` ignores anything that does not match this pattern, so a
 `README.md` or an editor backup in the folder is harmless.
 
-### A folder inside a language is a track
+### A folder inside a subject is a track
 
 ```text
 assets/lessons/python/microbit/01-dobbelsteen.nl.md
@@ -37,8 +37,8 @@ One folder deeper, a lesson belongs to a **track**: a run numbered on its own,
 listed after the lessons outside any track, and after any track whose folder
 name sorts before its own. That lets a run start again at `00-` without
 renumbering the course. Nothing else changes: it is a lesson of the same
-language, its `group` puts the heading over it, and its id shares the language's
-namespace, so **a lesson id is unique across the whole language, tracks
+subject, its `group` puts the heading over it, and its id shares the subject's
+namespace, so **a lesson id is unique across the whole subject, tracks
 included** (`test/content/lessons_test.dart` holds that).
 
 Only one level. A folder inside a track is not read.
@@ -50,7 +50,7 @@ the index. A lesson therefore cannot be added to the app and then forgotten in a
 index — the failure mode the old `index.yaml` had.
 
 **Flutter's asset globbing is not recursive.** Every directory is listed
-separately in `pubspec.yaml`; a new language directory, or a new track, is
+separately in `pubspec.yaml`; a new subject directory, or a new track, is
 silently absent at runtime until it is declared there.
 
 ## Worked examples of every type
@@ -79,7 +79,7 @@ emoji: "⌨️"
 type: info
 ```
 
-Welkom bij de eerste module over Python!
+Welkom bij de eerste les over Python!
 
 ```python
 print("Hello, world")
@@ -290,9 +290,9 @@ Both fields are **optional in the parser** — a lesson missing one still opens,
 with a plain title or a numbered tile — but **required of every lesson that
 ships**, which is a rule the test holds rather than the format.
 
-A programming **language** has no file of its own, so its emoji is a case in
-`languageEmoji()` in `lib/services/lessons/course.dart`. A language the table
-does not name falls back to the initial on its card, so adding a language
+A **subject** has no file of its own, so its emoji is a case in
+`subjectEmoji()` in `lib/services/lessons/course.dart`. A subject the table
+does not name falls back to the initial on its card, so adding a subject
 directory does not require touching it.
 
 It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
@@ -365,7 +365,7 @@ put on the board at least once while that task was open.
   list. The task shows them in a row, each with a mark for whether the student
   finished it, started it or has not opened it, and each opens that lesson. It
   is advice and never a gate. `test/content/lessons_test.dart` holds every id to
-  a lesson in the same language.
+  a lesson in the same subject.
 - **Only the first task MAY carry a `<lang>-assignment` block.** All tasks share
   one editor, and that block is what it opens with. After that the student's
   own program comes back on every visit.
@@ -1024,9 +1024,9 @@ want a student to read.**
 
 ## Adding a lesson
 
-1. Create `assets/lessons/<language>/<order>-<slug>.<locale>.md`.
+1. Create `assets/lessons/<subject>/<order>-<slug>.<locale>.md`.
 2. Add translations as further `.<locale>.md` files beside it.
-3. If the language directory is new, add it to `pubspec.yaml`.
+3. If the subject directory is new, add it to `pubspec.yaml`.
 
 No code change and no regeneration. `test/content/lessons_test.dart` checks
 every file that ships, so an authoring mistake fails the test run rather than the
@@ -1039,4 +1039,4 @@ LESSONS_DIR=path/to/lessons fvm flutter test test/content/
 ```
 
 That directory is laid out the way `assets/lessons/` is, one folder per
-language. With no lesson files in it the check skips and says so.
+subject. With no lesson files in it the check skips and says so.

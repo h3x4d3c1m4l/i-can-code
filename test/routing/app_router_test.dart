@@ -30,9 +30,9 @@ void main() {
   });
 
   test('every step of a lesson is one screen, and a second lesson is another', () {
-    final first = lessonRoute(languageSlug: 'learn-python', lessonId: 'hello', sectionId: 'intro');
-    final later = lessonRoute(languageSlug: 'learn-python', lessonId: 'hello', sectionId: 'print-yourself');
-    final other = lessonRoute(languageSlug: 'learn-python', lessonId: 'variables', sectionId: 'intro');
+    final first = lessonRoute(subjectSlug: 'learn-python', lessonId: 'hello', sectionId: 'intro');
+    final later = lessonRoute(subjectSlug: 'learn-python', lessonId: 'hello', sectionId: 'print-yourself');
+    final other = lessonRoute(subjectSlug: 'learn-python', lessonId: 'variables', sectionId: 'intro');
 
     // auto_route keys a page on its route name alone, so the widget's own key
     // is the only thing that decides whether the screen — and its view model —
@@ -48,7 +48,7 @@ void main() {
 
     expect(matched, hasLength(1));
     expect(matched!.single.name, 'ReplRoute');
-    expect(matched.single.params.getString('languageSlug'), 'learn-python');
+    expect(matched.single.params.getString('subjectSlug'), 'learn-python');
   });
 
   test('both micro:bit screens have their own address, ahead of the lesson addresses', () {
@@ -60,11 +60,11 @@ void main() {
 
     expect(program, hasLength(1));
     expect(program!.single.name, 'MicrobitProgramRoute');
-    expect(program.single.params.getString('languageSlug'), 'learn-python');
+    expect(program.single.params.getString('subjectSlug'), 'learn-python');
 
     expect(repl, hasLength(1));
     expect(repl!.single.name, 'MicrobitReplRoute');
-    expect(repl.single.params.getString('languageSlug'), 'learn-python');
+    expect(repl.single.params.getString('subjectSlug'), 'learn-python');
   });
 
   test('a lesson without a section resolves to the resume marker', () {
@@ -87,8 +87,8 @@ void main() {
   });
 
   test('each project is a screen of its own', () {
-    final first = projectRoute(languageSlug: 'learn-python', lessonId: 'dice');
-    final other = projectRoute(languageSlug: 'learn-python', lessonId: 'marble');
+    final first = projectRoute(subjectSlug: 'learn-python', lessonId: 'dice');
+    final other = projectRoute(subjectSlug: 'learn-python', lessonId: 'marble');
 
     expect(first.args!.key, isNot(other.args!.key));
   });

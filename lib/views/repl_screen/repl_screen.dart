@@ -10,9 +10,9 @@ class ReplScreen extends ScreenBase<ReplScreenViewModel, ReplScreenController, R
 
   /// Whose console this is, as it appears in the address — `learn-python`. A
   /// path parameter, so a reload lands back on the same one.
-  final String languageSlug;
+  final String subjectSlug;
 
-  const ReplScreen({@PathParam('languageSlug') required this.languageSlug, super.key});
+  const ReplScreen({@PathParam('subjectSlug') required this.subjectSlug, super.key});
 
   @override
   ReplScreenController createController({
@@ -33,7 +33,7 @@ class ReplScreen extends ScreenBase<ReplScreenViewModel, ReplScreenController, R
 
   @override
   ReplScreenViewModel createViewModel({required BuildContextAccessor contextAccessor}) {
-    return ReplScreenViewModel(contextAccessor: contextAccessor, languageSlug: languageSlug);
+    return ReplScreenViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug);
   }
 
 }

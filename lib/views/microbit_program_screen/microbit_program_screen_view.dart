@@ -29,8 +29,8 @@ class MicrobitProgramScreenView extends ScreenViewBase<MicrobitSessionViewModel,
     return AppHeaderConfig(
       onTapHome: controller.goHome,
       crumbs: [
-        AppCrumb(languageLabel(viewModel.language), onTap: controller.goToCatalog),
-        // The short form: the crumb beside it already names the language.
+        AppCrumb(subjectLabel(viewModel.subject), onTap: controller.goToCatalog),
+        // The short form: the crumb beside it already names the subject.
         AppCrumb(context.localizations.microbitProgramScreen_crumb),
       ],
     );

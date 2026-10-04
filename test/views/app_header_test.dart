@@ -110,7 +110,7 @@ void main() {
       tester.getTopLeft(find.text('Python')).dx,
       tester.getTopLeft(find.text('Invoer en uitvoer')).dx,
     ];
-    expect(x, orderedEquals([...x]..sort()), reason: 'app first, then language, then lesson');
+    expect(x, orderedEquals([...x]..sort()), reason: 'app first, then subject, then lesson');
   });
 
   testWidgets('the trail sits against the logo, not out by the cog', (tester) async {
@@ -267,7 +267,7 @@ void main() {
 
   testWidgets('reset is offered once there is progress, and asks first', (tester) async {
     final lesson = CourseLesson(
-      entry: const LessonEntry(language: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
+      entry: const LessonEntry(subject: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
       translations: {
         'nl': const Lesson(
           id: 'intro',

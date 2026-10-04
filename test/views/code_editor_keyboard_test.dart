@@ -262,7 +262,7 @@ void main() {
     _testKeys('opens with the keyboard in the editor, and every control is reached from it', (tester) async {
       await tester.pumpWidget(
         _app(
-          const LessonScreen(languageSlug: 'learn-python', lessonId: 'loops', sectionId: 'first'),
+          const LessonScreen(subjectSlug: 'learn-python', lessonId: 'loops', sectionId: 'first'),
           size: const Size(900, 2000),
         ),
       );

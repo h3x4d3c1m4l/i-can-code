@@ -44,9 +44,9 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// printed a long list wants to scroll back to it.
   static const int _scrollback = 5000;
 
-  /// The programming language this board belongs to. Empty when the address
-  /// named something that is not a language of ours.
-  final String language;
+  /// The subject this board belongs to. Empty when the address
+  /// named something that is not a subject of ours.
+  final String subject;
 
   /// What the reader is about to flash.
   ///
@@ -99,8 +99,8 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
 
   /// [program] is what the editor opens with. Left out, it opens on a
   /// greeting, the smallest program that shows the board is listening.
-  MicrobitSessionViewModelBase({required super.contextAccessor, required String languageSlug, String? program})
-    : language = languageFromSlug(languageSlug) ?? '',
+  MicrobitSessionViewModelBase({required super.contextAccessor, required String subjectSlug, String? program})
+    : subject = subjectFromSlug(subjectSlug) ?? '',
       code = CodeLineEditingController.fromText(program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n');
 
   @action

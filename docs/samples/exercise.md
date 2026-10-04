@@ -21,7 +21,7 @@ layout. Below `lg` (1024) the two columns stack and the step scrolls as one page
 side by side each column scrolls on its own, so reading the prose leaves the
 editor where it is.
 
-Change the code below so that it prints the number `42` first and then `3.14`.
+Change the starter code so that it prints the number `42` first and then `3.14`.
 
 Numbers are written without quotation marks, and Python uses a dot as the decimal
 separator.

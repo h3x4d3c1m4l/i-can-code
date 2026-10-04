@@ -14,11 +14,11 @@ class ProjectScreen extends ScreenBase<ProjectScreenViewModel, ProjectScreenCont
   /// lands back here.
   final String lessonId;
 
-  /// The language segment the project sits under.
-  final String languageSlug;
+  /// The subject segment the project sits under.
+  final String subjectSlug;
 
   const ProjectScreen({
-    @PathParam('languageSlug') required this.languageSlug,
+    @PathParam('subjectSlug') required this.subjectSlug,
     @PathParam('lessonId') required this.lessonId,
     super.key,
   });
@@ -42,7 +42,7 @@ class ProjectScreen extends ScreenBase<ProjectScreenViewModel, ProjectScreenCont
 
   @override
   ProjectScreenViewModel createViewModel({required BuildContextAccessor contextAccessor}) {
-    return ProjectScreenViewModel(contextAccessor: contextAccessor, languageSlug: languageSlug, lessonId: lessonId);
+    return ProjectScreenViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug, lessonId: lessonId);
   }
 
 }

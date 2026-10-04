@@ -6,7 +6,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 CourseLesson _lesson({required String id, required List<String> sectionIds}) => CourseLesson(
-  entry: LessonEntry(language: 'python', order: 1, slug: id, paths: const {'nl': 'x'}),
+  entry: LessonEntry(subject: 'python', order: 1, slug: id, paths: const {'nl': 'x'}),
   translations: {
     'nl': Lesson(
       id: id,
@@ -154,7 +154,7 @@ void main() {
     expect(reloaded.hasProgress, isFalse);
   });
 
-  test('lessons of the same name in different languages are kept apart', () {
+  test('lessons of the same name in different subjects are kept apart', () {
     expect(
       ProgressStoreBase.keyFor('python', 'intro'),
       isNot(ProgressStoreBase.keyFor('javascript', 'intro')),

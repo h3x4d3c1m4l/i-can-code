@@ -6,7 +6,7 @@
   "initializationScreen_retrying": "Poging {count}",
   "initializationScreen_failed": "De app kon niet starten",
   "initializationScreen_retry": "Opnieuw proberen",
-  "catalogScreen_title": "Kies een onderwerp",
+  "catalogScreen_title": "Kies een les",
   "lessonScreen_run": "Controleer code",
   "lessonScreen_stop": "Stoppen",
   "lessonScreen_running": "Bezig…",
@@ -16,7 +16,7 @@
   "lessonScreen_next": "Volgende",
   "lessonScreen_back": "Vorige stap",
   "lessonScreen_tourProgress": "Elk streepje is een stap van deze les. Klik erop om meteen naar die stap te gaan.",
-  "lessonScreen_tourLanguage": "Hier ga je terug naar de lijst met lessen.",
+  "lessonScreen_tourSubject": "Hier ga je terug naar de lijst met lessen.",
   "lessonScreen_tourDeepDive": "Deze stap is een verdieping: hij gaat verder dan de basis. Het vraagteken vertelt je meer, en met Overslaan ga je zonder deze stap verder.",
   "lessonScreen_optionalExplained": "Deze stap gaat verder dan de basisstof en mag je overslaan. Doe je dat, dan blijft hij open staan voor een volgende keer.",
   "lessonScreen_optionalWhat": "Wat is een verdieping?",
@@ -65,10 +65,10 @@
     }
   },
   "lessonScreen_nextLesson": "Volgende les",
-  "lessonScreen_finish": "Terug naar {language}",
+  "lessonScreen_finish": "Terug naar {subject}",
   "@lessonScreen_finish": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }
@@ -94,9 +94,9 @@
   "appHeader_tourDone": "Klaar",
   "appHeader_tourSkip": "Overslaan",
   "appHeader_settings": "Instellingen",
-  "languagesScreen_title": "Wat wil je leren?",
+  "subjectsScreen_title": "Wat wil je leren?",
   "catalogScreen_progress": "{done} / {total}",
-  "languagesScreen_progress": "{done} / {total} lessen",
+  "subjectsScreen_progress": "{done} / {total} lessen",
   "appHeader_languageSystem": "Apparaattaal",
   "appHeader_themeSystem": "Systeem",
   "appHeader_themeLight": "Licht",
@@ -107,10 +107,10 @@
   "resetProgress_body": "Je vinkjes en je code verdwijnen, en elke les begint weer opnieuw. Dit kun je niet ongedaan maken.",
   "resetProgress_confirm": "Wissen",
   "common_cancel": "Annuleren",
-  "replScreen_title": "Vrij {language} uitproberen (browser)",
+  "replScreen_title": "Vrij {subject} uitproberen (browser)",
   "@replScreen_title": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }
@@ -136,10 +136,10 @@
   "catalogScreen_deepDiveWhat": "Wat is een verdieping?",
   "catalogScreen_extra": "Extra",
   "catalogScreen_extraFreePlay": "Vrij oefenen",
-  "microbitReplScreen_title": "Vrij {language} uitproberen (micro:bit)",
+  "microbitReplScreen_title": "Vrij {subject} uitproberen (micro:bit)",
   "@microbitReplScreen_title": {
     "placeholders": {
-      "language": {
+      "subject": {
         "type": "String"
       }
     }

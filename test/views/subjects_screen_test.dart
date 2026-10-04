@@ -7,7 +7,7 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/theme/theme.dart';
-import 'package:i_can_code/views/languages_screen/languages_screen.dart';
+import 'package:i_can_code/views/subjects_screen/subjects_screen.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -20,7 +20,7 @@ void main() {
       ..registerSingleton<Course>(
         Course(
           lessons: [
-            // Two, because a language with every lesson done shows a tick in
+            // Two, because a subject with every lesson done shows a tick in
             // place of the count.
             for (final entry in Course.entriesFrom([
               'assets/lessons/python/01-hello.nl.md',
@@ -44,7 +44,7 @@ void main() {
 
   tearDown(GetIt.I.reset);
 
-  testWidgets('a language\'s count follows progress, a reset included', (tester) async {
+  testWidgets('a subject\'s count follows progress, a reset included', (tester) async {
     final progress = GetIt.I<ProgressStore>();
     await progress.markFinished(GetIt.I<Course>().lessons.first, 'a');
 
@@ -56,7 +56,7 @@ void main() {
           delegates: AppLocalizations.localizationsDelegates,
           child: const Directionality(
             textDirection: TextDirection.ltr,
-            child: MediaQuery(data: MediaQueryData(size: Size(1200, 900)), child: LanguagesScreen()),
+            child: MediaQuery(data: MediaQueryData(size: Size(1200, 900)), child: SubjectsScreen()),
           ),
         ),
       ),
