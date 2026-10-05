@@ -116,6 +116,16 @@ const List<LessonSection> _sections = [
     program: 'print(input())',
     stdin: '7\n',
   ),
+  LessonSection(
+    id: 'pairs',
+    title: 'Paren',
+    kind: SectionKind.matchPairs,
+    prose: '',
+    pairs: [
+      LessonPair(cue: 'kat', answer: 'cat'),
+      LessonPair(cue: 'hond', answer: 'dog'),
+    ],
+  ),
   LessonSection(id: 'last', title: 'Laatste', kind: SectionKind.exercise, prose: '', starter: ''),
 ];
 
@@ -344,6 +354,50 @@ void main() {
 
     expect(viewModel.passed, contains(viewModel.step));
     expect(GetIt.I<ProgressStore>().finishedIn(GetIt.I<Course>().lessons.single), contains('guess'));
+  });
+
+  test('a right prediction fires the small burst, and a wrong one does not', () async {
+    final section = _sections.firstWhere((s) => s.id == 'guess');
+
+    final (wrongController, wrong) = predicting();
+    unawaited(wrongController.predict(section, '41'));
+    await pumpEventQueue();
+    runtime.finish(passed: true, output: '42\n');
+    await pumpEventQueue();
+
+    expect(wrong.passBursts, 0);
+
+    final (rightController, right) = predicting();
+    // No trailing newline: a student cannot type the one `print` ends on.
+    unawaited(rightController.predict(section, '42'));
+    await pumpEventQueue();
+    runtime.finish(passed: true, output: '42\n');
+    await pumpEventQueue();
+
+    expect(right.passBursts, 1);
+  });
+
+  test('the pick that solves a board fires the small burst, and no other', () async {
+    final accessor = BuildContextAccessor();
+    final viewModel = LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'pairs');
+    final controller = LessonScreenController(viewModel: viewModel, contextAccessor: accessor);
+    final section = _sections.firstWhere((s) => s.id == 'pairs');
+
+    await controller.pick(section, (pair: 0, cue: true));
+    await controller.pick(section, (pair: 1, cue: false));
+    expect(viewModel.passBursts, 0, reason: 'a wrong pair solves nothing');
+
+    await controller.pick(section, (pair: 0, cue: true));
+    await controller.pick(section, (pair: 0, cue: false));
+    expect(viewModel.passBursts, 0, reason: 'one pair is still open');
+
+    await controller.pick(section, (pair: 1, cue: true));
+    await controller.pick(section, (pair: 1, cue: false));
+    expect(viewModel.passBursts, 1);
+
+    // The board disables a matched tile, so this pick never comes from it.
+    await controller.pick(section, (pair: 1, cue: true));
+    expect(viewModel.passBursts, 1, reason: 'a pick on a solved board solves it no further');
   });
 
   test('leaving a predict step drops the answer that arrives after it', () async {

@@ -93,8 +93,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
   @readonly
   bool _earnedCelebration = false;
 
-  /// How many exercises have passed on this visit. Each one is a small burst of
-  /// its own, keyed on this count, so a second pass fires again.
+  /// How many exercises passed, predictions came out right and boards were
+  /// solved on this visit. Each one is a small burst of its own, keyed on this
+  /// count, so a second pass fires again.
   @readonly
   int _passBursts = 0;
 

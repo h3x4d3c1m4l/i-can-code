@@ -12,6 +12,7 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
+import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
 
 class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel> {
@@ -88,7 +89,8 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   ///
   /// The step is recorded on a clean run whether the prediction was right or
   /// not. Seeing the difference is the step; a wrong guess with feedback on it
-  /// is not a failure, and there is nothing here being graded.
+  /// is not a failure, and there is nothing here being graded. Only a right one
+  /// gets the small burst.
   Future<void> predict(LessonSection section, String prediction) async {
     if (viewModel.running) return;
 
@@ -97,7 +99,10 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     final result = await _runner.attempt(code: section.program ?? '', stdin: section.stdin);
     if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
-    if (result.passed) await _remember(section);
+    if (!result.passed) return;
+
+    if (matchesPrediction(prediction, result.output)) viewModel.notePassBurst();
+    await _remember(section);
   }
 
   /// Ends the run in flight — at the student's asking, or on their way out of
@@ -121,9 +126,13 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// [section] comes from the view for the reason [run]'s does: it is already
   /// resolved for the locale on screen.
   Future<void> pick(LessonSection section, PairHalf tile) async {
+    final before = viewModel.matched.length;
     viewModel.pick(tile);
 
-    if (viewModel.matched.length < section.pairs.length) return;
+    // Only the pick that lands the last pair solves the board.
+    if (viewModel.matched.length == before || viewModel.matched.length < section.pairs.length) return;
+
+    viewModel.notePassBurst();
     // A board solved a second time has nothing left to record.
     if (viewModel.passed.contains(viewModel.step)) return;
 
