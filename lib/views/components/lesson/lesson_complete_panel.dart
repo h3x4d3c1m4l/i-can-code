@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
@@ -17,6 +18,9 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 /// keeps no progress, so a lesson file says nothing about it and the progress
 /// bar draws nothing for it.
 class LessonCompletePanel extends StatelessWidget {
+
+  /// Stands between a group and a lesson the way the trail's chevron does.
+  static const String _separator = ' › ';
 
   /// The lesson's own emoji, drawn in the tile. Null falls back to a tick, for
   /// a lesson whose file declares none.
@@ -35,6 +39,12 @@ class LessonCompletePanel extends StatelessWidget {
   /// subject, which leaves [onLeave] as the only way on.
   final VoidCallback? onNextLesson;
 
+  /// The lesson [onNextLesson] opens. Named above the buttons, because
+  /// "Volgende les" cannot say which one without growing as long as the title,
+  /// and a hint behind a hover is no use on a touch screen. Null leaves the
+  /// name out.
+  final Lesson? nextLesson;
+
   /// Fires another burst of confetti. Null leaves the button out.
   final VoidCallback? onMoreConfetti;
 
@@ -44,6 +54,9 @@ class LessonCompletePanel extends StatelessWidget {
 
   /// What [onBack] is announced as, since it is a glyph with no label.
   final String backLabel;
+
+  /// The step [onBack] lands on, said on hover. Null says nothing.
+  final String? backTip;
 
   /// Back to the catalog. Always offered.
   final VoidCallback onLeave;
@@ -59,13 +72,18 @@ class LessonCompletePanel extends StatelessWidget {
     required this.leaveLabel,
     required this.onBack,
     required this.backLabel,
+    this.backTip,
     this.emoji,
     this.onNextLesson,
+    this.nextLesson,
     this.onMoreConfetti,
     super.key,
   });
 
   bool get _finished => completedSteps >= stepCount;
+
+  /// The next lesson by name, with the emoji its catalog card carries.
+  static String _nameOf(Lesson lesson) => [?lesson.emoji, lesson.title].join(' ');
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +108,12 @@ class LessonCompletePanel extends StatelessWidget {
           style: text.body.copyWith(fontSize: 19, color: theme.colors.mutedForeground),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
+        if (nextLesson case final Lesson next) ...[
+          const SizedBox(height: 28),
+          _buildUpNext(context, next),
+          const SizedBox(height: 20),
+        ] else
+          const SizedBox(height: 40),
         // Wrapped, so the buttons stack instead of overflowing on a phone. The
         // back button travels with the one it belongs beside, in a row of their
         // own, rather than wrapping away from it.
@@ -104,9 +127,12 @@ class LessonCompletePanel extends StatelessWidget {
                 AppButton.icon(
                   icon: FLucideIcons.chevronLeft,
                   semanticsLabel: backLabel,
+                  tip: backTip,
                   onPress: onBack,
                 ),
                 if (onNextLesson case final VoidCallback next)
+                  // No tip: the line above it already names the lesson, and a
+                  // tip would open on top of that line to say it again.
                   AppButton(
                     icon: FLucideIcons.chevronRight,
                     iconSide: AppButtonIconSide.trailing,
@@ -133,6 +159,27 @@ class LessonCompletePanel extends StatelessWidget {
           _buildMoreConfetti(context, more),
         ],
       ],
+    );
+  }
+
+  /// Which lesson comes next: its group in the muted ink the trail sets a
+  /// group in, then its name in the page's own.
+  Widget _buildUpNext(BuildContext context, Lesson next) {
+    final colors = context.theme.colors;
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: '${context.localizations.lessonScreen_upNext} '),
+          if (next.group case final String group) TextSpan(text: '$group$_separator'),
+          TextSpan(
+            text: _nameOf(next),
+            style: TextStyle(color: colors.foreground, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      style: context.appTheme.text.body.copyWith(fontSize: 17, color: colors.mutedForeground),
+      textAlign: TextAlign.center,
     );
   }
 

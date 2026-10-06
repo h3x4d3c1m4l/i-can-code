@@ -104,8 +104,8 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
     return null;
   }
 
-  /// Whether this subject has another lesson after this one.
-  bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
+  /// The lesson after this one in its subject, or null on the last one.
+  CourseLesson? get nextLesson => GetIt.I<Course>().lessonAfter(lesson);
 
   @action
   void noteFlashed() => _flashedHere = true;

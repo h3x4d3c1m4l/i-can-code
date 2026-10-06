@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/hover_tip.dart';
 
 /// The lesson's progress, sized to sit in the header beside the settings cog.
 ///
@@ -22,6 +23,10 @@ class StepProgressBar extends StatelessWidget {
   final Set<int> passed;
   final ValueChanged<int> onTap;
 
+  /// What the step at index [step] is called on hover: here, and on the
+  /// chevron that goes back to it, so one step has one name.
+  static String tipFor(int step, String title) => '${step + 1}. $title';
+
   const StepProgressBar({
     required this.titles,
     required this.current,
@@ -41,15 +46,8 @@ class StepProgressBar extends StatelessWidget {
       children: [
         for (var step = 0; step < stepCount; step++) ...[
           if (step > 0) const SizedBox(width: 6),
-          // An FTooltip and not the popover the catalog's hint uses: this one is
-          // wanted on hover and must *not* survive the press, which is a move to
-          // another step. forui's tooltip hides on pointer down, which is the
-          // behaviour this needs and the reason the hint could not use it.
-          FTooltip(
-            // No dwell time: forui waits out half a second, and on a 32px bar
-            // that reads as the hover doing nothing at all.
-            style: FTooltipStyleDelta.delta(hoverEnterDuration: Duration.zero),
-            tipBuilder: (context, _) => Text('${step + 1}. ${titles[step]}'),
+          HoverTip(
+            message: tipFor(step, titles[step]),
             child: FTappable(
               // Keyed so a test can address one segment: `FTappable` resolves to
               // a private widget and cannot be found by type.

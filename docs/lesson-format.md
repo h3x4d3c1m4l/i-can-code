@@ -227,6 +227,10 @@ group: "Week 1 · De basis"
   one lesson to the next in filename order, so a group that comes back later
   gets a heading of its own rather than pulling its lessons forward. The number
   in the filename stays the only source of order.
+- **It is shown outside the catalog too.** A lesson's bar names its group
+  between the subject and the lesson, and the end page of the lesson before it
+  names it in front of the lesson that comes next. Keep it short: in the bar the
+  widest name is cut to an ellipsis first when the window is narrow.
 - **It is translated**, like the title, but a lesson grouped in one locale is
   grouped in all of them; `test/content/lessons_test.dart` holds that.
 - A `group` that is not a line of text — a number, a list, an empty string — is a

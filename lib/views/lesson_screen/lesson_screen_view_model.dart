@@ -142,9 +142,9 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
     };
   }
 
-  /// Whether this subject has another lesson after this one, which is what
-  /// puts "Volgende les" on the end page.
-  bool get hasNextLesson => GetIt.I<Course>().lessonAfter(lesson) != null;
+  /// The lesson after this one in its subject, which the end page names and
+  /// "Volgende les" opens. Null on the subject's last lesson.
+  CourseLesson? get nextLesson => GetIt.I<Course>().lessonAfter(lesson);
 
   /// The pairs already matched on the step being shown.
   Set<int> get matched => _matchedPairs[_step] ?? const {};

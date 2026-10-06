@@ -80,15 +80,20 @@ jobs:
       # and wasm-pack installing it on demand inherits whatever RUSTFLAGS are set,
       # which fails on `'+atomics' is not a recognized feature for this target`.
       #
+      # wasm-bindgen-cli MUST be the version rust/Cargo.lock resolves the
+      # wasm-bindgen crate to. On any other, wasm-pack installs its own, which
+      # is that same failure.
+      #
       # cargo-expand is what the codegen shells out to when it has to expand a
       # macro to see a type.
       - name: Install the wasm toolchain
         run: |
           version=$(awk '/^  flutter_rust_bridge:/{f=1} f&&/^    version:/{gsub(/"/,"",$2); print $2; exit}' pubspec.lock)
+          bindgen=$(awk '/^name = "wasm-bindgen"$/{f=1;next} f&&/^version/{gsub(/"/,"",$3); print $3; exit}' rust/Cargo.lock)
           cargo binstall --force -y \
             cargo-expand \
             wasm-pack \
-            wasm-bindgen-cli \
+            "wasm-bindgen-cli@$bindgen" \
             "flutter_rust_bridge_codegen@$version"
 
       # The hex the flasher builds on. Not committed; the tests that need it

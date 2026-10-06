@@ -83,6 +83,12 @@ FThemeData buildAppTheme({
     popoverStyle: FPopoverStyle.inherit(colors: colors, style: style).copyWith(
       decoration: DecorationDelta.shapeDelta(shape: squircle(_hintCornerRadius, side: _surfaceEdge(colors, style))),
     ),
+    tooltipStyle: FTooltipStyle.inherit(
+      colors: colors,
+      typography: typography,
+      style: style,
+      hapticFeedback: const FHapticFeedback(),
+    ).copyWith(decoration: DecorationDelta.shapeDelta(shape: squircle(_tipCornerRadius))),
     popoverMenuStyle: menu.copyWith(
           decoration: DecorationDelta.shapeDelta(
             shape: squircle(kControlCornerRadius, side: _surfaceEdge(colors, style)),
@@ -126,6 +132,10 @@ FThemeData buildAppTheme({
 /// A popover that only explains something. A control's radius would bow one
 /// line of text inward.
 const double _hintCornerRadius = kChipCornerRadius;
+
+/// A tooltip's corner. Tighter than a hint's: one line of a tip is under 30px
+/// tall, and a squircle bows inward past half the shortest side.
+const double _tipCornerRadius = 8;
 
 /// The quiet outline forui gives its floating surfaces.
 BorderSide _surfaceEdge(FColors colors, FStyle style) => BorderSide(color: colors.border, width: style.borderWidth);

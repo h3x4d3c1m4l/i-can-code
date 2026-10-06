@@ -62,6 +62,17 @@ build-rust-core: gen-rust
   #!/usr/bin/env bash
   set -euo pipefail
 
+  # The wasm-bindgen on the PATH MUST be the version Cargo.lock resolves the
+  # crate to. On any other, wasm-pack compiles its own under the wasm RUSTFLAGS
+  # below, and the host linker rejects those. See docs/rust-core-build.md.
+  bindgen=$(awk '/^name = "wasm-bindgen"$/{f=1;next} f&&/^version/{gsub(/"/,"",$3); print $3; exit}' rust/Cargo.lock)
+  installed=$(wasm-bindgen --version 2>/dev/null | awk '{print $2}' || true)
+  if [ "$installed" != "$bindgen" ]; then
+    echo "ERROR: wasm-bindgen-cli is ${installed:-not installed}, and rust/Cargo.lock needs ${bindgen}." >&2
+    echo "       Run \`cargo install wasm-bindgen-cli --version ${bindgen} --locked\`." >&2
+    exit 1
+  fi
+
   # --wasm-pack-rustflags replaces flutter_rust_bridge's defaults rather than
   # adding to them, so they are read back out of its own source and held against
   # the copy below. See docs/rust-core-build.md.

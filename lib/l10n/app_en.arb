@@ -153,6 +153,10 @@
       }
     }
   },
+  "lessonScreen_upNext": "Up next:",
+  "@lessonScreen_upNext": {
+    "description": "Before the next lesson's name on a lesson's end page."
+  },
   "lessonScreen_nextLesson": "Next lesson",
   "@lessonScreen_nextLesson": {},
   "lessonScreen_finish": "Back to {subject}",

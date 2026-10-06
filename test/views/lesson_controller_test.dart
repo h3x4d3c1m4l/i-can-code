@@ -14,6 +14,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
+import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
@@ -300,6 +301,53 @@ void main() {
     expect(answer.top, greaterThan(fieldBottom), reason: 'the answer comes straight after the prediction');
     expect(tester.getTopLeft(run).dy, greaterThan(answer.bottom), reason: 'and the buttons after the answer');
     expect(tester.getTopLeft(find.text('Volgende')).dy, greaterThan(answer.bottom));
+  });
+
+  group('the way back through a lesson says where it goes', () {
+    AppButton button(WidgetTester tester, IconData icon) =>
+        tester.widget(find.byWidgetPredicate((widget) => widget is AppButton && widget.icon == icon));
+
+    /// Opens [sectionId] as a step that was passed on an earlier visit, which
+    /// is what puts the way on beside the way back.
+    Future<void> open(WidgetTester tester, String sectionId) async {
+      await GetIt.I<ProgressStore>().markFinished(GetIt.I<Course>().lessons.single, sectionId);
+      await tester.pumpWidget(screen(sectionId));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('by the step\'s number and title, as the progress bar does', (tester) async {
+      await open(tester, 'guess');
+
+      expect(button(tester, FLucideIcons.chevronLeft).tip, '1. Eerste');
+    });
+
+    testWidgets('the way on says nothing on hover', (tester) async {
+      await open(tester, 'guess');
+
+      expect(button(tester, FLucideIcons.chevronRight).tip, isNull);
+    });
+
+    testWidgets('the first step\'s way back names the catalog it leaves for', (tester) async {
+      await open(tester, 'first');
+
+      expect(button(tester, FLucideIcons.chevronLeft).tip, 'Terug naar Python');
+    });
+
+    testWidgets('the last step\'s way on has no step to name', (tester) async {
+      await open(tester, 'last');
+
+      expect(button(tester, FLucideIcons.check).tip, isNull);
+    });
+
+    testWidgets('the end page\'s way back names the last step', (tester) async {
+      await open(tester, 'last');
+      await tester.ensureVisible(find.text('Afronden'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Afronden'));
+      await tester.pumpAndSettle();
+
+      expect(button(tester, FLucideIcons.chevronLeft).tip, '7. Laatste');
+    });
   });
 
   testWidgets('an answer that arrives below the window is scrolled up under the bar', (tester) async {

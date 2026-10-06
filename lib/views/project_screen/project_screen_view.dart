@@ -20,6 +20,7 @@ import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/lesson/optional_step_banner.dart';
+import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
@@ -102,6 +103,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       onTapHome: controller.leave,
       crumbs: [
         AppCrumb(subjectLabel(viewModel.lesson.entry.subject), onTap: controller.openSubject),
+        if (lesson.group case final String group) AppCrumb(group),
         AppCrumb(lesson.title),
       ],
       offersZen: true,
@@ -325,15 +327,19 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   }
 
   Widget _buildComplete(BuildContext context, Lesson lesson) {
+    final next = viewModel.nextLesson?.forLocale(Localizations.localeOf(context).languageCode);
+
     return LessonCompletePanel(
       emoji: lesson.emoji,
       title: lesson.title,
       completedSteps: viewModel.passed.length,
       stepCount: lesson.stepCount,
-      onNextLesson: viewModel.hasNextLesson ? controller.openNextLesson : null,
+      nextLesson: next,
+      onNextLesson: next == null ? null : controller.openNextLesson,
       onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
       onBack: () => _openAndReveal(lesson.stepCount - 1),
       backLabel: context.localizations.lessonScreen_back,
+      backTip: StepProgressBar.tipFor(lesson.stepCount - 1, lesson.sections.last.title),
       onLeave: controller.openSubject,
       leaveLabel: context.localizations.lessonScreen_finish(subjectLabel(viewModel.lesson.entry.subject)),
     );

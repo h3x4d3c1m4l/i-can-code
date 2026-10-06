@@ -129,6 +129,12 @@ Three rules behind that shape:
 
 **The bar's contents stop at `breakpoints.xl`**, centred, while its surface stays full width — it is the top of the window, not a card in it. `xl` (1280) is the first Tailwind step that clears the widest column the app lays out, a lesson's two-column step at `1120 + 26`, so on a wide monitor the cog sits at the edge of the widest page instead of out in a corner. `AppHeader.chromeInset()` is that same measurement, and the host stands the button that brings a hidden bar back on it, which is what keeps the two in one column at every width.
 
+**The trail is shortened, never scrolled.** `ShrinkingTrail` (`lib/views/components/`) lays the crumbs out, and when they do not fit it takes room from every crumb but the last, the widest first, so "Python" stays whole while a long group name gets its ellipsis. The last crumb is where the reader is: it gives up room only once the others are down to a letter and an ellipsis, and below that crumbs leave from the front, divider and all, until what is left fits. It is a render object and not a `Row` of `Flexible`s, because a flex layout splits the free width evenly and does not pass on what a short child leaves unused: the long crumb was cut while the row still had room for it. The crumbs are the header's own `_Crumb`, drawn from forui's `FBreadcrumbStyle`. forui's `FBreadcrumbItem` only works inside an `FBreadcrumb`, and that is a plain `Row`.
+
+**A crumb that was cut says its whole name on hover.** `ShortenedTip` (`lib/views/components/`) is a `HoverTip` that opens only while its child is narrower than it wants to be, which is the trail's own test for having shortened it. It asks on the hover instead of keeping the answer, so a window that grows needs no rebuild to take the tip away. A crumb that fits opens none, and the tip is not in the crumb's semantics: a cut `Text` still reads out the whole label.
+
+**A lesson's trail names its group**, between the subject and the lesson, when the lesson has one. That crumb has no `onTap`: a group is a heading in the catalog, not a screen.
+
 **The version is named once, on the home screen**, beside the mark and not inside the app crumb — the crumb is the app's *name*, and a version tacked onto it would be read out as part of it on every screen. The two are set at different sizes on one line, so the trail aligns them on their **baseline**; centring their boxes leaves the smaller one sitting low. `appVersion` (`lib/app_info.dart`) reads it back out of the running build through `package_info_plus`, so it cannot drift from `pubspec.yaml` — on the web that is a fetch of the `version.json` the build writes beside `index.html`, same origin and so untouched by cross-origin isolation. `main()` awaits `loadPackageInfo()`, which registers the `PackageInfo` in GetIt; it is **not** an initialization step, because that screen's failures are fatal and a version string is not worth failing a start over. It is null when there is nothing to show — the plugin answers empty strings rather than throwing when `version.json` is missing, and a widget test registers nothing at all — and the bar then omits it.
 
 `HeaderIconButton` is the icon button all three are — the cog, and the two that hide and show the bar. Not `AppButton.icon`, which is padded `19 × 19` to stand beside a line of text and is far too big for a 76px bar.
@@ -195,9 +201,14 @@ Generated files are excluded from linting (`analysis_options.yaml`) and must nev
 
 **A hint that opens on a press is an `FPopover`, never an `FTooltip`.** forui's tooltip is hover-and-long-press by design: its hover branch wraps the child in a `Listener` that hides the tip on *every* pointer down, so a tap opens and closes it within one gesture and nothing is ever read. A popover adds no gesture of its own, which is why `SettingsMenu` says the popover "does not open itself" — the trigger is an ordinary `FTappable`, and that is also what puts it in the tab order and makes Enter work. `HintMark` (`lib/views/components/`) is that question mark: beside the catalog's *Verdieping* heading and beside the same word as a badge on a step. A `MouseRegion` around its trigger opens it on hover with **no dwell time**, because forui's tooltip waits out half a second and on a mark that size that reads as nothing happening. Its press is `show` and not `toggle`: the pointer is already inside by the time a click lands, so toggling would close what the hover opened.
 
-**The other half of that rule**: a hint that belongs to hover *is* an `FTooltip`, and the pointer-down that rules it out above is exactly what it wants. `StepProgressBar` names each step on hover, and the press under that hover is a move to another step, so the tip has to be gone by the time the new one is drawn. It sets `hoverEnterDuration` to zero for the reason `HintMark` does.
+**The other half of that rule**: a hint that belongs to hover *is* an `FTooltip`, and the pointer-down that rules it out above is exactly what it wants. `HoverTip` (`lib/views/components/`) is that tooltip. `StepProgressBar` names each step with one, and the back chevron of a step names where it goes through `AppButton.tip`: the press under that hover is a move to another step, so the tip has to be gone by the time the new one is drawn. Both name a step through `StepProgressBar.tipFor`, so one step has one name. "Volgende" carries none. Two things `HoverTip` sets:
 
-**forui's floating surfaces are reshaped in `buildAppTheme()`.** forui draws a popover, a menu's item group and an item's hover fill with a `RoundedSuperellipseBorder` of its own, which is a different curve from `squircle()`. `test/views/app_header_test.dart` opens the cog's menu, hovers an item and fails on any `RoundedSuperellipseBorder` it finds. A forui widget that floats and is new to the app SHOULD be checked the same way.
+- **No dwell time**, for the reason `HintMark` gives.
+- **No long press.** forui opens a tooltip on a long press by wrapping the child in a recogniser, which wins the arena from the child's own tap after half a second. A button held down a moment too long showed its tip and never fired.
+
+`AppButton` also hands its tip to a screen reader as the button's tooltip, unless the tip only repeats the label.
+
+**forui's floating surfaces are reshaped in `buildAppTheme()`.** forui draws a popover, a menu's item group, an item's hover fill and a tooltip with a `RoundedSuperellipseBorder` of its own, which is a different curve from `squircle()`. `test/views/app_header_test.dart` opens the cog's menu, hovers an item and fails on any `RoundedSuperellipseBorder` it finds, and `test/views/hover_tip_test.dart` holds a tooltip's shape. A tooltip takes a tighter radius than a popover: one line of a tip is under 30px tall, and a squircle bows inward past half the shortest side. A forui widget that floats and is new to the app SHOULD be checked the same way.
 
 **Every rounded corner is a squircle, and a text field is the one control that cannot be given one.** forui types a field's border as Material's `InputBorder`, whose concrete forms draw a plain rounded rectangle, so `squircle()` cannot reach it. `SquircleInputBorder` (`lib/theme/`) is an `InputBorder` subclass that hands every question to the real squircle; `PredictionField` restates all five of forui's border states with it, because the border carries its own colour and replacing one replaces the colour with it.
 
@@ -327,6 +338,12 @@ page** — `LessonCompletePanel`, drawn by the lesson screen in place of a step 
 which names what was finished and offers the two ways on: the next lesson, or
 the catalog. It is what the "Volgende les" jump hangs off, and the app had no
 onward path at all before it.
+
+**It names the lesson "Volgende les" opens**, in a line above the buttons:
+"Hierna:", that lesson's group, its emoji and its title. The button cannot say
+which lesson without growing as long as the title, and a tip behind a hover says
+nothing on a touch screen. So that one button carries no `tip`, which would open
+on top of the line to repeat it. The back chevron has one, naming the last step.
 
 It is **not a section.** It has no id, counts towards no `stepCount`, keeps no
 progress and draws no dot on the progress bar, so `docs/lesson-format.md` says

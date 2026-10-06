@@ -4,6 +4,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/hover_tip.dart';
 
 /// What a button means, which decides how it is filled.
 enum AppButtonTone {
@@ -131,6 +132,10 @@ class AppButton extends StatelessWidget {
   /// scope already has it.
   final bool autofocus;
 
+  /// Where the button goes, said on hover and to a screen reader. Null on a
+  /// button that goes nowhere, or whose label already names the place.
+  final String? tip;
+
   const AppButton({
     required this.child,
     required this.onPress,
@@ -140,6 +145,7 @@ class AppButton extends StatelessWidget {
     this.busy = false,
     this.progress,
     this.autofocus = false,
+    this.tip,
     super.key,
   }) : semanticsLabel = null,
        assert(progress == null || !busy, 'a button says how far it has got, or that it is working, not both');
@@ -160,6 +166,7 @@ class AppButton extends StatelessWidget {
     required this.onPress,
     this.tone = AppButtonTone.outline,
     this.autofocus = false,
+    this.tip,
     super.key,
   }) : child = null,
        busy = false,
@@ -289,11 +296,13 @@ class AppButton extends StatelessWidget {
     final outlineColor = edge.withValues(alpha: enabled ? 1 : 0.4);
     final collarColor = collar.withValues(alpha: enabled ? 1 : 0.4);
 
-    return FTappable(
+    final button = FTappable(
       onPress: onPress,
       autofocus: autofocus,
       semanticsButton: true,
       semanticsLabel: semanticsLabel,
+      // Left out where the label already says it, so it is not read twice.
+      semanticsTooltip: tip == semanticsLabel ? null : tip,
       builder: (context, states, child) {
         // Pressed sinks the face into the collar instead of just losing its
         // shadow: the shadow's own bottom edge is where the translated face
@@ -374,6 +383,11 @@ class AppButton extends StatelessWidget {
         ),
       ),
     );
+
+    return switch (tip) {
+      null => button,
+      final tip => HoverTip(message: tip, child: button),
+    };
   }
 
 }

@@ -8,6 +8,8 @@ import 'package:i_can_code/views/components/fade_through.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 import 'package:i_can_code/views/components/playful_app_logo.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
+import 'package:i_can_code/views/components/shortened_tip.dart';
+import 'package:i_can_code/views/components/shrinking_trail.dart';
 import 'package:i_can_code/views/components/tour_target.dart';
 
 /// One level of the trail in [AppHeader].
@@ -149,6 +151,10 @@ class AppHeader extends StatelessWidget {
   /// from each other.
   static const double _gap = 20;
 
+  /// What a crumb keeps when the trail is shortened: its padding, and room
+  /// for a letter and the ellipsis after it at the trail's type size.
+  static const double _minCrumbWidth = 40;
+
   /// The bar's own left and right margin. Public because the button that brings
   /// the bar back stands in the cog's place while it is away, and lines up with
   /// it by taking the same number.
@@ -224,13 +230,7 @@ class AppHeader extends StatelessWidget {
                       // without changing its trail hands over an equal key, which
                       // is an update rather than a swap and so does not fade.
                       key: ValueKey('$version/${crumbs.map((crumb) => crumb.label).join('›')}'),
-                      // A long trail scrolls rather than overflowing. Anchored at
-                      // the start, so a short trail sits against the logo;
-                      // `reverse` would park it at the right instead.
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: _buildTrail(context),
-                      ),
+                      child: _buildTrail(context),
                     ),
                   ),
                 ),
@@ -293,7 +293,9 @@ class AppHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          _buildCrumbs(context),
+          // Flexible, or the row would lay the crumbs out as wide as they
+          // like and they would never be asked to shorten.
+          Flexible(child: _buildCrumbs(context)),
           // Beside the trail rather than inside the first crumb: the crumb is
           // the app's *name*, and a version tacked onto it would be read out as
           // part of it and carried into every screen's trail.
@@ -312,22 +314,86 @@ class AppHeader extends StatelessWidget {
     );
   }
 
+  /// The crumbs, shortened rather than scrolled when the bar is too narrow
+  /// for them: see [ShrinkingTrail]. The last one is where the reader is, so
+  /// it is the last to lose anything.
   Widget _buildCrumbs(BuildContext context) {
-    return FBreadcrumb(
-      children: [
-        FBreadcrumbItem(
+    return ShrinkingTrail(
+      minCrumbWidth: _minCrumbWidth,
+      divider: IconTheme(
+        data: context.theme.breadcrumbStyle.iconStyle,
+        child: const Icon(FLucideIcons.chevronRight),
+      ),
+      crumbs: [
+        _Crumb(
+          label: context.localizations.app_title,
           current: crumbs.isEmpty,
           onPress: onTapHome,
-          child: Text(context.localizations.app_title),
         ),
         for (final (index, crumb) in crumbs.indexed)
-          FBreadcrumbItem(
+          _Crumb(
+            label: crumb.label,
+            tourId: (AppHeaderPart.crumb, index),
             current: index == crumbs.length - 1,
             onPress: crumb.onTap,
-            child: TourTarget(id: (AppHeaderPart.crumb, index), child: Text(crumb.label)),
           ),
       ],
     );
+  }
+
+}
+
+/// One level of the trail, drawn the way forui draws a breadcrumb item.
+///
+/// Not an `FBreadcrumbItem`, which only works inside an `FBreadcrumb`, and
+/// that is a plain `Row`: it overflows where [ShrinkingTrail] shortens. The
+/// look is still forui's, read from the same `FBreadcrumbStyle`.
+class _Crumb extends StatelessWidget {
+
+  final String label;
+
+  /// What an introduction finds this crumb by. Null on the app's own name,
+  /// which none points at.
+  final Object? tourId;
+
+  /// The page the reader is on, which is drawn in the page's own ink.
+  final bool current;
+
+  /// Null for a level that cannot be opened.
+  final VoidCallback? onPress;
+
+  const _Crumb({required this.label, required this.current, this.tourId, this.onPress});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = context.theme.breadcrumbStyle;
+
+    // One line, cut with an ellipsis once [ShrinkingTrail] narrows its box.
+    Widget text = Text(label, maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis);
+    if (tourId case final Object id) text = TourTarget(id: id, child: text);
+    final content = Padding(padding: style.padding, child: text);
+
+    final crumb = onPress == null
+        ? Semantics(
+            selected: current ? true : null,
+            child: DefaultTextStyle(
+              style: style.textStyle.resolve({if (current) FTappableVariant.selected, context.platformVariant}),
+              child: content,
+            ),
+          )
+        : FTappable(
+            style: style.tappableStyle,
+            focusedOutlineStyle: style.focusedOutlineStyle,
+            selected: current,
+            onPress: onPress,
+            builder: (context, variants, child) =>
+                DefaultTextStyle(style: style.textStyle.resolve(variants), child: child!),
+            child: content,
+          );
+
+    // A crumb that was cut says the rest on hover. Not in its semantics as
+    // well: the text's own label is the whole of it, cut or not.
+    return ShortenedTip(message: label, child: crumb);
   }
 
 }

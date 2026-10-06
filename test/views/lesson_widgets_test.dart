@@ -1045,19 +1045,75 @@ void main() {
   });
 
   group('LessonCompletePanel', () {
-    Widget panel({int completedSteps = 3, VoidCallback? onNextLesson, VoidCallback? onMoreConfetti}) =>
+    Widget panel({
+      int completedSteps = 3,
+      VoidCallback? onNextLesson,
+      Lesson? nextLesson,
+      VoidCallback? onMoreConfetti,
+    }) =>
         LessonCompletePanel(
       emoji: '\u{2328}\u{FE0F}',
       title: 'Invoer en uitvoer',
       completedSteps: completedSteps,
       stepCount: 3,
       onNextLesson: onNextLesson,
+      nextLesson: nextLesson,
       onMoreConfetti: onMoreConfetti,
       onBack: () {},
       backLabel: 'Vorige stap',
+      backTip: '3. Laatste stap',
       onLeave: () {},
       leaveLabel: 'Terug naar Python',
     );
+
+    const loops = Lesson(id: 'for', title: 'Herhalen met for', emoji: '🔁', sections: []);
+    const grouped = Lesson(
+      id: 'for',
+      title: 'Herhalen met for',
+      emoji: '🔁',
+      group: 'Week 2 · Herhalen',
+      sections: [],
+    );
+
+    testWidgets('names the lesson that comes next, after the group it is in', (tester) async {
+      // "Volgende les" cannot say which one without growing as long as the
+      // title, so the page says it above the button.
+      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: grouped)));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Hierna: Week 2 · Herhalen › 🔁 Herhalen met for', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a next lesson in no group is named on its own', (tester) async {
+      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: loops)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hierna: 🔁 Herhalen met for', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('says nothing about a next lesson on the last one', (tester) async {
+      await tester.pumpWidget(_host(panel()));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Hierna', findRichText: true), findsNothing);
+    });
+
+    testWidgets('only the way back needs a tip to say where it goes', (tester) async {
+      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: grouped)));
+      await tester.pumpAndSettle();
+
+      AppButton button(IconData icon) =>
+          tester.widget(find.byWidgetPredicate((widget) => widget is AppButton && widget.icon == icon));
+
+      expect(button(FLucideIcons.chevronLeft).tip, '3. Laatste stap');
+      // The line above it names the lesson, and a tip would open over that line.
+      expect(button(FLucideIcons.chevronRight).tip, isNull);
+      // Its label already names the place.
+      expect(button(FLucideIcons.list).tip, isNull);
+    });
 
     testWidgets('offers more confetti, quietly', (tester) async {
       var presses = 0;

@@ -192,6 +192,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           onTap: () => controller.openSubject(viewModel.lesson.entry.subject),
           tip: context.localizations.lessonScreen_tourSubject,
         ),
+        // Not tappable: a group is a heading in the catalog, not a screen.
+        if (lesson.group case final String group) AppCrumb(group),
         // The step is deliberately not a crumb: it is already the page heading
         // and the progress bar, and a third showing made the trail change
         // length as the student moved.
@@ -231,6 +233,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// The lesson's end page, after the last step. Set to the reading measure, so
   /// it sits where the prose the student just read did.
   Widget _buildComplete(BuildContext context, Lesson lesson) {
+    final next = viewModel.nextLesson?.forLocale(Localizations.localeOf(context).languageCode);
+
     return _Page(
       maxWidth: _readingWidth,
       padding: _readingPadding,
@@ -242,12 +246,14 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           // moment ago is already counted.
           completedSteps: viewModel.passed.length,
           stepCount: lesson.stepCount,
-          onNextLesson: viewModel.hasNextLesson ? controller.openNextLesson : null,
+          nextLesson: next,
+          onNextLesson: next == null ? null : controller.openNextLesson,
           // Only where the first burst fired by itself: more of something the
           // visit never had would celebrate a skipped step.
           onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
           onBack: () => controller.previous(lesson.stepCount),
           backLabel: context.localizations.lessonScreen_back,
+          backTip: StepProgressBar.tipFor(lesson.stepCount - 1, lesson.sections.last.title),
           onLeave: () => controller.openSubject(viewModel.lesson.entry.subject),
           leaveLabel: context.localizations.lessonScreen_finish(
             subjectLabel(viewModel.lesson.entry.subject),
@@ -628,22 +634,27 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// step to go back to; that made it the one place in the app with no way back,
   /// which in zen mode means no way back at all short of the browser's own
   /// button.
-  Widget _buildBack(BuildContext context, Lesson lesson) => AppButton.icon(
-    icon: FLucideIcons.chevronLeft,
+  Widget _buildBack(BuildContext context, Lesson lesson) {
+    final step = viewModel.step;
     // Named for where it actually goes. From the first step that is the
     // catalog, and `lessonScreen_finish` is already the sentence about that
     // same destination — there is no text in an icon button to fall back on.
-    semanticsLabel: viewModel.step == 0
-        ? context.localizations.lessonScreen_finish(subjectLabel(viewModel.lesson.entry.subject))
-        : context.localizations.lessonScreen_back,
-    onPress: () => controller.previous(lesson.stepCount),
-  );
+    final leave = context.localizations.lessonScreen_finish(subjectLabel(viewModel.lesson.entry.subject));
+
+    return AppButton.icon(
+      icon: FLucideIcons.chevronLeft,
+      semanticsLabel: step == 0 ? leave : context.localizations.lessonScreen_back,
+      tip: step == 0 ? leave : StepProgressBar.tipFor(step - 1, lesson.sections[step - 1].title),
+      onPress: () => controller.previous(lesson.stepCount),
+    );
+  }
 
   /// The way on. The chevron is trailing, so it points out of the button in the
   /// direction it goes; the last step ends in a tick instead, because it opens
   /// the lesson's end page rather than another step.
   Widget _buildNext(BuildContext context, Lesson lesson) {
-    final last = viewModel.step + 1 == lesson.stepCount;
+    final next = viewModel.step + 1;
+    final last = next == lesson.stepCount;
 
     return AppButton(
       icon: last ? FLucideIcons.check : FLucideIcons.chevronRight,

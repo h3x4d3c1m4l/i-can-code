@@ -64,6 +64,7 @@
       }
     }
   },
+  "lessonScreen_upNext": "Hierna:",
   "lessonScreen_nextLesson": "Volgende les",
   "lessonScreen_finish": "Terug naar {subject}",
   "@lessonScreen_finish": {

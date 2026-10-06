@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -126,6 +127,92 @@ void main() {
 
     expect(trailLeft - logoRight, lessThan(24), reason: 'the trail hugs the logo');
     expect(trailLeft, lessThan(_width / 2), reason: 'and is nowhere near the cog');
+  });
+
+  group('a trail too long for the bar', () {
+    // A lesson's trail: the subject, the group the lesson is in, the lesson.
+    Widget bar({required double width}) => _host(
+      AppHeader(
+        onTapHome: () {},
+        crumbs: [
+          AppCrumb('Python', onTap: () {}),
+          const AppCrumb('Week 1 · De basis'),
+          AppCrumb('Tellen vanaf nul', onTap: () {}),
+        ],
+      ),
+      width: width,
+    );
+
+    double widthOf(WidgetTester tester, String label) => tester.getSize(find.text(label)).width;
+    bool cut(WidgetTester tester, String label) =>
+        tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines;
+
+    testWidgets('is shortened from the front, and the lesson is left whole', (tester) async {
+      const wide = 1800.0;
+      await tester.binding.setSurfaceSize(const Size(wide, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(bar(width: wide));
+      await tester.pumpAndSettle();
+
+      expect(cut(tester, 'Week 1 · De basis'), isFalse, reason: 'nothing is cut while the trail fits');
+      final lesson = widthOf(tester, 'Tellen vanaf nul');
+      final group = widthOf(tester, 'Week 1 · De basis');
+
+      await tester.binding.setSurfaceSize(null);
+      await tester.pumpWidget(bar(width: _width));
+      await tester.pumpAndSettle();
+
+      expect(cut(tester, 'Week 1 · De basis'), isTrue);
+      expect(widthOf(tester, 'Week 1 · De basis'), lessThan(group));
+      // Where the reader is, so the last crumb to lose anything.
+      expect(cut(tester, 'Tellen vanaf nul'), isFalse);
+      expect(widthOf(tester, 'Tellen vanaf nul'), lesson);
+    });
+
+    testWidgets('stops short of the cog instead of running under it', (tester) async {
+      await tester.pumpWidget(bar(width: _width));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopRight(find.text('Tellen vanaf nul')).dx,
+        lessThan(tester.getTopLeft(find.byType(SettingsMenu)).dx),
+      );
+    });
+
+    testWidgets('gives the lesson up too, once nothing else is left', (tester) async {
+      await tester.pumpWidget(bar(width: 260));
+      await tester.pumpAndSettle();
+
+      expect(cut(tester, 'Tellen vanaf nul'), isTrue);
+      expect(
+        tester.getTopRight(find.text('Tellen vanaf nul')).dx,
+        lessThan(tester.getTopLeft(find.byType(SettingsMenu)).dx),
+      );
+    });
+
+    testWidgets('a crumb that was cut says its whole name on hover, and a whole one says nothing', (tester) async {
+      await tester.pumpWidget(bar(width: _width));
+      await tester.pumpAndSettle();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      await tester.pump();
+
+      await mouse.moveTo(tester.getCenter(find.text('Week 1 · De basis')));
+      // forui waits out its dwell time with a `Future.delayed`, even one of
+      // zero, which schedules no frame for pumpAndSettle to find.
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Week 1 · De basis'), findsNWidgets(2), reason: 'the crumb and its tip');
+
+      await mouse.moveTo(tester.getCenter(find.text('Tellen vanaf nul')));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Week 1 · De basis'), findsOneWidget, reason: 'its tip went with the pointer');
+      expect(find.text('Tellen vanaf nul'), findsOneWidget, reason: 'all of it is on the bar already');
+    });
   });
 
   testWidgets('the app crumb goes home', (tester) async {
