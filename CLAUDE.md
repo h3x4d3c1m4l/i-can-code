@@ -46,7 +46,7 @@ It sat at `^3.12.0` for a long time: Dart 3.13 dropped `final` on constructor pa
 
 Watch the same trap if a generator ever has to be held back again: `dart analyze` accepts code the compiler rejects, so **lint stays green while every build and test fails**. Verify a version bump with `fvm flutter test` and `fvm flutter build web`, never with `dart analyze` alone.
 
-`mobx_codegen` is the package that gates the analyzer version for everything else — it capped `analyzer <13` until 2.7.8 widened it to `<15`, which is what unblocked freezed 4.x. Check it first when a generator refuses to resolve.
+The generators gate the analyzer version for each other, and the narrowest one wins. `mobx_codegen` capped `analyzer <13` until 2.7.8 widened it, which is what unblocked freezed 4.x, and 2.8.0 narrowed it again to `^13.3.0`. With `theme_tailor 4.0.1` (`^13.0.0`) and `auto_route_generator 10.6.0` (`<14`) that holds `freezed` at 4.0.1 and `build_runner` at 2.16.1, which both want analyzer 14 from their next patch on. When a generator refuses to resolve, `fvm flutter pub get` names the package in the way.
 
 ## Architecture
 
@@ -267,7 +267,9 @@ Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwi
 
 **Emoji are Noto Color Emoji, bundled, and never the platform's.** `kEmojiFontFamily` is the last entry of `fontFamilyFallback` on every style in `AppTextStyles` and on both of forui's typefaces, so it is reached only for a glyph Fredoka, Lexend and JetBrains Mono cannot draw. It is a fallback and never a `fontFamily`. Left to the platform the same lesson would show Apple's emoji on a Mac, Google's on Android and Microsoft's on Windows; on the web the engine downloads Noto from `fonts.gstatic.com` per student, on demand, which is the request the other three fonts were bundled to avoid. The COLRv1 build ships rather than the CBDT one — vector, and half the size. Every lesson step carries an `emoji` in its metadata, and so does every lesson — the lesson's fills the tile on its catalog card in place of the order number. A subject has no file, so its emoji is a case in `subjectEmoji()` beside `subjectLabel()`; a subject the table does not name keeps the initial on its card. See `docs/lesson-format.md`.
 
-Fonts are **bundled** under `assets/fonts/`, not fetched by `google_fonts` at runtime — a font request per student to a third party is both a privacy question and a flash of unstyled text on every cold load. `google_fonts` is still in `pubspec.yaml` but unused.
+Fonts are **bundled** under `assets/fonts/`, not fetched at runtime — a font request per student to a third party is both a privacy question and a flash of unstyled text on every cold load. Each family's `OFL-<family>.txt` sits beside its files; a new font brings its licence text with it.
+
+**The code face is JetBrains Mono NL, the build with no ligatures.** The ordinary build draws `!=` as a struck-through equals sign and `>=` as `≥`, and a student who has just been told to type two characters cannot find either on a keyboard. The font is the only place to turn them off: `FontFeature.disable('calt')` on a `TextStyle` reaches the prose and the read-only cards, but `re_editor` builds its own style and passes no `fontFeatures` on, so the editor, where the typing happens, would have kept them. The files are the unmodified `JetBrainsMonoNL-Regular.ttf` and `-Medium.ttf` of the upstream release. `test/theme/code_font_test.dart` draws each operator whole and a character at a time and fails when the two differ.
 
 ### Running it
 

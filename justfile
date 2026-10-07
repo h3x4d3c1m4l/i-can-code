@@ -57,7 +57,7 @@ upgrade-deps:
 gen-rust:
   flutter_rust_bridge_codegen generate
 
-# Builds the committed web/pkg/. See docs/rust-core-build.md.
+# Builds web/pkg/. See docs/rust-core-build.md.
 build-rust-core: gen-rust
   #!/usr/bin/env bash
   set -euo pipefail
@@ -106,8 +106,8 @@ build-rust-core: gen-rust
     --wasm-pack-rustup-toolchain "$toolchain" \
     --wasm-pack-rustflags "$actual --cfg=web_sys_unstable_apis"
 
-  # wasm-pack assumes its output is published, not committed. The .gitignore it
-  # leaves holds `*`, and everything under web/ is copied into the deployed site.
+  # wasm-pack leaves an npm package behind. Everything under web/ is copied into
+  # the deployed site, so neither file may stay.
   rm -f web/pkg/.gitignore web/pkg/package.json
 
 # Downloads the MicroPython firmware the flasher builds on.

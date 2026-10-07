@@ -301,7 +301,7 @@ directory does not require touching it.
 
 It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
 makes a step look the same on every platform instead of borrowing Apple's emoji
-on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
+on a Mac and Google's on the web; see *Theming* in `.claude/rules/ui.md`.
 
 ## `layout: project` — one program, built up over tasks
 
@@ -420,7 +420,8 @@ Three things to know:
 
 - **Folding is not remembered.** Leave the step and come back and every group is
   back in the state its heading asked for. It is a reading convenience, not
-  progress — see the note on `ProgressStore` in `CLAUDE.md`.
+  progress — see the note on `ProgressStore` in
+  `.claude/rules/progress.md`.
 - **A `###` inside a fenced block is code**, not a heading, so a Python sample
   containing one will not cut the prose in half.
 - **`####` and deeper are left alone.** They render as ordinary headings inside

@@ -62,7 +62,7 @@ just build-rust-core
    pinned nightly with `-Z build-std=std,panic_abort`, writing `web/pkg/`.
 4. Deletes the `.gitignore` and `package.json` wasm-pack leaves behind.
 
-Output, both committed:
+Output, neither committed:
 
 | file | size | gzipped |
 |---|---|---|
@@ -166,10 +166,9 @@ toolchain to prove nothing.
 
 **wasm-pack writes an npm package, not a build directory.** It leaves a
 `.gitignore` containing `*` and a `package.json` in its output, because it
-assumes that output is something to publish. Here the opposite is true: the
-directory is committed, and everything in `web/` is served. The recipe deletes
-both. Without that, `web/pkg/` silently never gets added to the repo — `git
-status` simply does not mention it.
+assumes that output is something to publish. Here it is a build directory, and
+everything in `web/` is served. The recipe deletes both, so neither ends up in
+the deployed site.
 
 ## Adding to the Rust API
 
