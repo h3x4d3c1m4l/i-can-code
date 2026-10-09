@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/bevel_press.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/hover_tip.dart';
 
@@ -297,6 +298,7 @@ class AppButton extends StatelessWidget {
     final collarColor = collar.withValues(alpha: enabled ? 1 : 0.4);
 
     final button = FTappable(
+      style: kBevelPressStyle,
       onPress: onPress,
       autofocus: autofocus,
       semanticsButton: true,

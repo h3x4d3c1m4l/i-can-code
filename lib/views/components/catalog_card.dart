@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/bevel_press.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/completed_badge.dart';
 
@@ -144,6 +145,7 @@ class CatalogCard extends StatelessWidget {
         : theme.colors.border.darken(_edgeDarken);
 
     return FTappable(
+      style: kBevelPressStyle,
       onPress: onTap,
       semanticsButton: true,
       builder: (context, states, child) {

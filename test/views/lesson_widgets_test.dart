@@ -1042,6 +1042,47 @@ void main() {
 
       expect(tester.widget<Text>(find.text('2')).style?.color, buildAppTheme().colors.foreground);
     });
+
+    group('pressed', () {
+      final face = find.descendant(of: find.byType(CatalogCard), matching: find.byType(DecoratedBox)).first;
+
+      Future<TestGesture> press(WidgetTester tester) async {
+        await tester.pumpWidget(
+          _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', onTap: () {})),
+        );
+        await tester.pumpAndSettle();
+        return tester.startGesture(tester.getCenter(find.byType(CatalogCard)));
+      }
+
+      testWidgets('starts sinking into its collar at once, and comes back up', (tester) async {
+        final gesture = await press(tester);
+        final rest = tester.getTopLeft(face);
+
+        // Half of forui's own 100ms wait. A click is over within it, and the
+        // card then never moved at all.
+        await tester.pump(Duration.zero);
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(tester.getTopLeft(face).dy, greaterThan(rest.dy));
+        expect(tester.getTopLeft(face).dx, rest.dx);
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(face), rest);
+      });
+
+      testWidgets('does not shrink', (tester) async {
+        final gesture = await press(tester);
+
+        // Part way into forui's press animation, where its scale would be
+        // furthest from done.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(find.byType(CatalogCard), isNot(paints..transform()));
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+      });
+    });
   });
 
   group('LessonCompletePanel', () {
@@ -1430,6 +1471,44 @@ void main() {
         find.descendant(of: find.byType(AppButton), matching: find.byType(Visibility)),
       );
       expect(label.visible, isTrue);
+    });
+
+    group('pressed', () {
+      final face = find.descendant(of: find.byType(AppButton), matching: find.byType(DecoratedBox)).first;
+
+      Future<TestGesture> press(WidgetTester tester) async {
+        await tester.pumpWidget(_host(Align(child: AppButton(onPress: () {}, child: const Text('Volgende')))));
+        await tester.pumpAndSettle();
+        return tester.startGesture(tester.getCenter(find.byType(AppButton)));
+      }
+
+      testWidgets('sinks into its collar at once, and comes back up', (tester) async {
+        final gesture = await press(tester);
+        final rest = tester.getTopLeft(face);
+
+        // No time may pass first: a click is over in less than forui's own
+        // 100ms wait, and the button then never sank at all.
+        await tester.pump(Duration.zero);
+        expect(tester.getTopLeft(face).dy, greaterThan(rest.dy));
+        expect(tester.getTopLeft(face).dx, rest.dx);
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(face), rest);
+      });
+
+      testWidgets('does not shrink', (tester) async {
+        final gesture = await press(tester);
+
+        // Part way into forui's press animation, where its scale would be
+        // furthest from done.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(find.byType(AppButton), isNot(paints..transform()));
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+      });
     });
   });
 
