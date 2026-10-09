@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -22,6 +23,9 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
   static const int _maxAttempts = 3;
 
   bool _disposed = false;
+
+  /// Set by the first press on the warning's button.
+  bool _entering = false;
 
   InitializationScreenController({required super.viewModel, required super.contextAccessor}) {
     unawaited(initialize());
@@ -47,12 +51,38 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       // Swallows its own failures too: an introduction shown twice costs
       // nothing worth failing a start over.
       await GetIt.I<TourStore>().load();
+      // And this one: a warning shown twice costs the reader one press.
+      await GetIt.I<MobileBrowserWarning>().load();
       if (_disposed) return;
     } on Object catch (error) {
       if (!_disposed) viewModel.setError('$error');
       return;
     }
 
+    // Asked here, with the guard still shut, so no address gets past the
+    // warning before the reader has answered it.
+    if (GetIt.I<MobileBrowserWarning>().due) {
+      viewModel.showMobileWarning();
+      return;
+    }
+
+    await _enter();
+  }
+
+  /// Goes on past the mobile-browser warning and remembers the choice, so this
+  /// browser is not asked again.
+  Future<void> continueAnyway() async {
+    // A second press would otherwise open the subject picker over the address
+    // the first one was on its way to.
+    if (_entering) return;
+    _entering = true;
+
+    await GetIt.I<MobileBrowserWarning>().dismiss();
+    await _enter();
+  }
+
+  /// Opens the app on the address a reload asked for, or on the subject picker.
+  Future<void> _enter() async {
     // Only now may the guard let other routes through.
     GetIt.I<BootstrapStatus>().markCompleted();
 

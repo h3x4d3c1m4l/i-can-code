@@ -23,6 +23,11 @@ abstract class InitializationScreenViewModelBase extends ScreenViewModelBase wit
   @readonly
   String? _error;
 
+  /// Set once everything is loaded in a mobile browser whose reader has not
+  /// chosen to go on yet. Holds the screen until they do.
+  @readonly
+  bool _mobileWarning = false;
+
   InitializationScreenViewModelBase({required super.contextAccessor});
 
   @action
@@ -36,10 +41,14 @@ abstract class InitializationScreenViewModelBase extends ScreenViewModelBase wit
   void setError(String error) => _error = error;
 
   @action
+  void showMobileWarning() => _mobileWarning = true;
+
+  @action
   void reset() {
     _step = null;
     _retries = 0;
     _error = null;
+    _mobileWarning = false;
   }
 
 }

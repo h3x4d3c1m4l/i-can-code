@@ -161,7 +161,7 @@ Rules it keeps:
 
 ### Debug menu
 
-**Alt+B** (Option+B on a Mac) opens `DebugMenu` in debug builds. It registers nothing unless `kDebugMode` is set, so release builds do not get it. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". Today it offers "Show tips again", which clears `TourStore`. The current screen then offers its introduction again right away. Put new developer tools here too. Its text is not localized because no student ever sees it.
+**Alt+B** (Option+B on a Mac) opens `DebugMenu` in debug builds. It registers nothing unless `kDebugMode` is set, so release builds do not get it. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". Today it offers "Show tips again", which clears `TourStore`. The current screen then offers its introduction again right away. "Ask again" clears `MobileBrowserWarning`, which shows at the next start and only in a mobile browser. Put new developer tools here too. Its text is not localized because no student ever sees it.
 
 ### Motion
 
@@ -229,7 +229,7 @@ lib/theme/presets/thuas_palette.dart      # De Haagse Hogeschool's house style, 
 
 **The neutral preset is neobrutalism *as a palette only*** — the flat yellow accent, the cream page, the near-black ink. None of the movement's other devices: no thick outlines, no hard offset shadows. Borrowing one would put it in the shared metrics, where every preset would inherit it.
 
-**Every preset has both brightnesses.** `resolve({brightness})` returns the scheme; `buildAppTheme({preset, brightness})` builds it. The mode itself is `ThemeModeController` (`lib/services/`) — system/light/dark, persisted in `shared_preferences` like progress, and swallowing its failures the same way. It is the one thing `main()` awaits before `runApp`, because the initialization screen is itself themed and would otherwise paint light and flip.
+**Every preset has both brightnesses.** `resolve({brightness})` returns the scheme; `buildAppTheme({preset, brightness})` builds it. The mode itself is `ThemeModeController` (`lib/services/`) — system/light/dark, persisted in `shared_preferences` like progress, and swallowing its failures the same way. It is one of the three things `main()` awaits before `runApp` (see *State management*), because the initialization screen is itself themed and would otherwise paint light and flip.
 
 `AppThemeMode.brightnessFor(platform)` is the whole decision, so it can be tested without a widget tree. The shell reads it in `_ThemedBody`, which exists as a widget rather than a closure so its `Observer` runs in a real build and so it can see the `MediaQuery` that `WidgetsApp` installs below the state above it.
 
@@ -391,6 +391,21 @@ They cover three different windows and are not interchangeable:
 1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand, light and dark; changing the preset means changing that block too. An inline script reads `localStorage['theme.mode']` — `SharedPreferencesAsync` stores web keys **verbatim, no `flutter.` prefix**, JSON-encoded — and falls back to `prefers-color-scheme`, so a student who forced light on a dark machine gets no flash. That literal key is coupled to `ThemeModeControllerBase.storageKey`.
 2. **`InitializationScreen`** — work the app does once it is running: reading the course index, and nothing else. It shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
 3. **`LoadingOverlay`** — anything a screen waits on afterwards.
+
+### Mobile browsers
+
+**A browser on a phone or a tablet is warned before the app opens, and can go on.** The initialization screen shows the warning once everything is loaded, with `BootstrapGuard` still shut, so no address gets past it before the reader has answered. "Toch doorgaan" is the only button: the detection can be wrong, so the screen asks and does not refuse, and a page cannot close its own tab. `MobileBrowserWarning` (`lib/services/`) remembers the choice per browser under `mobileWarning.dismissed` and swallows its failures like `TourStore`. Clearing progress does not clear it. The debug menu does.
+
+`isMobileBrowser()` is `kIsWeb` **and** iOS or Android. The web half is there on purpose: a native build reports the same platform and has none of the trouble. An iPad counts although it asks for the desktop site, because Flutter's web engine calls a "Mac" with more than two touch points iOS.
+
+The trouble is `re_editor`, which reads that same `defaultTargetPlatform` and takes a path written for a native app. Seen on an iPad with a hardware keyboard. Android takes the same path and was not tested.
+
+- **The space bar types nothing.** That path builds no `_CodeShortcuts`, which is where the editor keeps space away from the app's own shortcuts. On the web `WidgetsApp` maps space to a page scroll, the scroll claims the key, and the engine calls `preventDefault()` on it. The arrow keys, Tab and undo are unbound for the same reason.
+- **A tap deletes the character before the caret.** The editor hands the input field one line with a zero-width space in front, and reads a caret at offset 0 as a backspace without checking that the space is gone. On iOS the engine lays the real `<input>` over the editor and does not stop the browser from moving its caret on a tap. Upstream: [reqable/re-editor#58](https://github.com/reqable/re-editor/issues/58), open, and 0.10.0 is the latest release.
+
+Neither is fixed here, and fixing them means patching `re_editor`. The warning exists so that nobody meets them unannounced.
+
+`test/views/initialization_screen_test.dart` runs the bootstrap through the app's own router with an **empty asset bundle**, so it loads no course, and with the real fonts, because the test font is wide enough to overflow a phone the app fits on.
 
 ### Running a student's code
 
@@ -597,7 +612,7 @@ Reach strings through `context.localizations.myKey`, adding `import 'package:i_c
 
 `LocaleController` holds a **nullable** `Locale`, and null means "follow the device". It goes to `WidgetsApp.locale` as-is, so Flutter does the resolving against `supportedLocales` and lands on its **first entry** when the device has none of them. That ordering is load-bearing: `supported.first` is the fallback language, not just the first menu row.
 
-The choice is persisted (`locale.language`) beside the theme mode, and "follow the device" is stored as the sentinel `system` rather than by clearing the key, so switching back to it is a write like any other. It resolves to the same thing an absent key does, which is what makes "never picked" and "picked the device" behave identically. Both stores are what `main()` awaits before `runApp`; the initialization screen is themed *and* localized, so reading either later makes it paint wrong and flip.
+The choice is persisted (`locale.language`) beside the theme mode, and "follow the device" is stored as the sentinel `system` rather than by clearing the key, so switching back to it is a write like any other. It resolves to the same thing an absent key does, which is what makes "never picked" and "picked the device" behave identically. Both stores are awaited by `main()` before `runApp`; the initialization screen is themed *and* localized, so reading either later makes it paint wrong and flip.
 
 ## Code style
 

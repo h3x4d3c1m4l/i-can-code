@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
@@ -90,6 +91,7 @@ class _DebugPanel extends StatelessWidget {
     final muted = context.theme.colors.mutedForeground;
     final tours = GetIt.I.isRegistered<TourStore>() ? GetIt.I<TourStore>() : null;
     final seen = tours?.seen ?? const <String>{};
+    final mobileWarning = GetIt.I.isRegistered<MobileBrowserWarning>() ? GetIt.I<MobileBrowserWarning>() : null;
 
     return Padding(
       padding: const EdgeInsets.all(28),
@@ -118,6 +120,26 @@ class _DebugPanel extends StatelessWidget {
                     Navigator.of(context).pop();
                   },
             child: const Text('Show tips again'),
+          ),
+          const SizedBox(height: 24),
+          Text('Mobile warning', style: text.label),
+          const SizedBox(height: 6),
+          Text(
+            mobileWarning?.dismissed ?? false ? 'Dismissed in this browser.' : 'Not dismissed.',
+            style: text.bodySmall.copyWith(color: muted),
+          ),
+          const SizedBox(height: 12),
+          AppButton(
+            tone: AppButtonTone.neutral,
+            icon: FLucideIcons.rotateCcw,
+            // Shown again at the next start, and only in a mobile browser.
+            onPress: mobileWarning == null || !mobileWarning.dismissed
+                ? null
+                : () {
+                    unawaited(mobileWarning.clear());
+                    Navigator.of(context).pop();
+                  },
+            child: const Text('Ask again'),
           ),
           const SizedBox(height: 24),
           Align(
