@@ -86,8 +86,9 @@ Future<Uint8List> _pixels(List<String> pieces, FontWeight weight) async {
     )..layout();
 
     // The test font every unloaded family falls back to is a full em wide, so
-    // this is also what says the real face was drawn.
-    expect(painter.width, _advance * piece.length);
+    // this is also what says the real face was drawn. Not an exact match:
+    // FreeType scales in fixed point, so on Linux a character is 11.99998 wide.
+    expect(painter.width, closeTo(_advance * piece.length, 0.01));
 
     painter.paint(canvas, Offset(x, 0));
     x += painter.width;
