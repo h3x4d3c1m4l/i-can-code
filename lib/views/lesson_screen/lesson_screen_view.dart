@@ -687,7 +687,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   CodeLineEditingController _editorFor(int step, LessonSection section) => _editors[step] ??= _openEditor(step, section);
 
   CodeLineEditingController _openEditor(int step, LessonSection section) {
-    final editor = CodeLineEditingController.fromText(controller.savedCode(step) ?? section.starter ?? '');
+    final editor = CodeLineEditingController.fromText(
+      controller.savedCode(step) ?? section.starter ?? '',
+      CodeLineOptions(indentSize: subjectIndentSize(viewModel.lesson.entry.subject)),
+    );
     editor.addListener(() => controller.keepCode(step, editor.text));
     return editor;
   }

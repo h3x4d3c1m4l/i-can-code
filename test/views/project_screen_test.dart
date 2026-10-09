@@ -109,6 +109,13 @@ void main() {
       expect(viewModel.board.code.text, _starter, reason: 'the editor opens on the first task\'s starter');
     });
 
+    test('its editor indents by the four spaces Python asks for', () {
+      final (controller, viewModel, _) = open();
+      addTearDown(controller.dispose);
+
+      expect(viewModel.board.code.options.indentSize, 4);
+    });
+
     test('moves on once read, and the next one opens', () async {
       final (controller, viewModel, _) = open();
       addTearDown(controller.dispose);

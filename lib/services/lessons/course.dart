@@ -214,6 +214,16 @@ bool subjectHasRepl(String subject) => subject == 'python';
 /// hardware speaks, not about the lessons — the lessons stay browser-only.
 bool subjectHasMicrobit(String subject) => subject == 'python';
 
+/// How many spaces a Tab indents by in this subject's code editor.
+///
+/// Four for Python, as its style guide asks:
+/// https://peps.python.org/pep-0008/#indentation. A subject this table does
+/// not name gets two, which is what `re_editor` uses when it is told nothing.
+int subjectIndentSize(String subject) => switch (subject) {
+  'python' => 4,
+  _ => 2,
+};
+
 /// The URL segment a subject's pages live under: `python` -> `learn-python`.
 /// MUST stay in step with [subjectFromSlug], which is its inverse.
 String subjectSlug(String subject) => 'learn-$subject';

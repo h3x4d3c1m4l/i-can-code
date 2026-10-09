@@ -101,7 +101,10 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// greeting, the smallest program that shows the board is listening.
   MicrobitSessionViewModelBase({required super.contextAccessor, required String subjectSlug, String? program})
     : subject = subjectFromSlug(subjectSlug) ?? '',
-      code = CodeLineEditingController.fromText(program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n');
+      code = CodeLineEditingController.fromText(
+        program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n',
+        CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
+      );
 
   @action
   void setStatus(MicrobitStatus status) => _status = status;

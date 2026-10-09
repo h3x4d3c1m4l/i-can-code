@@ -90,4 +90,9 @@ void main() {
     // A subject directory may be added without touching the table.
     expect(subjectEmoji('javascript'), isNull);
   });
+
+  test('Python indents by four spaces, and a subject the table does not name by two', () {
+    expect(subjectIndentSize('python'), 4);
+    expect(subjectIndentSize('javascript'), 2);
+  });
 }

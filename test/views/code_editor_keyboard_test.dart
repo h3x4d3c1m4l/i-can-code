@@ -287,6 +287,21 @@ void main() {
       await _moveOn(tester, backwards: true);
       expect(_inEditor(), isFalse, reason: 'backwards out of it too');
     });
+
+    _testKeys('a Tab indents by the four spaces Python asks for', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const LessonScreen(subjectSlug: 'learn-python', lessonId: 'loops', sectionId: 'first'),
+          size: const Size(900, 2000),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final editor = tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+      await _press(tester, LogicalKeyboardKey.tab);
+
+      expect(editor.text, '    ');
+    });
   });
 
 }
