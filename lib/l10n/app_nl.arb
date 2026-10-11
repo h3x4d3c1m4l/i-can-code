@@ -238,6 +238,14 @@
     "description": "Staat in de bovenste strook van de code-editor zolang die het toetsenbord heeft. Tab laat daar code inspringen, dus Esc en daarna Tab (of Shift+Tab) brengt het toetsenbord naar het volgende onderdeel. Houd het kort: het deelt één regel met de bestandsnaam en de status."
   },
   "codeEditorCard_reset": "Code herstellen",
+  "codeSample_copy": "Kopiëren",
+  "@codeSample_copy": {
+    "description": "Semantics-label van de icoonknop in de hoek van een blok vaste code. Zet het hele blok op het klembord."
+  },
+  "codeSample_copied": "Gekopieerd",
+  "@codeSample_copied": {
+    "description": "Wordt aan een schermlezer gemeld nadat de knop het blok heeft gekopieerd. Op het scherm staat dan een vinkje."
+  },
   "resetCode_title": "Code herstellen?",
   "resetCode_body": "Je code gaat terug naar hoe de opdracht begon. Dit kun je niet ongedaan maken.",
   "resetCode_confirm": "Herstel",

@@ -303,6 +303,23 @@ void main() {
     expect(tester.getTopLeft(find.text('Volgende')).dy, greaterThan(answer.bottom));
   });
 
+  testWidgets('the program of a prediction can be copied once its answer is showing, and not before', (tester) async {
+    // Run somewhere else first, it is no longer a prediction.
+    await tester.pumpWidget(screen('guess'));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Kopiëren'), findsNothing);
+
+    await tester.enterText(find.byType(EditableText), '42');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Controleer voorspelling'));
+    await tester.pump();
+    runtime.finish(passed: true, output: '42\n');
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Kopiëren'), findsOneWidget);
+  });
+
   group('the way back through a lesson says where it goes', () {
     AppButton button(WidgetTester tester, IconData icon) =>
         tester.widget(find.byWidgetPredicate((widget) => widget is AppButton && widget.icon == icon));

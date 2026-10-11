@@ -6,6 +6,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/code_strip_button.dart';
 import 'package:i_can_code/views/components/escape_then_tab_exit.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/python.dart';
@@ -64,6 +65,10 @@ class CodeEditorCard extends StatefulWidget {
 
   /// The code itself, below the header.
   static const EdgeInsets codePadding = EdgeInsets.fromLTRB(22, 14, 22, 24);
+
+  /// The tint over selected code. Public because a sample's selection is drawn
+  /// in the same one.
+  static Color selectionColor(AppSemanticColors colors) => colors.codeForeground.withValues(alpha: 0.3);
 
   /// The height that fits [lines] of code exactly. Stated in lines so it does
   /// not have to be re-derived when the code font changes.
@@ -211,7 +216,7 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
                 // near-black in the neutral preset, which on this near-black
                 // surface is an invisible caret.
                 cursorColor: colors.codeForeground,
-                selectionColor: colors.codeForeground.withValues(alpha: 0.3),
+                selectionColor: CodeEditorCard.selectionColor(colors),
                 codeTheme: CodeHighlightTheme(
                   languages: {'python': CodeHighlightThemeMode(mode: langPython)},
                   theme: atomOneDarkTheme,
@@ -230,33 +235,17 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
 /// started. Asks first: there is no undo once the student's own code is gone.
 class _ResetButton extends StatelessWidget {
 
-  static const double _size = 18;
-
   final CodeLineEditingController controller;
   final String starterCode;
 
   const _ResetButton({required this.controller, required this.starterCode});
 
   @override
-  Widget build(BuildContext context) {
-    final colors = context.appTheme.colors;
-
-    return FTappable(
-      onPress: () => unawaited(_confirmReset(context)),
-      semanticsButton: true,
-      semanticsLabel: context.localizations.codeEditorCard_reset,
-      builder: (context, states, child) => DecoratedBox(
-        decoration: ShapeDecoration(
-          color: states.contains(FTappableVariant.hovered)
-              ? colors.codeForeground.withValues(alpha: 0.12)
-              : const Color(0x00000000),
-          shape: squircleOf(kChipCornerRadius, size: _size + 8),
-        ),
-        child: Padding(padding: const EdgeInsets.all(4), child: child),
-      ),
-      child: Icon(FLucideIcons.rotateCcw, size: _size, color: colors.codeMuted),
-    );
-  }
+  Widget build(BuildContext context) => CodeStripButton(
+    icon: FLucideIcons.rotateCcw,
+    semanticsLabel: context.localizations.codeEditorCard_reset,
+    onPress: () => unawaited(_confirmReset(context)),
+  );
 
   /// Irreversible, the same reason the settings menu's "reset progress" asks
   /// first.

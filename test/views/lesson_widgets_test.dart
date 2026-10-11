@@ -20,6 +20,7 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
@@ -96,6 +97,21 @@ Widget _hostWithNavigator(Widget child) => FTheme(
     ),
   ),
 );
+
+/// Stands in for the platform's clipboard, and answers with what was last put
+/// on it. With [refuse] every write is turned down, the way a browser may.
+String? Function() _clipboard(WidgetTester tester, {bool refuse = false}) {
+  String? held;
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+    if (call.method != 'Clipboard.setData') return null;
+    if (refuse) throw PlatformException(code: 'copy_fail');
+    held = (call.arguments as Map<Object?, Object?>)['text'] as String?;
+    return null;
+  });
+  addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+
+  return () => held;
+}
 
 List<String> _titles(int count) => [for (var step = 1; step <= count; step++) 'Stap $step'];
 
@@ -387,32 +403,29 @@ void main() {
       // token: the corner of the card reads the way the editor's strip does.
       expect(find.text('Python'), findsOneWidget);
 
-      // Right-aligned, like the editor card's runtime label.
+      // Right-aligned like the editor card's runtime label, with the copy
+      // button after it where the editor has its reset.
       final card = tester.getRect(
         find.ancestor(of: find.textContaining('print("x")'), matching: find.byType(DecoratedBox)).first,
       );
       final label = tester.getRect(find.text('Python'));
+      final copy = tester.getRect(find.bySemanticsLabel('Kopiëren'));
       expect(
-        card.right - label.right,
+        card.right - copy.right,
         CodeEditorCard.headerPadding.right,
         reason: 'a worked example and the editor indent identically',
       );
+      expect(label.right, lessThan(copy.left));
     });
 
-    testWidgets('a block with no language has no label', (tester) async {
+    testWidgets('a block with no language keeps the strip, for its copy button', (tester) async {
       await tester.pumpWidget(_host(const LessonProse(markdown: '```\nplain text\n```')));
       await tester.pumpAndSettle();
 
-      final card = tester.getRect(
-        find.ancestor(of: find.textContaining('plain text'), matching: find.byType(DecoratedBox)).first,
-      );
+      final copy = tester.getRect(find.bySemanticsLabel('Kopiëren'));
       final code = tester.getRect(find.textContaining('plain text'));
 
-      expect(
-        code.top - card.top,
-        CodeEditorCard.headerPadding.top,
-        reason: 'without a label the code takes the header inset in its place',
-      );
+      expect(code.top, greaterThan(copy.bottom));
     });
 
     testWidgets('a python block is syntax highlighted', (tester) async {
@@ -1661,6 +1674,147 @@ void main() {
     });
   });
 
+  group('CodeSample', () {
+    Widget sample({String source = 'print("hoi")\nprint(42)\n', bool copyable = true}) => Builder(
+      builder: (context) {
+        final tokens = context.appTheme;
+
+        return CodeSample(
+          source: source,
+          language: 'python',
+          copyable: copyable,
+          style: tokens.text.code.copyWith(color: tokens.colors.codeForeground),
+          labelStyle: tokens.text.codeSmall.copyWith(color: tokens.colors.codeMuted),
+          surface: tokens.colors.codeBackground,
+        );
+      },
+    );
+
+    /// Drags the mouse from the first character of [code] to its last.
+    Future<void> dragAcross(WidgetTester tester, Finder code) async {
+      final box = tester.getRect(code);
+      final mouse = await tester.startGesture(box.centerLeft + const Offset(1, 0), kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await tester.pump();
+      await mouse.moveTo(box.center);
+      await tester.pump();
+      await mouse.moveTo(box.centerRight - const Offset(1, 0));
+      await tester.pump();
+      await mouse.up();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the button copies the whole sample, and a tick says so for a moment', (tester) async {
+      final held = _clipboard(tester);
+      await tester.pumpWidget(_host(sample()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Kopiëren'));
+      await tester.pumpAndSettle();
+
+      // What is shown, so without the newline the block ends on.
+      expect(held(), 'print("hoi")\nprint(42)');
+      expect(find.byIcon(FLucideIcons.check), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.copy), findsNothing);
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byIcon(FLucideIcons.copy), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.check), findsNothing);
+    });
+
+    testWidgets('a clipboard that refuses is not confirmed', (tester) async {
+      _clipboard(tester, refuse: true);
+      await tester.pumpWidget(_host(sample()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Kopiëren'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(FLucideIcons.check), findsNothing);
+    });
+
+    testWidgets('a sample that may not be copied yet hides the button and keeps its place', (tester) async {
+      await tester.pumpWidget(_host(sample(copyable: false)));
+      await tester.pumpAndSettle();
+
+      final label = tester.getRect(find.text('Python'));
+      final height = tester.getSize(find.byType(CodeSample)).height;
+      expect(find.bySemanticsLabel('Kopiëren'), findsNothing);
+      expect(
+        Focus.of(tester.element(find.byIcon(FLucideIcons.copy))).canRequestFocus,
+        isFalse,
+        reason: 'a hidden button takes no Tab',
+      );
+
+      await tester.pumpWidget(_host(sample()));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Kopiëren'), findsOneWidget);
+      expect(tester.getRect(find.text('Python')), label, reason: 'nothing moves when the button arrives');
+      expect(tester.getSize(find.byType(CodeSample)).height, height);
+    });
+
+    testWidgets('code is selected with the pointer, and the selection is copied', (tester) async {
+      final held = _clipboard(tester);
+      await tester.pumpWidget(_hostWithOverlay(sample(source: 'print(42)')));
+      await tester.pumpAndSettle();
+
+      final code = find.textContaining('print');
+      await dragAcross(tester, code);
+      Actions.invoke(tester.element(code), CopySelectionTextIntent.copy);
+      await tester.pump();
+
+      expect(held(), 'print(42)');
+    });
+
+    testWidgets('a sample that may not be copied yet cannot be selected either', (tester) async {
+      final held = _clipboard(tester);
+      await tester.pumpWidget(_hostWithOverlay(sample(source: 'print(42)', copyable: false)));
+      await tester.pumpAndSettle();
+
+      final code = find.textContaining('print');
+      await dragAcross(tester, code);
+      Actions.invoke(tester.element(code), CopySelectionTextIntent.copy);
+      await tester.pump();
+
+      expect(held(), isNull);
+    });
+
+    testWidgets('the code takes the keyboard on a press, and no Tab', (tester) async {
+      // What the app shell gives a screen and `_host` does not: the traversal
+      // `WidgetsApp` binds to Tab, and a focused scope for it to start from.
+      await tester.pumpWidget(
+        Shortcuts(
+          shortcuts: WidgetsApp.defaultShortcuts,
+          child: Actions(
+            actions: WidgetsApp.defaultActions,
+            child: FocusScope(autofocus: true, child: _hostWithOverlay(sample())),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final code = tester.widget<SelectableRegion>(find.byType(SelectableRegion)).focusNode!;
+      final seen = <FocusNode?>{};
+      for (var press = 0; press < 3; press++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        seen.add(FocusManager.instance.primaryFocus);
+      }
+      expect(
+        Focus.of(tester.element(find.byIcon(FLucideIcons.copy))).hasPrimaryFocus,
+        isTrue,
+        reason: 'the copy button is the one stop in a sample',
+      );
+      expect(seen, isNot(contains(code)));
+
+      await tester.tapAt(tester.getCenter(find.textContaining('print')), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      expect(code.hasFocus, isTrue, reason: 'or the copy shortcut would reach nothing');
+    });
+  });
+
   group('a read-only code block', () {
     /// The page, the card, and nothing else down the middle of the block.
     ///
@@ -1678,15 +1832,19 @@ void main() {
           key: key,
           child: FTheme(
             data: theme,
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: MediaQuery(
-                data: const MediaQueryData(size: Size(700, 400)),
-                child: ColoredBox(
-                  color: theme.colors.background,
-                  child: const Padding(
-                    padding: EdgeInsets.all(30),
-                    child: LessonProse(markdown: 'Tekst.\n\n```python\nprint("hoi")\n```\n\nNa.'),
+            child: Localizations(
+              locale: const Locale('nl'),
+              delegates: AppLocalizations.localizationsDelegates,
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: MediaQuery(
+                  data: const MediaQueryData(size: Size(700, 400)),
+                  child: ColoredBox(
+                    color: theme.colors.background,
+                    child: const Padding(
+                      padding: EdgeInsets.all(30),
+                      child: LessonProse(markdown: 'Tekst.\n\n```python\nprint("hoi")\n```\n\nNa.'),
+                    ),
                   ),
                 ),
               ),

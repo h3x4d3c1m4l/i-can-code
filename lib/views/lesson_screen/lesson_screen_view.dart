@@ -392,6 +392,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               // The interpreter that is about to run it, the way the editor's
               // own strip names it — this code really does get run.
               label: _statusLabel(context),
+              copyable: attempt != null, // Run somewhere else first, it is no longer a prediction.
               style: tokens.text.code.copyWith(color: tokens.colors.codeForeground),
               labelStyle: tokens.text.codeSmall.copyWith(color: tokens.colors.codeMuted),
               surface: tokens.colors.codeBackground,

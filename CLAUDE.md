@@ -523,6 +523,11 @@ Four things that shape it:
 
 The optional `explanation` block is shown under the answer and to everyone, right or wrong. It is the feedback half of a practice test, and a student who guessed right has learned no more about *why* than one who did not.
 
+**Code that is read can be taken away.** `CodeSample` carries a copy button in its corner, where the editor has its reset, and both are a `CodeStripButton`. Its text can be selected with the pointer as well. Two things about it:
+
+- **Selecting is `SelectableCode`** (`lib/views/components/lesson/`), a `SelectableRegion` around each sample and not Material's `SelectionArea`. It is not a tab stop, and below no `Overlay` it is a pass-through, because the region asserts one. On the web the region puts an empty `<div>` under the code, which is how the browser's own menu comes to offer Copy. That view is registered as invisible, so the engine does not split the canvas around it. A touch screen gets no handles, so the button is the way there.
+- **A prediction's program cannot be taken away until its answer is showing.** `CodeSample.copyable` is false until then, for the button and the selection alike: run somewhere else first, it is no longer a prediction. The button's place is kept, so nothing moves when it arrives.
+
 **A step may be checked without being typed.** `SectionKind.orderLines` shuffles the program's own lines for the student to arrange — declared `type: order-lines`, filled from a `<lang>-order` block plus optional `<lang>-distractors`. It is the one kind where `isAssignment` and `usesValidator` come apart: it runs a program, so it needs a validator, but the student assembles that program rather than writing it, so it has no editor and no assignment block. `usesValidator` exists for exactly that one case.
 
 **What is checked is the assembled program, never the arrangement.** The placed lines are joined and handed to the ordinary `LessonScreenController.run`, so an order that is different but correct passes — and the validator an author would write for the same task as an `exercise` works here unchanged. Comparing against the block instead would fail a right answer for being a different right answer.

@@ -461,6 +461,14 @@
   "@codeEditorCard_reset": {
     "description": "Semantics label for the icon button in the code editor's top strip that restores the exercise's starter code."
   },
+  "codeSample_copy": "Copy",
+  "@codeSample_copy": {
+    "description": "Semantics label for the icon button in the corner of a block of read-only code. Puts the whole block on the clipboard."
+  },
+  "codeSample_copied": "Copied",
+  "@codeSample_copied": {
+    "description": "Announced to a screen reader once the button has copied the block. The screen shows a tick instead."
+  },
   "resetCode_title": "Reset this code?",
   "@resetCode_title": {},
   "resetCode_body": "Your code goes back to how the exercise started. This cannot be undone.",
