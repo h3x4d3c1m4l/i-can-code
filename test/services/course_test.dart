@@ -1,8 +1,63 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 
+/// An asset bundle holding the course bundle and nothing else.
+class _CourseBundle extends CachingAssetBundle {
+
+  final Map<String, String> files;
+
+  _CourseBundle(this.files);
+
+  @override
+  Future<ByteData> load(String key) async {
+    if (key != Course.bundleAsset) throw StateError('Unable to load asset: "$key".');
+
+    return ByteData.sublistView(utf8.encode(jsonEncode(files)));
+  }
+
+}
+
 void main() {
+  group('Course.load', () {
+    final lesson = File('test/fixtures/lesson.md').readAsStringSync();
+
+    test('reads every lesson out of the one bundle, in course order', () async {
+      final course = await Course.load(
+        bundle: _CourseBundle({
+          'assets/lessons/python/02-second.en.md': lesson,
+          'assets/lessons/python/01-first.en.md': lesson,
+          'assets/lessons/python/01-first.nl.md': lesson,
+          'assets/lessons/README.md': '# Not a lesson',
+        }),
+      );
+
+      expect(course.lessons.map((l) => l.entry.slug), ['first', 'second']);
+      expect(course.lessons.first.translations.keys, unorderedEquals(['en', 'nl']));
+      expect(course.lessons.first.forLocale('en').sections, isNotEmpty);
+    });
+
+    test('a bundle with nothing in it is a course with no lessons', () async {
+      final course = await Course.load(bundle: _CourseBundle(const {}));
+
+      expect(course.lessons, isEmpty);
+    });
+
+    test('a malformed lesson names its file', () async {
+      const broken = '# Broken\n\n```metadata\nid: broken\n```\n\n## A step\n\nNo metadata block.\n';
+      const path = 'assets/lessons/python/01-broken.nl.md';
+
+      await expectLater(
+        Course.load(bundle: _CourseBundle(const {path: broken})),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('$path: '))),
+      );
+    });
+  });
+
   test('subjects are listed once each, in course order', () {
     final entries = Course.entriesFrom([
       'assets/lessons/python/02-variables.nl.md',

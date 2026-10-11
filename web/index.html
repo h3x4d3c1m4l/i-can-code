@@ -191,13 +191,37 @@
       color: var(--error);
     }
 
-    .spinner {
+    /*
+      One ring, two states. Without `aria-valuenow` it is a quarter arc that
+      turns. With one, the script below sets the arc's length and the ring
+      stands still and fills. 94.25 is the circumference at r = 15.
+    */
+    .ring {
       width: 34px;
       height: 34px;
-      border-radius: 50%;
-      border: 4px solid var(--border);
-      border-top-color: var(--primary);
+    }
+
+    .ring circle {
+      fill: none;
+      stroke-width: 4;
+    }
+
+    .ring .track { stroke: var(--border); }
+
+    .ring .value {
+      stroke: var(--primary);
+      stroke-dasharray: 23.56 94.25;
+      /* An arc is drawn from three o'clock. This starts it at the top. */
+      transform: rotate(-90deg);
+      transform-origin: center;
+    }
+
+    .ring:not([aria-valuenow]) {
       animation: spin 1s linear infinite;
+    }
+
+    .ring[aria-valuenow] .value {
+      transition: stroke-dasharray 150ms linear;
     }
 
     @keyframes spin {
@@ -206,7 +230,8 @@
 
     /* A pulse says as much as a spin, without the vestibular trigger. */
     @media (prefers-reduced-motion: reduce) {
-      .spinner { animation: none; opacity: 0.5; }
+      .ring:not([aria-valuenow]) { animation: none; opacity: 0.5; }
+      .ring[aria-valuenow] .value { transition: none; }
       .mark .eyes { animation: none; }
     }
 
@@ -239,7 +264,10 @@
         <path d="M72 153Q128 205 184 153"/>
       </g>
     </svg>
-    <div class="spinner" role="progressbar" aria-label="Loading"></div>
+    <svg id="loading-ring" class="ring" viewBox="0 0 34 34" role="progressbar" aria-label="Loading">
+      <circle class="track" cx="17" cy="17" r="15"/>
+      <circle class="value" cx="17" cy="17" r="15"/>
+    </svg>
     <p id="loading-message">Loading…</p>
   </div>
   <div id="error-container">
@@ -255,6 +283,158 @@
     <button id="retry-button" onclick="window.location.reload()">Try again</button>
   </div>
   <script>
+    /*
+      Download progress, for the ring above and for the initialization screen.
+
+      Flutter reports nothing about what it downloads, so this counts it: a
+      wrapper around `window.fetch` reads a copy of every response it knows the
+      size of, and the ring shows the share that has arrived. The response the
+      caller gets is the original, untouched.
+
+      What it leans on, and what happens without each:
+
+       * The loader and the engine download CanvasKit, the fonts and the assets
+         through `window.fetch`. tool/finish_web_build.dart fails the build when
+         main.dart.js stops doing so.
+       * The sizes are written over the `null` below by that same tool. Without
+         them, which is every `flutter run`, nothing is wrapped and the ring
+         turns as a spinner.
+       * A script tag is not a fetch. See where main.dart.js is loaded, below.
+
+      `Content-Length` cannot stand in for the sizes: a host that compresses
+      reports the compressed length, while a body arrives decompressed.
+
+      Each size is `[bytes, bytes gzipped]`. Bytes are what can be counted as
+      they arrive, and gzipped bytes are what the download costs, so a file
+      weighs its gzipped size in the total.
+    */
+    (function () {
+      const sizes = /*STARTUP_SIZES*/null;
+      if (!sizes) return;
+
+      const files = sizes.files;
+      const canvasKit = sizes.canvasKit;
+      const base = new URL(document.baseURI);
+
+      // Only one CanvasKit is downloaded, and the loader picks it. This is a
+      // guess at its pick, replaced by the one that is actually asked for.
+      let variant = 'v8BreakIterator' in Intl ? 'canvaskit/chromium/canvaskit.wasm' : 'canvaskit/canvaskit.wasm';
+      if (!canvasKit[variant]) variant = Object.keys(canvasKit)[0];
+
+      const arrived = new Map();
+      const underway = new Map();
+      let shown = 0;
+      let scheduled = false;
+
+      function sizeOf(path) {
+        return files[path] || canvasKit[path];
+      }
+
+      function fraction() {
+        let total = 0;
+        let done = 0;
+        for (const path of Object.keys(files).concat(variant)) {
+          const [bytes, gzipped] = sizeOf(path);
+          total += gzipped;
+          done += gzipped * (bytes ? Math.min(1, (arrived.get(path) || 0) / bytes) : 1);
+        }
+        // Never backwards: a different CanvasKit than guessed changes the total.
+        shown = Math.max(shown, total ? done / total : 0);
+        return shown;
+      }
+
+      function draw() {
+        scheduled = false;
+        const value = fraction();
+        const ring = document.getElementById('loading-ring');
+        if (ring) {
+          ring.setAttribute('aria-valuenow', Math.round(value * 100));
+          ring.querySelector('.value').style.strokeDasharray = (value * 94.25) + ' 94.25';
+        }
+        window.dispatchEvent(new CustomEvent('icc-startup-progress'));
+      }
+
+      function changed() {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(draw);
+      }
+
+      // The path a request names under the page's base, or null for anywhere else.
+      function pathOf(input) {
+        try {
+          const url = new URL(input instanceof Request ? input.url : String(input), base);
+          if (url.origin !== base.origin || !url.pathname.startsWith(base.pathname)) return null;
+          return decodeURIComponent(url.pathname.substring(base.pathname.length));
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Reads a copy of `response` to its end, counting. The promise it returns
+      // settles when the file is in, or has failed, and never rejects.
+      function count(path, response) {
+        if (!response.ok || !response.body) {
+          arrived.delete(path);
+          return Promise.resolve();
+        }
+        const reader = response.clone().body.getReader();
+        return (function next() {
+          return reader.read().then(function (chunk) {
+            if (chunk.done) {
+              arrived.set(path, sizeOf(path)[0]);
+              changed();
+              return;
+            }
+            arrived.set(path, arrived.get(path) + chunk.value.byteLength);
+            changed();
+            return next();
+          });
+        })().catch(function () {
+          // Forgotten, so that a retry of this file is counted again.
+          arrived.delete(path);
+        });
+      }
+
+      const fetchUncounted = window.fetch;
+      window.fetch = function (input, init) {
+        const request = arguments;
+        const method = (init && init.method) || (input instanceof Request ? input.method : 'GET');
+        const path = method === 'GET' ? pathOf(input) : null;
+        if (path === null || !sizeOf(path)) return fetchUncounted.apply(window, request);
+
+        // A file still on its way is waited for, and only then asked for again,
+        // so the second request is answered from the HTTP cache. One font is
+        // bundled under two families, and the engine fetches it once for each
+        // at the same moment, which the browser does not combine by itself.
+        if (underway.has(path)) {
+          return underway.get(path).then(function () { return fetchUncounted.apply(window, request); });
+        }
+        // Counted once already.
+        if (arrived.has(path)) return fetchUncounted.apply(window, request);
+
+        arrived.set(path, 0);
+        if (canvasKit[path]) variant = path;
+        const response = fetchUncounted.apply(window, request);
+        // Attached before the caller can attach anything, so the copy is taken
+        // before the caller starts reading the body.
+        underway.set(path, response.then(
+          function (answer) { return count(path, answer); },
+          function () { arrived.delete(path); },
+        ).then(function () { underway.delete(path); }));
+        return response;
+      };
+
+      // The initialization screen reads this, and listens for the event `draw`
+      // sends, to carry the same ring on once the splash is gone.
+      window.iccStartup = {
+        get fraction() { return fraction(); },
+      };
+
+      draw();
+    })();
+  </script>
+  <script>
     {{flutter_js}}
     {{flutter_build_config}}
 
@@ -268,21 +448,46 @@
       errorContainer.style.display = 'flex';
     }
 
-    _flutter.loader.load({
-      onEntrypointLoaded: async function (engineInitializer) {
-        try {
-          loadingMessage.textContent = 'Starting the engine…';
-          const appRunner = await engineInitializer.initializeEngine();
+    function start() {
+      _flutter.loader.load({
+        onEntrypointLoaded: async function (engineInitializer) {
+          try {
+            loadingMessage.textContent = 'Starting the engine…';
+            const appRunner = await engineInitializer.initializeEngine();
 
-          loadingMessage.textContent = 'Starting the app…';
-          await appRunner.runApp();
+            loadingMessage.textContent = 'Starting the app…';
+            await appRunner.runApp();
 
-          loadingContainer.remove();
-        } catch (e) {
-          showError();
+            loadingContainer.remove();
+          } catch (e) {
+            showError();
+          }
         }
-      }
-    });
+      });
+    }
+
+    /*
+      The loader adds main.dart.js as a script tag, and a script tag reports
+      nothing while it downloads. So where progress is counted, the file is
+      fetched here first and the loader's tag is then answered from the HTTP
+      cache.
+
+      Not a blob URL, which the loader would also take: a blob has a new URL on
+      every visit, so the browser could never reuse the code it compiled for
+      the last one. And a host that forbids caching costs a second download
+      this way, where a blob the loader stopped accepting would cost the start.
+
+      CanvasKit starts downloading in `load()`, so it now follows main.dart.js
+      instead of running beside it.
+    */
+    if (window.iccStartup) {
+      fetch('main.dart.js')
+        .then(function (response) { return response.arrayBuffer(); })
+        .catch(function () { /* The loader's own attempt reports the failure. */ })
+        .then(start);
+    } else {
+      start();
+    }
   </script>
 </body>
 </html>

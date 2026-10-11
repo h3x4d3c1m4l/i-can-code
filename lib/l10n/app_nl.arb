@@ -122,7 +122,7 @@
   "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd.",
   "replScreen_starting": "De interpreter wordt gestart…",
   "replScreen_restart": "Herstarten",
-  "replScreen_hint": "Enter voert de regel uit · ↑ haalt een eerdere regel terug · Ctrl-D sluit af",
+  "replScreen_hint": "Enter voert de regel uit · Pijl-omhoog haalt een eerdere regel terug · Ctrl-D sluit af",
   "replScreen_exited": "De interpreter is gestopt (afsluitcode {code}).",
   "@replScreen_exited": {
     "placeholders": {

@@ -8,13 +8,16 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/components/progress_ring.dart';
 import 'package:i_can_code/views/subjects_screen/subjects_screen.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -44,13 +47,13 @@ void main() {
   setUp(() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
 
-    // A bundle with nothing in it, so the bootstrap loads an empty course
-    // rather than whichever one this checkout happens to hold.
+    // A bundle holding a course with no lessons in it, so the bootstrap loads
+    // that rather than whichever one this checkout happens to hold.
     rootBundle.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
       'flutter/assets',
-      (message) async => utf8.decode(message!.buffer.asUint8List()) == 'AssetManifest.bin'
-          ? const StandardMessageCodec().encodeMessage(<String, Object>{})
+      (message) async => utf8.decode(message!.buffer.asUint8List()) == Course.bundleAsset
+          ? ByteData.sublistView(utf8.encode('{}'))
           : null,
     );
   });
@@ -99,6 +102,30 @@ void main() {
     expect(find.byType(SubjectsScreen), findsOneWidget);
   });
 
+  testWidgets('the ring carries on from what the page has already downloaded', (tester) async {
+    _register(applies: false, startup: StartupProgress.of(0.9));
+
+    await tester.pumpWidget(_app());
+    // One frame, which is the screen before the course is in.
+    await tester.pump();
+
+    expect(tester.widget<ProgressRing>(find.byType(ProgressRing)).value, 0.9);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('where nothing counts the downloads, the screen keeps its spinner', (tester) async {
+    _register(applies: false);
+
+    await tester.pumpWidget(_app());
+    await tester.pump();
+
+    expect(tester.widget<ProgressRing>(find.byType(ProgressRing)).value, isNull);
+    expect(find.byType(FCircularProgress), findsOneWidget);
+
+    await tester.pumpAndSettle();
+  });
+
   for (final size in const [Size(320, 568), Size(568, 320)]) {
     testWidgets('the warning fits a phone of ${size.width.toInt()} by ${size.height.toInt()}', (tester) async {
       tester.view
@@ -121,14 +148,15 @@ void main() {
 
 /// What `setupServices()` registers, as far as the bootstrap and the first
 /// screen read it.
-void _register({required bool applies}) {
+void _register({required bool applies, StartupProgress? startup}) {
   GetIt.I
     ..registerSingleton<BootstrapStatus>(BootstrapStatus())
     ..registerSingleton<PendingNavigationService>(PendingNavigationService())
     ..registerSingleton<ProgressStore>(ProgressStore())
     ..registerSingleton<CodeDraftStore>(CodeDraftStore())
     ..registerSingleton<TourStore>(TourStore())
-    ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning(applies: applies));
+    ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning(applies: applies))
+    ..registerSingleton<StartupProgress>(startup ?? StartupProgress());
 }
 
 /// The app's own router with nothing above it but a theme, so the guard and

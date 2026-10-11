@@ -63,11 +63,16 @@ flutter:
     # CPython 3.14 built for wasm32-wasi plus its stdlib; see docs/python-wasm-build.md.
     - assets/python/python.wasm
     - assets/python/python314.zip
-    # Flutter's asset globbing is NOT recursive: every directory must be listed.
-    - assets/lessons/
-    - assets/lessons/python/
-    # A track: lessons numbered on their own, listed after the rest of Python.
-    - assets/lessons/python/microbit/
+    # Every lesson under assets/lessons/, in one file, so a cold start fetches
+    # the course in one request. The committed file is a placeholder: the
+    # transformer (bin/bundle_lessons.dart) writes the real one during the build.
+    - path: assets/course.json
+      transformers:
+        - package: i_can_code:bundle_lessons
+
+    # Flutter's asset globbing is NOT recursive: every directory below must be
+    # listed.
+    #
     # The MicroPython hex a flashed program is built into. Fetched rather than
     # committed, so this directory holds only a README until `just
     # fetch-microbit-firmware` has run; see docs/rust-core-build.md.
@@ -84,28 +89,21 @@ flutter:
     - assets/fonts/OFL-NotoColorEmoji.txt
 
   fonts:
+    # Variable fonts, one file per family: a `FontWeight` sets the `wght` axis.
+    # Neither entry states a weight, because a weight here would pin the file
+    # to that one. Fredoka's own default is 300, and no style asks for it.
     - family: Fredoka
       fonts:
-        - asset: assets/fonts/Fredoka-400.ttf
-          weight: 400
-        - asset: assets/fonts/Fredoka-500.ttf
-          weight: 500
-        - asset: assets/fonts/Fredoka-600.ttf
-          weight: 600
-        - asset: assets/fonts/Fredoka-700.ttf
-          weight: 700
+        - asset: assets/fonts/Fredoka-Variable.ttf
     - family: Lexend
       fonts:
-        - asset: assets/fonts/Lexend-400.ttf
-          weight: 400
-        - asset: assets/fonts/Lexend-500.ttf
-          weight: 500
-        - asset: assets/fonts/Lexend-600.ttf
-          weight: 600
-        - asset: assets/fonts/Lexend-700.ttf
-          weight: 700
-        - asset: assets/fonts/Lexend-800.ttf
-          weight: 800
+        - asset: assets/fonts/Lexend-Variable.ttf
+    # Not a font the app draws with. Flutter's web engine downloads Roboto from
+    # fonts.gstatic.com unless a family of that name is bundled, and uses it for
+    # text that names no family. This points that name at the body face.
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Lexend-Variable.ttf
     - family: Noto Color Emoji
       fonts:
         - asset: assets/fonts/NotoColorEmoji.ttf

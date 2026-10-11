@@ -154,8 +154,17 @@ jobs:
       # No `--wasm`: dart2wasm rejects `dart:html`, which reaches this app
       # through re_editor -> isolate_manager -> isolate_contactor. Add it back
       # once that chain is off `dart:html`.
+      #
+      # `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise
+      # points at www.gstatic.com.
       - name: Build web
-        run: flutter build web --release --base-href '/i-can-code/'
+        run: flutter build web --release --no-web-resources-cdn --base-href '/i-can-code/'
+
+      # Takes the font forui bundles and nothing draws with out of the build,
+      # and writes the sizes the page's progress ring measures against into
+      # index.html. Fails when the build is not what the ring was written for.
+      - name: Finish web build
+        run: dart run tool/finish_web_build.dart build/web
 
       - name: Fix permissions
         run: |

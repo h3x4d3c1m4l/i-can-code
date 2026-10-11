@@ -26,7 +26,7 @@ void main() {
         'assets/lessons/python/notes.txt',
         'assets/lessons/python/no-order-prefix.nl.md',
         'assets/lessons/README.md',
-        'assets/fonts/Lexend-400.ttf',
+        'assets/fonts/Lexend-Variable.ttf',
       ]);
 
       expect(entries.map((e) => e.slug), ['ok']);

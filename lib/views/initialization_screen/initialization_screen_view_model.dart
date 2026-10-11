@@ -1,3 +1,5 @@
+import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
 
@@ -10,6 +12,10 @@ enum InitializationStep { loadingCourse }
 class InitializationScreenViewModel = InitializationScreenViewModelBase with _$InitializationScreenViewModel;
 
 abstract class InitializationScreenViewModelBase extends ScreenViewModelBase with Store {
+
+  /// What the page has downloaded so far. The course is the last of it, so the
+  /// ring this screen shows is the one the splash was already filling.
+  final StartupProgress startup = GetIt.I<StartupProgress>();
 
   /// The bootstrap step in flight, or `null` before the first one reports in.
   @readonly

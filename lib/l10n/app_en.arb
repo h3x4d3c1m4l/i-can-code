@@ -326,7 +326,7 @@
   "@replScreen_starting": {},
   "replScreen_restart": "Restart",
   "@replScreen_restart": {},
-  "replScreen_hint": "Enter runs the line · ↑ brings back an earlier one · Ctrl-D exits",
+  "replScreen_hint": "Enter runs the line · Up arrow brings back an earlier one · Ctrl-D exits",
   "@replScreen_hint": {},
   "replScreen_exited": "The interpreter has stopped (exit code {code}).",
   "@replScreen_exited": {

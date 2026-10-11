@@ -8,11 +8,13 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/theme.dart';
@@ -29,13 +31,13 @@ void main() {
   setUp(() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
 
-    // A bundle with nothing in it, so the bootstrap loads an empty course
-    // rather than whichever one this checkout happens to hold.
+    // A bundle holding a course with no lessons in it, so the bootstrap loads
+    // that rather than whichever one this checkout happens to hold.
     rootBundle.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
       'flutter/assets',
-      (message) async => utf8.decode(message!.buffer.asUint8List()) == 'AssetManifest.bin'
-          ? const StandardMessageCodec().encodeMessage(<String, Object>{})
+      (message) async => utf8.decode(message!.buffer.asUint8List()) == Course.bundleAsset
+          ? ByteData.sublistView(utf8.encode('{}'))
           : null,
     );
 
@@ -48,7 +50,8 @@ void main() {
       ..registerSingleton<ProgressStore>(ProgressStore())
       ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<TourStore>(TourStore())
-      ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning(applies: false));
+      ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning(applies: false))
+      ..registerSingleton<StartupProgress>(StartupProgress());
   });
 
   tearDown(GetIt.I.reset);

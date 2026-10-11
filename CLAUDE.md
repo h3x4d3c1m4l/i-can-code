@@ -22,7 +22,10 @@ fvm dart run build_runner watch         # ... in watch mode, while developing
 fvm flutter gen-l10n                    # regenerate localizations from the ARB files
 fvm dart analyze                        # lint
 fvm flutter test                        # tests
-fvm flutter build web                   # build
+fvm flutter build web                   # compile only; `just build` is the build that ships
+
+just build                              # build with CanvasKit bundled, then tool/finish_web_build.dart
+just serve-build                        # serve build/web on :8080, to watch a release build load
 
 fvm dart run tool/try_lesson.dart <lesson.md>                       # list its sections
 fvm dart run tool/try_lesson.dart <lesson.md> <n> --code 'print(1)' # run one, see the verdict
@@ -270,7 +273,13 @@ Responsive layout goes through **`context.theme.breakpoints`**, which are Tailwi
 
 Fonts are **bundled** under `assets/fonts/`, not fetched at runtime — a font request per student to a third party is both a privacy question and a flash of unstyled text on every cold load. Each family's `OFL-<family>.txt` sits beside its files; a new font brings its licence text with it.
 
-**The code face is JetBrains Mono NL, the build with no ligatures.** The ordinary build draws `!=` as a struck-through equals sign and `>=` as `≥`, and a student who has just been told to type two characters cannot find either on a keyboard. The font is the only place to turn them off: `FontFeature.disable('calt')` on a `TextStyle` reaches the prose and the read-only cards, but `re_editor` builds its own style and passes no `fontFeatures` on, so the editor, where the typing happens, would have kept them. The files are the unmodified `JetBrainsMonoNL-Regular.ttf` and `-Medium.ttf` of the upstream release. `test/theme/code_font_test.dart` draws each operator whole and a character at a time and fails when the two differ.
+**Fredoka and Lexend are variable fonts, one file each**, the unmodified `Fredoka[wdth,wght].ttf` and `Lexend[wght].ttf` of google/fonts under a name without brackets. A `FontWeight` sets the `wght` axis, so `pubspec.yaml` states no weight for either: a weight there would pin the file to that one. Fredoka's own default is 300, which no style asks for, so a weight that stopped reaching the axis would show as every heading going light. `test/theme/variable_font_test.dart` holds that each weight the app uses is a different drawing. The web engine downloads every font in the manifest before the first frame, which is why nine files became two.
+
+**`pubspec.yaml` bundles a family called `Roboto` that is the Lexend file.** The app draws nothing in Roboto. Flutter's web engine downloads it from `fonts.gstatic.com` on every cold start unless the manifest has a family by that name, and uses it for text that names no family. The same test holds the alias.
+
+**A character none of the bundled fonts has is a request to Google.** The engine fetches a Noto font for it from `fonts.gstatic.com` the first time it is drawn. That is why the console's hint says "Pijl-omhoog" and not `↑`, which Lexend lacks. Check a new symbol in interface text against the font it is set in.
+
+**The code face is JetBrains Mono NL, the build with no ligatures.** The ordinary build draws `!=` as a struck-through equals sign and `>=` as `≥`, and a student who has just been told to type two characters cannot find either on a keyboard. The font is the only place to turn them off: `FontFeature.disable('calt')` on a `TextStyle` reaches the prose and the read-only cards, but `re_editor` builds its own style and passes no `fontFeatures` on, so the editor, where the typing happens, would have kept them. The files are the unmodified `JetBrainsMonoNL-Regular.ttf` and `-Medium.ttf` of the upstream release, and they stay two static files: upstream's variable build is the one with ligatures. `test/theme/code_font_test.dart` draws each operator whole and a character at a time and fails when the two differ.
 
 ### Running it
 
@@ -280,7 +289,7 @@ Every one of them serves `Cross-Origin-Opener-Policy: same-origin` and `Cross-Or
 
 Two things follow:
 
-- `require-corp` makes the browser refuse any cross-origin subresource that does not opt in with its own CORP/CORS header. Everything the app loads is bundled — the fonts included, which is part of why they were bundled — so nothing is at risk today. **Add a CDN script or a remote font and it will fail to load under these configurations only.** The "no isolation" configuration exists to rule the headers in or out when something stops loading.
+- `require-corp` makes the browser refuse any cross-origin subresource that does not opt in with its own CORP/CORS header. Everything the app loads is bundled — the fonts included, which is part of why they were bundled, and CanvasKit, which `flutter build web` points at `www.gstatic.com` unless it is given `--no-web-resources-cdn` — so nothing is at risk today. **Add a CDN script or a remote font and it will fail to load under these configurations only.** The "no isolation" configuration exists to rule the headers in or out when something stops loading.
 - `flutter build web` serves nothing, so a **deployed** build is only isolated if its host sets the same two headers. Isolation is a property of the response, not of the bundle.
 
 GitHub Pages cannot send a header, and the interactive console *does* depend on `SharedArrayBuffer`, so `web/coi-serviceworker.js` re-issues every response with the two headers from a service worker. It is a **no-op wherever they already arrive** — it returns early while `crossOriginIsolated` is true, which is every configuration above — so it does nothing at all from the IDE.
@@ -391,8 +400,32 @@ first move away from a cold-loaded step rebuilds the screen once.
 They cover three different windows and are not interchangeable:
 
 1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand, light and dark; changing the preset means changing that block too. An inline script reads `localStorage['theme.mode']` — `SharedPreferencesAsync` stores web keys **verbatim, no `flutter.` prefix**, JSON-encoded — and falls back to `prefers-color-scheme`, so a student who forced light on a dark machine gets no flash. That literal key is coupled to `ThemeModeControllerBase.storageKey`.
-2. **`InitializationScreen`** — work the app does once it is running: reading the course index, and nothing else. It shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
+2. **`InitializationScreen`** — work the app does once it is running: reading the course bundle, and nothing else. It shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
 3. **`LoadingOverlay`** — anything a screen waits on afterwards.
+
+### What a cold start downloads
+
+A cold start is about twenty requests, all to the app's own origin: the entrypoint, CanvasKit, eight fonts and the course. Four things keep it there, and each undoes something Flutter does by default.
+
+- **The course is one file.** `assets/course.json` holds every lesson file's text by path. It is written during the build by `bin/bundle_lessons.dart`, an asset transformer declared on that asset in `pubspec.yaml`; the committed file is a placeholder holding `{}`. A transformer takes one asset and gives one back, so this one ignores its input and reads `assets/lessons/` instead. It writes a depfile beside its output naming every lesson it read, which is what makes Flutter run it again when a lesson changes. That depfile is read by `asset_transformer.dart` in flutter_tools and is in no documentation. It runs under `flutter build`, `flutter run` and `flutter test` alike.
+- **forui's Inter is taken out of the build.** forui bundles it, `buildAppTheme()` replaces both of forui's typefaces, and the engine downloads every font in the manifest whether anything draws with it or not. Flutter has no switch for a package's font, so `tool/finish_web_build.dart` removes it from `FontManifest.json` after the build. `flutter run` still loads it.
+- **CanvasKit is bundled**, by `--no-web-resources-cdn`.
+- **Roboto is an alias.** See *Theming*.
+
+`tool/finish_web_build.dart` is the step after `flutter build web`, and `just build` and both workflows run it. Besides Inter it writes the size of every file above into `index.html`, and it **fails the build** when its assumptions no longer hold: no Inter in the manifest, CanvasKit on the CDN, or a `main.dart.js` that no longer calls `window.fetch`.
+
+**The ring on the splash and on the initialization screen is the download, counted.** Flutter reports nothing about what it downloads. A script in `web/index.html` wraps `window.fetch`, reads a copy of each response it has a size for, and shows the share that has arrived. The caller gets the original response. Things to know before touching it:
+
+- **It leans on the loader and the engine fetching through `window.fetch`.** That is not a promise Flutter makes, which is what the check in the finish step is for.
+- **`Content-Length` is no use.** GitHub Pages compresses, so the header is the compressed length while the body arrives decompressed. Hence the sizes from the build. A file weighs its gzipped size in the total, so the ring follows the transfer.
+- **`main.dart.js` is fetched before the loader is started**, because the loader adds it as a script tag and a script tag reports nothing. The tag is then answered from the HTTP cache. Not a blob URL, which the loader would take: a blob has a new address every visit, so the browser could not reuse the code it compiled last time. CanvasKit therefore starts after the entrypoint and not beside it.
+- **A second request for a file still on its way waits for the first.** The Lexend file is fetched once for each family it is bundled under, at the same moment, and the browser downloads it twice unless the second request is held until the first is in the cache.
+- **`flutter run` has no sizes**, so nothing is wrapped there and the ring turns as a spinner.
+- **After a hard reload the ring crawls and then jumps.** The browser skips its cache for what the page asks for while it loads, which includes the entrypoint, and not for what the engine asks for afterwards. The ring is showing what arrived.
+
+`StartupProgress` (`lib/services/startup_progress/`) is the app's view of that count, a stub where no page is counting. `LoadingOverlay.progress` hands it to `ProgressRing`, which is the same ring drawn by Flutter: forui has a spinner and a determinate bar, and no ring that carries a value. Almost all of the download happens before the app exists, since the engine loads the fonts before `main()` runs, so the initialization screen only ever shows the last few percent.
+
+To see it, `just build`, `just serve-build`, and throttle the network in the browser. `serve-build` is `tool/serve_web_build.dart`, which sends the two isolation headers itself, as the `flutter run` configurations do. A plain static server leaves isolation to the service worker, and a hard reload skips a service worker, as does DevTools' "Disable cache" some of the time, so the console would come up saying it cannot run.
 
 ### Mobile browsers
 
@@ -407,7 +440,7 @@ The trouble is `re_editor`, which reads that same `defaultTargetPlatform` and ta
 
 Neither is fixed here, and fixing them means patching `re_editor`. The warning exists so that nobody meets them unannounced.
 
-`test/views/initialization_screen_test.dart` runs the bootstrap through the app's own router with an **empty asset bundle**, so it loads no course, and with the real fonts, because the test font is wide enough to overflow a phone the app fits on.
+`test/views/initialization_screen_test.dart` runs the bootstrap through the app's own router with a **bundle holding an empty course**, so it loads no lessons, and with the real fonts, because the test font is wide enough to overflow a phone the app fits on.
 
 ### Running a student's code
 
@@ -474,8 +507,8 @@ A lesson is **one markdown file per locale**, at `assets/lessons/<subject>/<orde
 
 Two things that are easy to get wrong:
 
-- **There is no index file.** Order comes from the `NN-` filename prefix and discovery from Flutter's `AssetManifest`, so the directory *is* the index. Reordering the course is a rename.
-- **A folder inside a subject is a track**, numbered on its own and listed after the lessons outside it. Its lesson ids share the subject's namespace, and `pubspec.yaml` has to list it like any other asset directory.
+- **There is no index file.** Order comes from the `NN-` filename prefix and discovery from the course bundle, which the build fills with every `.md` file under `assets/lessons/` (see *What a cold start downloads*), so the directory *is* the index. Reordering the course is a rename.
+- **A folder inside a subject is a track**, numbered on its own and listed after the lessons outside it. Its lesson ids share the subject's namespace. The bundle reads the directory at any depth, so a new subject or track needs nothing in `pubspec.yaml`.
 - **`Lesson.parse` must keep `encodeHtml: false`.** The `markdown` package HTML-escapes block text by default, which would hand CPython `print(&quot;hi&quot;)` and fail at runtime rather than at parse time.
 
 **A step says what it runs on, and one this version cannot run is left out.** `runtime:` in a lesson's or a section's metadata is `python` by default — CPython in the page — and `tkinter` is Python with Tk on a machine of its own. No lesson step can run there yet, so `Lesson.parse` **drops** such a step and reads nothing else about it: its `type` and its blocks may be ones this version has never heard of. A lesson whose every step goes that way parses to no steps at all, which is not an error, and `Course.load` leaves it out rather than list a card that opens on nothing. That is what lets the course carry window lessons before the app can run them. A `runtime` no version knows is still an author's mistake.
@@ -543,7 +576,7 @@ Four things in `LineOrderingBoard` (`lib/views/lesson_screen/components/`):
 
 **The best distractor is one the output cannot catch.** `print("42")` beside `print(42)` prints the same characters, so only `program.calls("print").with_any_args("42")` tells them apart — which is what `kCheckLibrary` is for, and how the step in lesson 01 is built.
 
-Flutter's asset globbing is **not recursive**, so every asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared.
+Flutter's asset globbing is **not recursive**, so every other asset directory is listed separately in `pubspec.yaml` — a new folder is silently absent at runtime until it is declared. Lessons are the exception, since they reach the app through the bundle.
 
 ### Projects
 

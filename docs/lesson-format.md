@@ -45,13 +45,12 @@ Only one level. A folder inside a track is not read.
 
 ### There is no index file
 
-Flutter's `AssetManifest` already lists everything bundled, so the directory *is*
-the index. A lesson therefore cannot be added to the app and then forgotten in an
-index — the failure mode the old `index.yaml` had.
+The build puts every `.md` file under `assets/lessons/`, at any depth, into one
+asset (`assets/course.json`, written by `bin/bundle_lessons.dart`), so the
+directory *is* the index. A lesson therefore cannot be added to the app and then
+forgotten in an index — the failure mode the old `index.yaml` had.
 
-**Flutter's asset globbing is not recursive.** Every directory is listed
-separately in `pubspec.yaml`; a new subject directory, or a new track, is
-silently absent at runtime until it is declared there.
+A new subject directory, or a new track, needs no entry in `pubspec.yaml`.
 
 ## Worked examples of every type
 
@@ -1059,9 +1058,9 @@ want a student to read.**
 
 1. Create `assets/lessons/<subject>/<order>-<slug>.<locale>.md`.
 2. Add translations as further `.<locale>.md` files beside it.
-3. If the subject directory is new, add it to `pubspec.yaml`.
 
-No code change and no regeneration. `test/content/lessons_test.dart` checks
+No code change and no regeneration: the next build, or the next start of
+`flutter run`, bundles it. `test/content/lessons_test.dart` checks
 every file that ships, so an authoring mistake fails the test run rather than the
 initialization screen.
 

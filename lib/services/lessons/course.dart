@@ -1,4 +1,6 @@
-import 'package:flutter/services.dart' show AssetBundle, AssetManifest, rootBundle;
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:i_can_code/services/lessons/lesson.dart';
 
 /// One lesson as it appears on disk, before it is read.
@@ -26,7 +28,8 @@ class LessonEntry {
   /// file states about itself.
   final String slug;
 
-  /// Asset paths by locale code, e.g. `{'nl': '…/01-uitvoer.nl.md'}`.
+  /// The lesson's files by locale code, e.g. `{'nl': '…/01-uitvoer.nl.md'}`.
+  /// Each is a key of the bundle [Course.load] reads.
   final Map<String, String> paths;
 
   const LessonEntry({
@@ -64,13 +67,18 @@ class CourseLesson {
 
 /// Every lesson the app ships with, discovered and parsed.
 ///
-/// There is no index file: Flutter's [AssetManifest] lists what was bundled, so
-/// the directory *is* the index and reordering the course is a rename. Order and
-/// locale therefore come out of the filename, and anything not matching
-/// [_filePattern] is ignored rather than crashing the app.
+/// There is no index file: the build puts every file under [root] into
+/// [bundleAsset], so the directory *is* the index and reordering the course is a
+/// rename. Order and locale therefore come out of the filename, and anything not
+/// matching [_filePattern] is ignored rather than crashing the app.
 class Course {
 
   static const String root = 'assets/lessons/';
+
+  /// The one asset that holds every lesson file: a JSON object of file text by
+  /// path under [root]. Written by `bin/bundle_lessons.dart` during the build,
+  /// so a cold start fetches the course in one request.
+  static const String bundleAsset = 'assets/course.json';
 
   /// `assets/lessons/<subject>/[<track>/]<order>-<slug>.<locale>.md`
   static final RegExp _filePattern = RegExp(
@@ -83,20 +91,21 @@ class Course {
 
   const Course({required this.lessons});
 
-  /// Discovers every lesson file and parses each translation.
+  /// Reads [bundleAsset] and parses each translation of every lesson in it.
   ///
   /// A malformed lesson throws — see [Lesson.parse]. These files ship with the
   /// app, so that is a build mistake, not a state to render.
   static Future<Course> load({AssetBundle? bundle}) async {
-    final assets = bundle ?? rootBundle;
-    final manifest = await AssetManifest.loadFromAssetBundle(assets);
+    // Not cached: the bundle is every lesson's text, and it is read once.
+    final source = await (bundle ?? rootBundle).loadString(bundleAsset, cache: false);
+    final files = (jsonDecode(source) as Map<String, dynamic>).cast<String, String>();
 
     final lessons = <CourseLesson>[];
-    for (final entry in entriesFrom(manifest.listAssets())) {
+    for (final entry in entriesFrom(files.keys)) {
       final translations = <String, Lesson>{};
       for (final MapEntry(key: locale, value: path) in entry.paths.entries) {
         try {
-          translations[locale] = Lesson.parse(await assets.loadString(path));
+          translations[locale] = Lesson.parse(files[path]!);
         } on FormatException catch (error) {
           throw FormatException('$path: ${error.message}');
         }
@@ -142,7 +151,7 @@ class Course {
     return index == -1 || index + 1 == siblings.length ? null : siblings[index + 1];
   }
 
-  /// Groups asset paths into lessons. Separate from [load] so the naming rules
+  /// Groups file paths into lessons. Separate from [load] so the naming rules
   /// are testable without an asset bundle.
   static List<LessonEntry> entriesFrom(Iterable<String> assets) {
     final grouped = <String, LessonEntry>{};

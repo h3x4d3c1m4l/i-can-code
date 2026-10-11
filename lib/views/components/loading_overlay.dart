@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/progress_ring.dart';
 
 /// A card holding a spinner, a message and an optional second line. Covers
 /// anything a screen waits on once the app is already running.
@@ -13,7 +14,11 @@ class LoadingOverlay extends StatelessWidget {
   /// An optional quieter second line — a retry count, say.
   final String? detail;
 
-  const LoadingOverlay({required this.message, this.detail, super.key});
+  /// How far along the wait is, from 0 to 1, when that is known. The spinner
+  /// then stands still and fills. Null, the default, keeps it spinning.
+  final double? progress;
+
+  const LoadingOverlay({required this.message, this.detail, this.progress, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,7 @@ class LoadingOverlay extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const FCircularProgress(),
+              ProgressRing(value: progress),
               const SizedBox(width: 22),
               Flexible(
                 child: Column(

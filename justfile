@@ -30,8 +30,18 @@ watch-code:
 # Building
 ##
 
+# `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise points
+# at www.gstatic.com. The second step takes an unused font out of the build and
+# gives the page the sizes its progress ring measures against.
 build:
-  fvm flutter build web
+  fvm flutter build web --no-web-resources-cdn
+  fvm dart run tool/finish_web_build.dart build/web
+
+# Serves build/web on http://localhost:8080, with the two cross-origin isolation
+# headers `flutter run` is given in .vscode/launch.json. A plain static server
+# leaves isolation to the service worker in web/, which a hard reload skips.
+serve-build:
+  fvm dart run tool/serve_web_build.dart build/web
 
 test:
   fvm flutter test

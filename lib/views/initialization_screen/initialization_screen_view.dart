@@ -57,6 +57,7 @@ class InitializationScreenView extends ScreenViewBase<InitializationScreenViewMo
       // Only shown once something has gone wrong, so a normal cold start stays
       // a single quiet line.
       detail: viewModel.retries > 0 ? localizations.initializationScreen_retrying(viewModel.retries) : null,
+      progress: viewModel.startup.fraction,
     );
   }
 

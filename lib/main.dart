@@ -12,6 +12,7 @@ import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/services/tour_store.dart';
 
@@ -59,6 +60,7 @@ void setupServices() {
     ..registerSingleton<CodeDraftStore>(CodeDraftStore())
     ..registerSingleton<TourStore>(TourStore())
     ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning())
+    ..registerSingleton<StartupProgress>(StartupProgress())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));
 }
