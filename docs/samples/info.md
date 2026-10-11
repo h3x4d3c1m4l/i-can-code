@@ -25,6 +25,12 @@ and is drawn on the editor's own dark card, but the student cannot type in it.
 print("Hello, world")
 ```
 
+A list whose items all open with an emoji is drawn with that emoji in place of
+the bullet:
+
+- 📖 An `info` step is read, never run.
+- 🧩 A worked example stays in the prose.
+
 ### A foldable subheading
 
 Every `###` inside a section's prose becomes a block the student can fold away by

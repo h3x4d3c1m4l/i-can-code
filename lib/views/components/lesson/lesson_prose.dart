@@ -7,6 +7,7 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
+import 'package:i_can_code/views/components/lesson/emoji_bullet_list.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -78,6 +79,139 @@ List<ProseGroup> splitProseOnSubheadings(String markdown) {
   flush();
 
   return groups.isEmpty ? const [ProseGroup(heading: null, body: '')] : groups;
+}
+
+/// One item of a [ProseEmojiList]: its emoji, and its markdown without the
+/// list marker or the emoji.
+typedef EmojiListItem = ({String emoji, String body});
+
+/// A stretch of a section's prose that is drawn in one piece.
+sealed class ProseBlock {
+
+  const ProseBlock();
+
+}
+
+/// Markdown the renderer takes as it is.
+class ProseMarkdown extends ProseBlock {
+
+  final String markdown;
+
+  const ProseMarkdown(this.markdown);
+
+}
+
+/// A list whose every item opens with an emoji, drawn where its bullet would
+/// be.
+class ProseEmojiList extends ProseBlock {
+
+  final List<EmojiListItem> items;
+
+  const ProseEmojiList(this.items);
+
+}
+
+/// [markdown], cut into the lists an emoji marks and the prose between them.
+///
+/// A list counts when it starts at the left margin and **every** item opens
+/// with an emoji and a space. One item without leaves the whole list to the
+/// renderer, bullets and all, so a list is never drawn half each way.
+///
+/// An item runs on over the lines indented under it, and the list ends at the
+/// first line that is neither an item, indented nor blank. A line that
+/// continues an item MUST therefore be indented.
+///
+/// A list inside a fenced block is code and stays where it is. Markdown with no
+/// such list comes back as a single [ProseMarkdown], which is what keeps a step
+/// without one rendering exactly as it did before.
+List<ProseBlock> splitProseOnEmojiLists(String markdown) {
+  final fence = RegExp(r'^\s*(?:```|~~~)');
+  final marker = RegExp(r'^[-*+][ \t]+');
+  // A character that is an emoji only with U+FE0F behind it, such as `©`, is
+  // text without one, and a flag is two regional indicators.
+  const emoji =
+      r'(?:[\u{1F1E6}-\u{1F1FF}]{2}|(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\u{FE0F})[\u{1F3FB}-\u{1F3FF}]?)';
+  final emojiItem = RegExp('^([-*+][ \\t]+)($emoji(?:\\u{200D}$emoji)*)[ \\t]+(\\S.*)\$', unicode: true);
+
+  final blocks = <ProseBlock>[];
+  final prose = <String>[];
+
+  void flushProse() {
+    final text = prose.join('\n').trim();
+    if (text.isNotEmpty) {
+      blocks.add(ProseMarkdown(text));
+    }
+    prose.clear();
+  }
+
+  /// The items of the list in [lines], or null when one of them has no emoji.
+  List<EmojiListItem>? itemsOf(List<String> lines) {
+    final items = <EmojiListItem>[];
+    var textStart = 0;
+
+    for (final line in lines) {
+      final match = emojiItem.firstMatch(line);
+      if (match != null) {
+        textStart = match.group(1)!.length;
+        items.add((emoji: match.group(2)!, body: match.group(3)!));
+      } else if (marker.hasMatch(line)) {
+        return null;
+      } else {
+        // Only as far as the item's own text began, so a nested list or a code
+        // block under it keeps the indentation that makes it one.
+        final continued = line.replaceFirst(RegExp('^[ \\t]{0,$textStart}'), '');
+        final last = items.removeLast();
+        items.add((emoji: last.emoji, body: '${last.body}\n$continued'));
+      }
+    }
+
+    return [for (final item in items) (emoji: item.emoji, body: item.body.trimRight())];
+  }
+
+  final lines = markdown.split('\n');
+  var inFence = false;
+  var index = 0;
+
+  while (index < lines.length) {
+    final line = lines[index];
+    if (fence.hasMatch(line)) {
+      inFence = !inFence;
+    }
+
+    if (inFence || !marker.hasMatch(line)) {
+      prose.add(line);
+      index++;
+      continue;
+    }
+
+    // Up to the list's last line of text. The blank lines after it stay with
+    // the prose: a list handed back to the renderer needs them, or the
+    // paragraph below would be read as part of its last item.
+    var end = index + 1;
+    for (var next = end; next < lines.length; next++) {
+      final follows = lines[next];
+      if (follows.trim().isEmpty) {
+        continue;
+      }
+      if (!marker.hasMatch(follows) && !follows.startsWith(RegExp(r'[ \t]'))) {
+        break;
+      }
+      end = next + 1;
+    }
+
+    final list = lines.sublist(index, end);
+    final items = itemsOf(list);
+    if (items == null) {
+      prose.addAll(list);
+    } else {
+      flushProse();
+      blocks.add(ProseEmojiList(items));
+    }
+    index = end;
+  }
+  flushProse();
+
+  return blocks.isEmpty ? const [ProseMarkdown('')] : blocks;
 }
 
 /// A section's prose, rendered in the app's type scale.
@@ -203,9 +337,9 @@ class LessonProse extends StatelessWidget {
     // A fresh builder per [MarkdownBody]: [_CodeBlockBuilder] carries the fence's
     // language between two visitor calls, so one instance MUST NOT be shared by
     // two trees.
-    MarkdownBody render(String data) => MarkdownBody(
+    MarkdownBody render(String data, {MarkdownStyleSheet? styleSheet}) => MarkdownBody(
       data: data,
-      styleSheet: sheet,
+      styleSheet: styleSheet ?? sheet,
       // Without it the package draws a link and ignores the press. A new tab,
       // because leaving the app's own tab throws away the step in progress.
       onTapLink: (_, href, _) {
@@ -228,9 +362,42 @@ class LessonProse extends StatelessWidget {
         ? Padding(padding: const EdgeInsets.only(left: CollapsibleProseGroup.gutter), child: child)
         : child;
 
+    // What the package's own list item has: text straight inside it, without
+    // the inset a paragraph carries below itself.
+    final itemSheet = sheet.copyWith(pPadding: EdgeInsets.zero);
+
+    // An emoji list is drawn here and not by the package. Its `bulletBuilder`
+    // is told an item's index and never its text, so it cannot know which
+    // emoji to draw.
+    Widget blocks(String data) {
+      final parts = splitProseOnEmojiLists(data);
+      if (parts case [ProseMarkdown(markdown: final only)]) {
+        return render(only);
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (index, part) in parts.indexed) ...[
+            // The package spaces sibling blocks inside one body only.
+            if (index > 0) const SizedBox(height: _blockSpacing),
+            switch (part) {
+              ProseMarkdown(markdown: final prose) => render(prose),
+              ProseEmojiList(:final items) => EmojiBulletList(
+                items: [for (final item in items) (emoji: item.emoji, child: render(item.body, styleSheet: itemSheet))],
+                style: body,
+                spacing: _blockSpacing,
+              ),
+            },
+          ],
+        ],
+      );
+    }
+
     final groups = splitProseOnSubheadings(markdown);
     if (groups.length == 1 && groups.single.heading == null) {
-      return aligned(render(groups.single.body));
+      return aligned(blocks(groups.single.body));
     }
 
     final headingStyle = tokens.text.h3.copyWith(fontSize: 20);
@@ -248,10 +415,10 @@ class LessonProse extends StatelessWidget {
               // The first group opens the step, so it has nothing to be spaced
               // from. The rest carry the gap the style sheet used to.
               headingPadding: EdgeInsets.only(top: index == 0 ? 0 : _headingSpacing, bottom: 4),
-              child: render(group.body),
+              child: blocks(group.body),
             )
           else
-            aligned(render(group.body)),
+            aligned(blocks(group.body)),
       ],
     );
   }

@@ -12,7 +12,7 @@ fvm dart run tool/try_lesson.dart docs/samples/predict-output.md 0   # see the a
 
 | File | `type` | What it shows |
 | --- | --- | --- |
-| [info.md](info.md) | `info` | Prose only, a worked example, and `###` foldable subheadings including `{collapsed}` |
+| [info.md](info.md) | `info` | Prose only, a worked example, a list with emoji for bullets, and `###` foldable subheadings including `{collapsed}` |
 | [quick-exercise.md](quick-exercise.md) | `quick-exercise` | One-line answer: assignment and validator, stacked in one column |
 | [exercise.md](exercise.md) | `exercise` | The two-column form, with a fuller validator |
 | [match-pairs.md](match-pairs.md) | `match-pairs` | A `pairs` block — the board is the check |

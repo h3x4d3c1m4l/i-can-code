@@ -168,6 +168,63 @@ void main() {
     });
   });
 
+  group('splitProseOnEmojiLists', () {
+    test('prose without such a list comes back as one block of markdown', () {
+      final blocks = splitProseOnEmojiLists('Tekst.\n\n- een\n- twee\n\nNa.');
+
+      expect(blocks, hasLength(1));
+      expect((blocks.single as ProseMarkdown).markdown, 'Tekst.\n\n- een\n- twee\n\nNa.');
+    });
+
+    test('a list whose items all open with an emoji is cut out of the prose around it', () {
+      final blocks = splitProseOnEmojiLists('Voor.\n\n- ❓ een\n- 🏷️ twee\n\nNa.');
+
+      expect(blocks, hasLength(3));
+      expect((blocks[0] as ProseMarkdown).markdown, 'Voor.');
+      expect((blocks[1] as ProseEmojiList).items, [(emoji: '❓', body: 'een'), (emoji: '🏷️', body: 'twee')]);
+      expect((blocks[2] as ProseMarkdown).markdown, 'Na.');
+    });
+
+    test('one item without an emoji leaves the whole list to the renderer', () {
+      final blocks = splitProseOnEmojiLists('- ❓ een\n- twee\n\nNa.');
+
+      expect(blocks, hasLength(1));
+      expect((blocks.single as ProseMarkdown).markdown, '- ❓ een\n- twee\n\nNa.');
+    });
+
+    test('an emoji needs a space and text behind it', () {
+      for (final list in ['- ❓', '- ❓een', '- © een']) {
+        expect(splitProseOnEmojiLists(list).single, isA<ProseMarkdown>(), reason: list);
+      }
+    });
+
+    test('an emoji made of several code points stays whole', () {
+      final blocks = splitProseOnEmojiLists('- 👩‍💻 een\n- 👍🏽 twee\n- 🇳🇱 drie');
+
+      expect((blocks.single as ProseEmojiList).items.map((item) => item.emoji), ['👩‍💻', '👍🏽', '🇳🇱']);
+    });
+
+    test('a line indented under an item belongs to it, less the indentation', () {
+      final blocks = splitProseOnEmojiLists('- ❓ een\n\n  ```python\n  if x:\n      print(x)\n  ```\n- 🏷️ twee');
+
+      final items = (blocks.single as ProseEmojiList).items;
+      expect(items.first.body, 'een\n\n```python\nif x:\n    print(x)\n```');
+      expect(items.last.body, 'twee');
+    });
+
+    test('a list inside a fence is code, not a list', () {
+      final blocks = splitProseOnEmojiLists('```text\n- ❓ een\n```');
+
+      expect(blocks.single, isA<ProseMarkdown>());
+    });
+
+    test('a nested list is left to the renderer', () {
+      final blocks = splitProseOnEmojiLists('- een\n  - ❓ twee');
+
+      expect(blocks.single, isA<ProseMarkdown>());
+    });
+  });
+
   group('LessonProse', () {
     testWidgets('renders every section of the fixture without throwing', (tester) async {
       for (final section in lesson.sections) {
@@ -404,6 +461,37 @@ void main() {
         find.ancestor(of: find.textContaining('print("Hello, world")'), matching: find.byType(SizedBox)).first,
       );
       expect(box.size.width, 700, reason: 'the host is 700 wide; a one-line example must not shrink-wrap');
+    });
+
+    testWidgets('an emoji list draws each emoji where the bullet would be', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: 'Voor.\n\n- ❓ `input` stelt een vraag\n- 🏷️ twee')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('•'), findsNothing);
+      // Out of the item's own text, or it would be drawn twice.
+      expect(find.textContaining('❓'), findsOneWidget);
+      expect(tester.getRect(find.text('❓')).right, tester.getRect(find.textContaining('stelt een vraag')).left);
+      expect(tester.getRect(find.text('❓')).left, tester.getRect(find.textContaining('Voor.')).left);
+    });
+
+    testWidgets('an emoji list is spaced the way an ordinary list is', (tester) async {
+      Future<List<double>> tops(String list) async {
+        await tester.pumpWidget(_host(LessonProse(markdown: 'Voor.\n\n$list\n\nNa.')));
+        await tester.pumpAndSettle();
+
+        return [
+          for (final text in ['Voor.', 'een', 'twee', 'Na.']) tester.getRect(find.textContaining(text)).top,
+        ];
+      }
+
+      expect(await tops('- ❓ een\n- 🏷️ twee'), await tops('- een\n- twee'));
+    });
+
+    testWidgets('a list without emoji keeps its bullets', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: '- een\n- twee')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('•'), findsNWidgets(2));
     });
   });
 

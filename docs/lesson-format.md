@@ -427,6 +427,34 @@ Three things to know:
 - **`####` and deeper are left alone.** They render as ordinary headings inside
   whichever group they fall in.
 
+## A list of emoji — each item its own bullet
+
+A list whose items all open with an emoji is drawn with that emoji in place of
+the bullet. The text starts after it, so a line that wraps stays clear of the
+emoji the way it stays clear of a bullet.
+
+```markdown
+- ❓ `input` asks a question and waits for Enter.
+- 🏷️ What was typed comes back, so keep it in a variable.
+- 🔤 It is always text, even when only digits were typed.
+```
+
+Four things to know:
+
+- **Every item, or none.** One item without an emoji and the whole list keeps
+  its bullets, emoji and all, so a list is never drawn half each way.
+- **An emoji, a space, then text.** `- ❓` on its own and `- ❓text` are ordinary
+  items. So is `- © text`: a character that needs a variation selector to be an
+  emoji is text without one.
+- **Only a list at the left margin.** A list nested under another item is left
+  to the renderer, and so is one inside a fenced block.
+- **A line that continues an item MUST be indented.** Markdown lets a paragraph
+  run on unindented under its item; here that line ends the list and becomes a
+  paragraph below it.
+
+Anywhere else that reads the file, a preview on GitHub included, it is still an
+ordinary list with an emoji at the start of each item.
+
 ## Why the role rides in the fence language
 
 Five words are reserved outright rather than read as a language: `metadata`,
