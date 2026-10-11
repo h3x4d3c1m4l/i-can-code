@@ -5,6 +5,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -109,6 +111,18 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
               ),
             ],
           ),
+          FItemGroup(
+            children: [
+              FItem(
+                title: Text(context.localizations.appHeader_licenses),
+                prefix: const Icon(FLucideIcons.scale),
+                onPress: () {
+                  unawaited(_controller.hide());
+                  unawaited(_openLicenses());
+                },
+              ),
+            ],
+          ),
         ],
         child: HeaderIconButton(
           icon: FLucideIcons.settings,
@@ -117,6 +131,18 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
         ),
       ),
     );
+  }
+
+  /// Opens the licence screen on top of whatever the reader was on, so the
+  /// browser's Back button returns them to it.
+  ///
+  /// Through the router in GetIt and not `context.router`: the bar sits above
+  /// the router, so there is none to find from here.
+  Future<void> _openLicenses() async {
+    final router = GetIt.I<AppRouter>();
+    if (router.current.name == LicensesRoute.name) return;
+
+    await router.push(const LicensesRoute());
   }
 
   /// Asks before forgetting. Irreversible.

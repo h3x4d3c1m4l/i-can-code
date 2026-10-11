@@ -73,6 +73,16 @@ flutter:
     # fetch-microbit-firmware` has run; see docs/rust-core-build.md.
     - assets/microbit/
 
+    # Licence texts for what Flutter's own NOTICES does not cover, read by the
+    # licence screen. Listed in `kBundledLicenses`; see docs/licenses.md.
+    - assets/licenses/
+    - assets/python/licenses/
+    - assets/microbit/licenses/
+    - assets/fonts/OFL-Fredoka.txt
+    - assets/fonts/OFL-Lexend.txt
+    - assets/fonts/OFL-JetBrainsMono.txt
+    - assets/fonts/OFL-NotoColorEmoji.txt
+
   fonts:
     - family: Fredoka
       fonts:

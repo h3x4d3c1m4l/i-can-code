@@ -1,0 +1,17 @@
+{{!
+  Writes Flutter's own NOTICES format, which is what the licence screen reads:
+  the crates a text covers, one per line, a blank line, the text, and a line of
+  80 hyphens after each. Whitespace is load-bearing here, so the pairs of tags
+  below stay on the lines they are on.
+
+  A crate with no `source` is a path dependency: this workspace's own code, or
+  the standard library's in-tree crates when run over its manifest. Neither has
+  a licence file for cargo-about to find, and it would print the SPDX template
+  for them, so a text whose first crate is one is left out. Path crates sort
+  first, which is why looking at the first is enough.
+}}
+{{#each licenses}}{{#if used_by.0.crate.source}}{{#each used_by}}{{crate.name}}
+{{/each}}{{!}}
+{{{text}}}{{!}}
+--------------------------------------------------------------------------------
+{{/if}}{{/each~}}

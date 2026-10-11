@@ -95,8 +95,8 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
     AutoRoute(page: SubjectsRoute.page, initial: true, path: '/'),
-    // Before the catch-all below, which would otherwise claim it.
     AutoRoute(page: InitializationRoute.page, path: '/initialization'),
+    AutoRoute(page: LicensesRoute.page, path: '/licenses'),
     AutoRoute(page: CatalogRoute.page, path: '/:subjectSlug'),
     // Above the lesson addresses below, which it would otherwise match as a
     // lesson called "repl". Same arrangement as /initialization above the

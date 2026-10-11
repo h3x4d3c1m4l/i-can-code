@@ -39,23 +39,9 @@ class PredictionField extends StatelessWidget {
     super.key,
   });
 
-  /// forui's own border for [state], as a squircle.
-  ///
-  /// The colours are the ones forui picks for each state, read back off the
-  /// theme rather than chosen here: a field only has a corner problem, and
-  /// picking a border colour at a call site is how a control ends up illegible
-  /// in one preset.
-  static SquircleInputBorder _border(BuildContext context, Color color) => SquircleInputBorder(
-    // The card it is compared against, not forui's `md`: the prediction and the
-    // output it is held against sit side by side and are read as a pair.
-    radius: kCardCornerRadius,
-    borderSide: BorderSide(color: color, width: context.theme.style.borderWidth),
-  );
-
   @override
   Widget build(BuildContext context) {
     final tokens = context.appTheme;
-    final colors = context.theme.colors;
 
     return FTextField.multiline(
       control: .managed(controller: controller, onChange: (value) => onChange(value.text)),
@@ -71,28 +57,11 @@ class PredictionField extends StatelessWidget {
       style: FTextFieldStyleDelta.delta(
         // Every rounded corner in the app is a squircle, and a text field is the
         // one control that cannot take a `ShapeBorder` — see
-        // `SquircleInputBorder`. Restating all five states is what an override
-        // costs here: the border carries its own colour, so replacing one
-        // replaces the colour with it.
-        border: FVariantsValueDelta.delta([
-          FVariantValueDeltaOperation.base(_border(context, colors.border)),
-          FVariantValueDeltaOperation.exact(
-            {FTextFieldVariantConstraint.focused},
-            _border(context, colors.primary),
-          ),
-          FVariantValueDeltaOperation.exact(
-            {FTextFieldVariantConstraint.disabled},
-            _border(context, colors.disable(colors.border)),
-          ),
-          FVariantValueDeltaOperation.exact(
-            {FTextFieldVariantConstraint.error},
-            _border(context, colors.error),
-          ),
-          FVariantValueDeltaOperation.exact(
-            {FTextFieldVariantConstraint.error, FTextFieldVariantConstraint.disabled},
-            _border(context, colors.disable(colors.error)),
-          ),
-        ]),
+        // `SquircleInputBorder`.
+        //
+        // The card it is compared against, not forui's `md`: the prediction and
+        // the output it is held against sit side by side and are read as a pair.
+        border: squircleFieldBorder(context, radius: kCardCornerRadius),
         contentTextStyle: FVariantsDelta.delta([
           FVariantOperation.all(
             TextStyleDelta.delta(

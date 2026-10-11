@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/theme/theme.dart';
-import 'package:i_can_code/views/catalog_screen/components/catalog_group_heading.dart';
+import 'package:i_can_code/views/components/catalog_group_heading.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
 
 /// What the catalog's widgets need: the app theme, the localizations, and an

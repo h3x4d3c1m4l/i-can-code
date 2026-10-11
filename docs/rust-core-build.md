@@ -120,6 +120,9 @@ it.
 They run on stable rather than the pinned nightly. Only the wasm build needs
 nightly, and the crate's own source has to stay stable-clean.
 
+Last, `just check-rust-licenses`: the crates' licence texts are committed, and
+this fails when they no longer match `Cargo.lock`. See `docs/licenses.md`.
+
 The codegen version comes out of `pubspec.lock`. The codegen, the pub package and
 the crate MUST be the same version, and hardcoding it in the workflow would make
 that a fourth place to keep in step.

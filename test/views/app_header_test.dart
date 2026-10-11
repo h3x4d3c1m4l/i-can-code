@@ -329,7 +329,7 @@ void main() {
 
     // The last item sits in the panel's bottom corners, which is where a
     // mismatch shows.
-    final item = find.text('Voortgang wissen');
+    final item = find.text('Licenties');
     const inset = 4.0;
     final panel = boxOf(item, kControlCornerRadius);
     final fill = boxOf(item, concentricRadius(kControlCornerRadius, inset: inset));

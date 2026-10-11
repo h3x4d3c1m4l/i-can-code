@@ -510,5 +510,48 @@
   "projectScreen_skipped": "Skipped",
   "projectScreen_output": "Output",
   "projectScreen_notConnected": "No micro:bit connected",
-  "projectScreen_read": "Read"
+  "projectScreen_read": "Read",
+  "appHeader_licenses": "Licenses",
+  "@appHeader_licenses": {
+    "description": "The settings menu item that opens the licence screen."
+  },
+  "licensesScreen_title": "Licenses",
+  "@licensesScreen_title": {},
+  "licensesScreen_intro": "I Can Code is open source. This page has the license of the app itself and the licenses of everything it ships with.",
+  "@licensesScreen_intro": {},
+  "licensesScreen_source": "View the source code",
+  "@licensesScreen_source": {},
+  "licensesScreen_search": "Find a component",
+  "@licensesScreen_search": {},
+  "licensesScreen_empty": "Nothing found.",
+  "@licensesScreen_empty": {},
+  "licensesScreen_count": "{count, plural, =1{1 license} other{{count} licenses}}",
+  "@licensesScreen_count": {
+    "description": "How many licence texts cover one component, shown when there is more than one.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "licensesScreen_back": "All components",
+  "@licensesScreen_back": {
+    "description": "On a narrow window, the button that leads from one component back to the list of all of them."
+  },
+  "licensesScreen_originApp": "This app",
+  "@licensesScreen_originApp": {
+    "description": "The heading over the app's own licence, in the list of components."
+  },
+  "licensesScreen_originFonts": "Fonts",
+  "@licensesScreen_originFonts": {},
+  "licensesScreen_originOther": "Other",
+  "@licensesScreen_originOther": {},
+  "licensesScreen_loading": "Loading licenses",
+  "@licensesScreen_loading": {},
+  "licensesScreen_failedTitle": "The licenses could not be loaded",
+  "@licensesScreen_failedTitle": {},
+  "licensesScreen_failedBody": "Something went wrong while reading the license texts. Try again.",
+  "@licensesScreen_failedBody": {},
+  "licensesScreen_retry": "Try again",
+  "@licensesScreen_retry": {}
 }

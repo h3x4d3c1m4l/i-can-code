@@ -1,6 +1,18 @@
 import 'package:get_it/get_it.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+/// The app's own package name, as `pubspec.yaml` states it.
+///
+/// Flutter files the `LICENSE` at the repository root under this name, which is
+/// how the licence screen finds the app's own licence among its dependencies'.
+const String kAppPackage = 'i_can_code';
+
+/// Where the app's source is published.
+///
+/// The licence screen links to it: the Mozilla Public License (section 3.2)
+/// has every build tell its reader where the source can be had.
+const String kSourceUrl = 'https://github.com/h3x4d3c1m4l/i-can-code';
+
 /// Reads the running build's own metadata and registers it, so a screen can ask
 /// for it without waiting on anything.
 ///

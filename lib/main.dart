@@ -4,6 +4,7 @@ import 'package:i_can_code/app.dart';
 import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/licenses/bundled_licenses.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
@@ -43,6 +44,10 @@ Future<void> main() async {
 /// loaded, so reaching any screen past it guarantees it is there.
 void setupServices() {
   final python = createPythonRuntime();
+
+  // A callback and nothing else: the texts are read when the licence screen
+  // first asks for them.
+  registerBundledLicenses();
 
   GetIt.I
     ..registerSingleton<AppRouter>(AppRouter())

@@ -177,6 +177,14 @@ if unzip -Z1 "$STDLIB_ZIP_ABS" | grep '\.py$' >/dev/null; then
   echo "WARNING: .py files survived in the stdlib; the zip is larger and slower than it should be." >&2
 fi
 
+# ------------------------------------------------------------------ licences
+#
+# Beside the two artifacts, for the versions they were just built from: the
+# licence screen shows these, and a bump here MUST NOT leave the old texts
+# behind. See docs/licenses.md.
+echo "==> fetching licence texts"
+"$(dirname "$0")/fetch_python_licenses.sh" "$PYTHON_VERSION" "$WASI_SDK_VERSION" "$OUT_DIR/licenses"
+
 echo
 echo "==> done"
 ls -lh "$OUT_DIR/python.wasm" "$STDLIB_ZIP_ABS"

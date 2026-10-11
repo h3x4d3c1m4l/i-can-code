@@ -56,6 +56,8 @@ minutes of compute.
 3. Strips the result, compiles a copy of the standard library to bytecode, and
    packs it. The copy is what keeps the source tree whole, so the script can be
    run again over the same `.python-wasm-build/`.
+4. Fetches the licence texts of what it just built into
+   `assets/python/licenses/`, for the licence screen. See `docs/licenses.md`.
 
 Output, both committed as Flutter assets:
 

@@ -29,6 +29,7 @@ fvm dart run tool/try_lesson.dart <lesson.md> <n> --code 'print(1)' # run one, s
 
 just build-rust-core                # regenerate the bridge and rebuild web/pkg/
 just test-rust                          # the Rust core's own tests
+just gen-rust-licenses                  # rewrite the crates' licence texts, after a Cargo.lock change
 ```
 
 The `just` recipes need a Rust toolchain, and so does CI, which runs the same
@@ -295,6 +296,7 @@ No service worker means no console — private browsing, storage disabled, no ht
 
 ```text
 /                                              the subject picker
+/licenses                                      the licences of the app and of what it ships
 /learn-python                                  that subject's lessons
 /learn-python/uitvoer                          resume: wherever you left off
 /learn-python/uitvoer/zelf-printen             one step, named by its section id
@@ -316,7 +318,7 @@ The step is a **`LessonSection.id`, never a position** — the same reason progr
 
 `test/routing/app_router_test.dart` builds the router, which is the only place that validation happens. Add to it when you touch the table — a green analyze and a green build prove nothing here.
 
-`/:subjectSlug` is a catch-all, so `/initialization` must stay declared above it.
+`/:subjectSlug` is a catch-all, so `/initialization` and `/licenses` must stay declared above it.
 
 ### Progress
 
@@ -588,7 +590,7 @@ Everything in it today serves one subject — a BBC micro:bit on the other end o
 
 Rust rather than Dart because `nusb` already has backends for WebUSB, usbfs/Android, WinUSB and IOKit behind one API, so Android and desktop are a transport arm rather than a second implementation of 2200 lines of debug protocol. **iOS is permanently out of scope** — Apple gives App Store apps no USB host API, and no library version changes that.
 
-**Nothing the core generates is committed.** `lib/src/rust/`, `rust/src/frb_generated.rs` and `web/pkg/` are all gitignored, and one workflow builds and checks the whole thing on every PR and every deploy. A cold wasm build is about a minute, which is what `-Z build-std` costs; `Swatinem/rust-cache` keeps `rust/target` between runs. `assets/python/python.wasm` stays committed because that one is a fifteen-minute CPython cross-compile, not a minute of cargo.
+**Nothing the core generates is committed**, the crates' licence texts aside (see *Licences*). `lib/src/rust/`, `rust/src/frb_generated.rs` and `web/pkg/` are all gitignored, and one workflow builds and checks the whole thing on every PR and every deploy. A cold wasm build is about a minute, which is what `-Z build-std` costs; `Swatinem/rust-cache` keeps `rust/target` between runs. `assets/python/python.wasm` stays committed because that one is a fifteen-minute CPython cross-compile, not a minute of cargo.
 
 Everything under `web/` is copied into the build, so `web/pkg/` needs no `pubspec.yaml` entry and `RustLib.init()` finds it at `pkg/`.
 
@@ -601,6 +603,24 @@ Three rules constrain the bridge API, all three from the environment and none of
 - **`requestDevice()` exists only in `Window` scope**, while `getDevices()` also exists in a worker. So Dart asks for permission on the main thread and Rust picks the device up with `list_devices()`.
 
 The Dart side is `lib/services/microbit/`, shaped like `lib/services/python/`: a conditional import with the **stub as the default clause**, so the Dart VM that `flutter test` runs on gets `isSupported == false` rather than an exception. `WebMicrobitLink` owns `RustLib.init()` and is the only thing that may call it — loading the core is **not** an initialization step, because a student who never plugs in a board must not wait for it or be shown its failure. It is created by the screen that uses it and is deliberately not in `setupServices()`, the same as `PythonRepl`.
+
+### Licences
+
+The app is under MPL 2.0, the `LICENSE` at the repository root. `LicensesScreen` (`/licenses`, *Licenties* in the cog) shows that licence and the licence of everything the app ships. `docs/licenses.md` says where each text comes from and what was checked about them going together. **Read it before adding something the app ships that is not a pub package or a crate.**
+
+It is the app's `LicensePage`, which is Material. Everything still goes through Flutter's `LicenseRegistry`, which is not:
+
+- **Flutter's NOTICES** covers the pub packages and the engine. The app is a package too, so the root `LICENSE` is in there under `kAppPackage` without anything being done for it.
+- **`kBundledLicenses`** (`lib/services/licenses/`) is the rest: CPython and what it is linked against, the crates, the firmware, the fonts. Each is a text file shipped as an asset, beside what it is the licence of. `registerBundledLicenses()` adds them from `setupServices()`, and reads nothing until the screen is opened.
+
+Things that are easy to get wrong:
+
+- **The Rust texts are committed, and CI holds them.** Rust has no registry of its own, so `just gen-rust-licenses` collects them with cargo-about into `assets/licenses/`. That is the one thing the core generates that is in git: `flutter test` has to pass on a checkout that never built the core. `just check-rust-licenses` fails CI when they are stale, so run the first after a `cargo update` or a toolchain bump.
+- **`accepted` in `rust/about.toml` is the gate.** A crate under a licence it does not name fails the run. That is what keeps copyleft out of a `cargo update`. Nothing does the same for a pub package.
+- **A text is shown as its author wrote it**, line for line in the code face. `LicenseEntry.paragraphs` rejoins lines, which turns the table in a licence into one run of words.
+- **`LicenseCatalog.load` does not `await for` the registry.** That cancels on the first error, in the middle of the registry's `addStream`, and under a widget test's fake clock the cancel never completes.
+- **The test binding registers no licences.** `LicenseRegistry.licenses` is empty in a test until the test adds to it, so a test of the real texts reads `NOTICES.Z` out of the bundle.
+- **The screen links to the source**, `kSourceUrl`. MPL 2.0 has every build say where its source is.
 
 ### Localization
 

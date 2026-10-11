@@ -18,6 +18,7 @@ void main() {
     for (final path in [
       '/',
       '/initialization',
+      '/licenses',
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
@@ -39,6 +40,15 @@ void main() {
     // survives a replace. Equal within a lesson, different across lessons.
     expect(first.args!.key, later.args!.key);
     expect(first.args!.key, isNot(other.args!.key));
+  });
+
+  test('the licences have their own address, ahead of the subject addresses', () {
+    // One segment, the same count as a subject, so it must be declared above
+    // that route rather than be read as a subject called "licenses".
+    final matched = AppRouter().matcher.match('/licenses');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'LicensesRoute');
   });
 
   test('the console has its own address, ahead of the lesson addresses', () {

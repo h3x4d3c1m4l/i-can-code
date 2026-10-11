@@ -6,6 +6,8 @@ import 'package:i_can_code/theme/app_theme.dart';
 /// course, say. The words come from the lessons themselves; see
 /// `Lesson.group`.
 ///
+/// The licence screen sets one over each origin in its list as well.
+///
 /// Small and set in capitals, in the style the output card names its blocks
 /// in, rather than as another `h2`: it names the cards under it without
 /// competing with them, and the page's real headings — the subject, the

@@ -4,7 +4,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/extensions/color_extension.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/catalog_screen/components/bar_clearance_sliver.dart';
-import 'package:i_can_code/views/catalog_screen/components/catalog_group_heading.dart';
+import 'package:i_can_code/views/components/catalog_group_heading.dart';
 
 /// A [CatalogGroupHeading] that sticks under the bar while the lessons of its
 /// group pass under it, so a student scrolling the catalog can always tell

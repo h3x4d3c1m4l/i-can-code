@@ -1,6 +1,37 @@
 import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:material_ui/material_ui.dart' show InputBorder;
+
+/// Every border a forui text field draws, as a squircle of [radius].
+///
+/// All five states are restated because an override costs that much here: the
+/// border carries its own colour, so replacing one replaces the colour with
+/// it. The colours are the ones forui picks for each state, read back off the
+/// theme rather than chosen here: a field only has a corner problem, and
+/// picking a border colour at a call site is how a control ends up illegible
+/// in one preset.
+FVariantsValueDelta<FTextFieldVariantConstraint, FTextFieldVariant, InputBorder, Delta> squircleFieldBorder(
+  BuildContext context, {
+  required double radius,
+}) {
+  final colors = context.theme.colors;
+  final width = context.theme.style.borderWidth;
+
+  SquircleInputBorder border(Color color) =>
+      SquircleInputBorder(radius: radius, borderSide: BorderSide(color: color, width: width));
+
+  return FVariantsValueDelta.delta([
+    FVariantValueDeltaOperation.base(border(colors.border)),
+    FVariantValueDeltaOperation.exact({FTextFieldVariantConstraint.focused}, border(colors.primary)),
+    FVariantValueDeltaOperation.exact({FTextFieldVariantConstraint.disabled}, border(colors.disable(colors.border))),
+    FVariantValueDeltaOperation.exact({FTextFieldVariantConstraint.error}, border(colors.error)),
+    FVariantValueDeltaOperation.exact(
+      {FTextFieldVariantConstraint.error, FTextFieldVariantConstraint.disabled},
+      border(colors.disable(colors.error)),
+    ),
+  ]);
+}
 
 /// The app's corner, in the one place that will not take a [ShapeBorder].
 ///

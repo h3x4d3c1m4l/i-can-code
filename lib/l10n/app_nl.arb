@@ -284,5 +284,27 @@
   "projectScreen_skipped": "Overgeslagen",
   "projectScreen_output": "Uitvoer",
   "projectScreen_notConnected": "Geen micro:bit verbonden",
-  "projectScreen_read": "Gelezen"
+  "projectScreen_read": "Gelezen",
+  "appHeader_licenses": "Licenties",
+  "licensesScreen_title": "Licenties",
+  "licensesScreen_intro": "I Can Code is open source. Hier staan de licentie van de app zelf en de licenties van alles wat erin zit.",
+  "licensesScreen_source": "Broncode bekijken",
+  "licensesScreen_search": "Zoek een onderdeel",
+  "licensesScreen_empty": "Niets gevonden.",
+  "licensesScreen_count": "{count, plural, =1{1 licentie} other{{count} licenties}}",
+  "@licensesScreen_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "licensesScreen_back": "Alle onderdelen",
+  "licensesScreen_originApp": "Deze app",
+  "licensesScreen_originFonts": "Lettertypen",
+  "licensesScreen_originOther": "Overig",
+  "licensesScreen_loading": "Licenties laden",
+  "licensesScreen_failedTitle": "De licenties konden niet geladen worden",
+  "licensesScreen_failedBody": "Er ging iets mis bij het ophalen van de licentieteksten. Probeer het opnieuw.",
+  "licensesScreen_retry": "Opnieuw proberen"
 }

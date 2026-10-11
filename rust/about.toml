@@ -1,0 +1,43 @@
+# What `cargo about` collects for the licence screen. `just gen-rust-licenses`
+# runs it; see docs/licenses.md.
+
+# A priority list, not a set: a crate offering `MIT OR Apache-2.0` is taken
+# under the first one named here. A crate under anything else fails the run,
+# which is the point. Read the licence before adding it.
+accepted = ["MIT", "Apache-2.0", "Unicode-3.0", "Zlib", "Unlicense"]
+
+# The only target the core ships for today. A native target brings its own
+# crates (tokio's whole tree, for one), so add it here when it arrives.
+targets = ["wasm32-unknown-unknown"]
+
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+
+# `rust_core` itself, which is the app and is under the LICENSE at the root.
+private = { ignore = true }
+
+# Crates published without their licence file. Left alone, cargo-about prints
+# the SPDX template for them, "Copyright (c) <year> <copyright holders>"
+# included. These read the real file from the commit the crate was published
+# from, and the checksum fails the run if that file ever changes.
+
+[flutter_rust_bridge.clarify]
+license = "MIT"
+
+[[flutter_rust_bridge.clarify.git]]
+path = "LICENSE"
+checksum = "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
+
+[flutter_rust_bridge_macros.clarify]
+license = "MIT"
+
+[[flutter_rust_bridge_macros.clarify.git]]
+path = "LICENSE"
+checksum = "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
+
+[gloo-timers.clarify]
+license = "MIT"
+
+[[gloo-timers.clarify.git]]
+path = "LICENSE-MIT"
+checksum = "5a6f5443ea473f130adbdcf84254761d1292bc79759b5253915d4b5e7afbef66"

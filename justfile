@@ -144,3 +144,58 @@ fetch-microbit-firmware:
 # Runs the Rust core's tests on stable, not the nightly the wasm build pins.
 test-rust:
   cd rust && cargo +stable test
+
+##
+# Licences
+##
+
+# The cargo-about release `gen-rust-licenses` runs on. CI installs this one.
+cargo_about_version := "0.9.2"
+
+# Rewrites the Rust core's licence texts under assets/licenses/. They are
+# committed, unlike the rest of what the core generates; see docs/licenses.md.
+gen-rust-licenses:
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  installed=$(cargo about --version 2>/dev/null | awk '{print $2}' || true)
+  if [ "$installed" != "{{cargo_about_version}}" ]; then
+    echo "ERROR: cargo-about is ${installed:-not installed}, and this recipe needs {{cargo_about_version}}." >&2
+    echo "       Run \`cargo install cargo-about --version {{cargo_about_version}} --locked --features cli\`." >&2
+    exit 1
+  fi
+
+  out="$PWD/assets/licenses"
+  cd rust
+
+  # `-Z build-std` compiles the standard library into the wasm, so its crates
+  # ship as well. Their manifest is in the pinned toolchain's rust-src.
+  std="$(rustc --print sysroot)/lib/rustlib/src/rust/library/std/Cargo.toml"
+
+  # Collected first and written once both runs are through, so a failed run
+  # cannot leave half a file to commit.
+  crates=$(mktemp)
+  trap 'rm -f "$crates"' EXIT
+  cargo about generate --locked about.hbs > "$crates"
+  cargo about generate --locked --manifest-path "$std" --config about-std.toml about.hbs >> "$crates"
+  cat "$crates" > "$out/rust-crates.txt"
+
+  # The standard library's own code has no licence file in rust-src. These are
+  # the Rust repository's, at the commit the pinned nightly was built from.
+  commit=$(rustc -vV | sed -n 's/^commit-hash: //p')
+  for file in COPYRIGHT LICENSE-MIT LICENSE-APACHE; do
+    curl -fsSL --retry 3 -o "$out/rust-$file.txt" "https://raw.githubusercontent.com/rust-lang/rust/$commit/$file"
+  done
+
+# Fails when the committed Rust licence texts are not what `gen-rust-licenses`
+# writes, which is what a changed Cargo.lock or toolchain pin leaves behind.
+check-rust-licenses: gen-rust-licenses
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  if [ -n "$(git status --porcelain -- 'assets/licenses/rust-*')" ]; then
+    echo "ERROR: the Rust licence texts under assets/licenses/ are stale." >&2
+    echo "       Run \`just gen-rust-licenses\` and commit what it changes." >&2
+    git --no-pager diff --stat -- 'assets/licenses/rust-*' >&2
+    exit 1
+  fi

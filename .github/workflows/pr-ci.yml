@@ -86,15 +86,20 @@ jobs:
       #
       # cargo-expand is what the codegen shells out to when it has to expand a
       # macro to see a type.
+      #
+      # cargo-about collects the crates' licence texts. Its version is the
+      # justfile's, which is the one `gen-rust-licenses` insists on.
       - name: Install the wasm toolchain
         run: |
           version=$(awk '/^  flutter_rust_bridge:/{f=1} f&&/^    version:/{gsub(/"/,"",$2); print $2; exit}' pubspec.lock)
           bindgen=$(awk '/^name = "wasm-bindgen"$/{f=1;next} f&&/^version/{gsub(/"/,"",$3); print $3; exit}' rust/Cargo.lock)
+          about=$(just --evaluate cargo_about_version)
           cargo binstall --force -y \
             cargo-expand \
             wasm-pack \
             "wasm-bindgen-cli@$bindgen" \
-            "flutter_rust_bridge_codegen@$version"
+            "flutter_rust_bridge_codegen@$version" \
+            "cargo-about@$about"
 
       # The hex the flasher builds on. Not committed; the tests that need it
       # skip without it, which would make them worthless here.
@@ -117,6 +122,12 @@ jobs:
 
       - name: Rust test
         run: cd rust && cargo +stable test
+
+      # The licence screen reads these from the repository, so a dependency
+      # that changed without them is a licence nobody is shown. Regenerates
+      # them and fails on a difference; see docs/licenses.md.
+      - name: Check the Rust licence texts
+        run: just check-rust-licenses
 
       - name: Run code generation
         run: dart run build_runner build
