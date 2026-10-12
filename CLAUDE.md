@@ -590,6 +590,10 @@ Things that are easy to get wrong:
 - **One program, kept apart from the drafts.** `CodeDraftStore.workFor` is the program every task shares, and `snapshotFor` the program as it stood when a task was said to work. A snapshot is read-only and can be put back; there is no reset to the starter, which would throw away every task's work at once.
 - **Only a project runs on a micro:bit, and a project runs nowhere else.** The parser refuses either without the other.
 
+**The row under the editor is short of room, so its words are few.** A project's right column is 475px in a 1024px window and never more than 655px. "Naar het bordje schrijven" beside "Herstarten" took 538px, so the row wrapped below a 1150px window and the second line came out of the output. The first button now says "Draai code": the write is how, and a student wants the program to run. The two take 414px. `MicrobitDocsButton` (`lib/views/components/microbit/`) is the third, on all three micro:bit screens, and is a glyph with a tip: with it the row is 488px, and with "Documentatie" written out 626px.
+
+**Every link to the MicroPython documentation goes to its front page**, the button's and the ones in the lessons alike. A reorganised site breaks a link to one module's page, and finding the page is left to the student on purpose.
+
 ### Running Python
 
 `lib/services/python/` picks a host through a conditional import. The web host is the only one that exists; everything else, including the Dart VM `flutter test` runs on, falls through to `python_runtime_stub.dart`, which reports `isSupported == false` rather than throwing.

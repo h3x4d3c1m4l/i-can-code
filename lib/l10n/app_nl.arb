@@ -191,7 +191,8 @@
       }
     }
   },
-  "microbitScreen_flash": "Naar het bordje schrijven",
+  "microbitScreen_flash": "Draai code",
+  "microbitScreen_docs": "Documentatie",
   "microbitScreen_flashHint": "main.py",
   "microbitScreen_flashing": "Bezig met schrijven… {percent}%",
   "@microbitScreen_flashing": {

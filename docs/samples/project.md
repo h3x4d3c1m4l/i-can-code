@@ -17,7 +17,7 @@ id: what-you-build
 emoji: "💡"
 ```
 
-A program that runs on a real micro:bit. Plug the board in with a USB cable, connect it on the right, and write your code to it with **Write to the board**.
+A program that runs on a real micro:bit. Plug the board in with a USB cable, connect it on the right, and put your code on it with **Run code**.
 
 ## Say hello
 

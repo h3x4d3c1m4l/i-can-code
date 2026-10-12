@@ -10,6 +10,7 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
+import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/project_screen/components/project_block.dart';
 import 'package:i_can_code/views/project_screen/project_screen_controller.dart';
@@ -294,6 +295,17 @@ void main() {
       });
     }
 
+    testWidgets('the documentation is offered before any board is connected', (tester) async {
+      const size = Size(1400, 900);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await pump(tester, size);
+
+      expect(find.byType(MicrobitDocsButton), findsOneWidget);
+    });
+
     testWidgets('writing without a board asks for one, and writes once there is one', (tester) async {
       const size = Size(1400, 900);
       tester.view.physicalSize = size;
@@ -303,7 +315,7 @@ void main() {
       final (_, viewModel) = await pump(tester, size);
       expect(find.text('Sluit je micro:bit aan'), findsNothing, reason: 'no panel about it on the page');
 
-      await tester.tap(find.text('Naar het bordje schrijven'));
+      await tester.tap(find.text('Draai code'));
       await tester.pumpAndSettle();
       // The test's link is the stub, which no browser can use.
       expect(find.text('Dit werkt niet in deze browser'), findsOneWidget);
@@ -313,7 +325,7 @@ void main() {
       expect(find.text('Dit werkt niet in deze browser'), findsNothing);
       expect(viewModel.board.status, isNot(MicrobitStatus.flashing));
 
-      await tester.tap(find.text('Naar het bordje schrijven'));
+      await tester.tap(find.text('Draai code'));
       await tester.pumpAndSettle();
       viewModel.board.setStatus(MicrobitStatus.connected);
       // Not `pumpAndSettle`: the write that follows never ends against the

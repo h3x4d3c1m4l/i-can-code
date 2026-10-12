@@ -6,9 +6,12 @@ import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
+import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
+
+import '../support/recording_url_launcher.dart';
 
 /// Wraps [child] in what these widgets need: the app theme and the
 /// localizations they read their words from.
@@ -220,6 +223,36 @@ void main() {
       expect(find.text('Verbonden met micro:bit'), findsOneWidget);
       // The id it does have is worth keeping, as detail.
       expect(find.byIcon(FLucideIcons.info), findsOneWidget);
+    });
+  });
+
+  group('MicrobitDocsButton', () {
+    // Under an Overlay, which the button's tip needs and the app has above
+    // every screen. `_host` scrolls, so the overlay sizes to its one entry.
+    Widget button() => _host(
+      Overlay(
+        initialEntries: [OverlayEntry(canSizeOverlay: true, builder: (_) => const MicrobitDocsButton())],
+      ),
+    );
+
+    testWidgets('opens the front page of the documentation', (tester) async {
+      final launcher = RecordingUrlLauncher.install();
+
+      await tester.pumpWidget(button());
+      await tester.tap(find.byType(MicrobitDocsButton));
+      // The press plays out on timers, which a test may not leave running.
+      await tester.pumpAndSettle();
+
+      expect(launcher.launched, ['https://microbit-micropython.readthedocs.io/']);
+    });
+
+    testWidgets('has a name for a screen reader, having no word on it', (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(button());
+
+      expect(find.bySemanticsLabel('Documentatie'), findsOneWidget);
+      handle.dispose();
     });
   });
 

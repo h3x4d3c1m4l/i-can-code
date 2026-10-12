@@ -38,8 +38,8 @@ import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.d
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:material_ui/material_ui.dart' show InputBorder, InputDecorator;
 import 'package:re_editor/re_editor.dart';
-import 'package:url_launcher_platform_interface/link.dart';
-import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../support/recording_url_launcher.dart';
 
 /// Wraps [child] in what the lesson widgets need: the app theme, the
 /// localizations, and the scroll view they always sit inside — prose is taller
@@ -321,10 +321,7 @@ void main() {
     });
 
     testWidgets('pressing a link opens it', (tester) async {
-      final launcher = _RecordingUrlLauncher();
-      final previous = UrlLauncherPlatform.instance;
-      UrlLauncherPlatform.instance = launcher;
-      addTearDown(() => UrlLauncherPlatform.instance = previous);
+      final launcher = RecordingUrlLauncher.install();
 
       await tester.pumpWidget(_host(const LessonProse(markdown: '[documentatie](https://example.com/music.html)')));
       await tester.pumpAndSettle();
@@ -2580,21 +2577,6 @@ void main() {
 
 int _rgb(Color color) =>
     ((color.r * 255).round() << 16) | ((color.g * 255).round() << 8) | (color.b * 255).round();
-
-class _RecordingUrlLauncher extends UrlLauncherPlatform {
-
-  final launched = <String>[];
-
-  @override
-  LinkDelegate? get linkDelegate => null;
-
-  @override
-  Future<bool> launchUrl(String url, LaunchOptions options) async {
-    launched.add(url);
-    return true;
-  }
-
-}
 
 extension on FThemeData {
 

@@ -411,7 +411,14 @@
       }
     }
   },
-  "microbitScreen_flash": "Write to the board",
+  "microbitScreen_flash": "Run code",
+  "@microbitScreen_flash": {
+    "description": "The button that writes the program to the board, which starts it. Named for what the student wants, and kept short: it shares a narrow row with two more buttons."
+  },
+  "microbitScreen_docs": "Documentation",
+  "@microbitScreen_docs": {
+    "description": "The tip and the screen reader label of the icon-only button that opens the MicroPython documentation in a new tab."
+  },
   "microbitScreen_flashHint": "main.py",
   "microbitScreen_flashing": "Writing… {percent}%",
   "@microbitScreen_flashing": {

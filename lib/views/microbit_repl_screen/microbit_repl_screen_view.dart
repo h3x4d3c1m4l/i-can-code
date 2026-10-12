@@ -9,6 +9,7 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
+import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_controller.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
@@ -87,6 +88,8 @@ class MicrobitReplScreenView extends ScreenViewBase<MicrobitSessionViewModel, Mi
                     onPress: controller.restart,
                     child: Text(context.localizations.microbitScreen_restart),
                   ),
+                  const SizedBox(width: 16),
+                  const MicrobitDocsButton(),
                 ],
               ),
               const SizedBox(height: 8),

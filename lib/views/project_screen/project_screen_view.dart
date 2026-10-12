@@ -22,6 +22,7 @@ import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/lesson/optional_step_banner.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
+import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/project_screen/components/connect_dialog.dart';
@@ -398,6 +399,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
           onPress: connected ? controller.board.restart : null,
           child: Text(context.localizations.microbitScreen_restart),
         ),
+        const MicrobitDocsButton(),
       ],
     );
   }
