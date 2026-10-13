@@ -5,10 +5,12 @@
 //
 //   dart run i_can_code:bundle_lessons --input=assets/course.json --output=course.json
 //
-// It imports nothing from the app: `course.dart` reaches Flutter, and the Dart
-// VM a transformer runs on has no `dart:ui`.
+// Of the app it imports only what is plain Dart: `course.dart` reaches Flutter,
+// and the Dart VM a transformer runs on has no `dart:ui`.
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:i_can_code/services/lessons/includes.dart';
 
 /// The directory the lesson files are read from, relative to the project root.
 const String lessonsDirectory = 'assets/lessons';
@@ -28,12 +30,21 @@ Future<void> main(List<String> args) async {
   // `--input` is not read. A transformer takes one asset, and this one builds
   // its output from a directory, so the asset it is declared on is a placeholder.
   final root = Directory(lessonsDirectory);
-  final files = lessonFiles(root);
-  File(output).writeAsStringSync(jsonEncode(bundleLessons(root, files)));
+  final read = <String>{};
+  final Map<String, String> bundle;
+  try {
+    bundle = bundleLessons(root, lessonFiles(root), read: read);
+  } on FormatException catch (error) {
+    stderr.writeln('bundle_lessons: ${error.message}');
+    exitCode = 65;
+    return;
+  }
+  File(output).writeAsStringSync(jsonEncode(bundle));
 
   // Flutter reads `<output>.d` and reruns the transformer when a file listed in
-  // it changes. Without it only a change to the placeholder would.
-  File('$output.d').writeAsStringSync('${_escape(output)}: ${files.map((file) => _escape(file.path)).join(' ')}');
+  // it changes. Without it only a change to the placeholder would. An included
+  // file is not markdown and is in no other list, so it is named here too.
+  File('$output.d').writeAsStringSync('${_escape(output)}: ${read.map(_escape).join(' ')}');
 }
 
 /// Every markdown file under [root], at any depth, in path order. Empty when
@@ -50,10 +61,30 @@ List<File> lessonFiles(Directory root) {
 
 /// The bundle: each of [files] by the asset path it had when lessons were
 /// assets of their own, `assets/lessons/<subject>/…`, whatever [root] is.
-Map<String, String> bundleLessons(Directory root, List<File> files) => {
-  for (final file in files)
-    keyPrefix + file.path.substring(root.path.length + 1).replaceAll(r'\', '/'): file.readAsStringSync(),
-};
+///
+/// Every `{{#include}}` is resolved here, so the app is handed whole files and
+/// never reads one. [read] collects the path of each file that went in, the
+/// included ones among them.
+///
+/// Throws a [FormatException] for an include that cannot be resolved: see
+/// [resolveIncludes].
+Map<String, String> bundleLessons(Directory root, List<File> files, {Set<String>? read}) {
+  String? readFile(String relative) {
+    final file = File('${root.path}/$relative');
+    if (!file.existsSync()) return null;
+
+    read?.add(file.path);
+    return file.readAsStringSync();
+  }
+
+  final bundle = <String, String>{};
+  for (final file in files) {
+    final relative = file.path.substring(root.path.length + 1).replaceAll(r'\', '/');
+    bundle[keyPrefix + relative] = resolveIncludes(readFile(relative)!, path: relative, read: readFile);
+  }
+
+  return bundle;
+}
 
 String? _option(List<String> args, String name) {
   final prefix = '--$name=';

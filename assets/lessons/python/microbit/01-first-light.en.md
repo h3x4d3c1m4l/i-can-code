@@ -7,7 +7,6 @@ id: first-light
 emoji: "💡"
 layout: project
 runtime: microbit
-group: "Projects · micro:bit"
 ```
 
 ## What you will build

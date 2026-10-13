@@ -70,8 +70,7 @@ Change the code below so that it first prints the number `42` and then the numbe
 Unlike text, numbers are written without quotation marks in Python. Note as well that Python uses a dot as the decimal separator, not a comma: write `3.14`, not `3,14`.
 
 ```python-assignment
-print(...)
-print(...)
+{{#include starters/printing-values.py}}
 ```
 
 ```python-validator

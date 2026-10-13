@@ -312,16 +312,6 @@ class Lesson {
   /// earns its ticks the normal way.
   final bool optional;
 
-  /// The heading the catalog sets this lesson under, from the document-level
-  /// `group`. Null for a lesson that belongs to no group.
-  ///
-  /// Written by the course, not by the app: a course that follows a schedule
-  /// says `Week 1 · De basis`, one that does not says something else or
-  /// nothing. The catalog starts a new heading wherever the group changes from
-  /// one lesson to the next, so it never reorders anything — the filename's
-  /// number is still the only source of order.
-  final String? group;
-
   /// What this lesson's steps run on unless a step says otherwise.
   final LessonRuntime runtime;
 
@@ -340,7 +330,6 @@ class Lesson {
     this.subtitle,
     this.emoji,
     this.optional = false,
-    this.group,
     this.runtime = LessonRuntime.python,
     this.layout = LessonLayout.steps,
     required this.sections,
@@ -365,7 +354,6 @@ class Lesson {
     String? subtitle;
     String? emoji;
     var optional = false;
-    String? group;
     var runtime = LessonRuntime.python;
     var layout = LessonLayout.steps;
     final sections = <LessonSection>[];
@@ -576,11 +564,13 @@ class Lesson {
                 throw const FormatException('The lesson declares an `optional` that is not true or false.');
               }
               optional = lessonOptional as bool? ?? optional;
-              final lessonGroup = meta['group'];
-              if (lessonGroup != null && (lessonGroup is! String || lessonGroup.trim().isEmpty)) {
-                throw const FormatException('The lesson declares a `group` that is not a line of text.');
+              // A lesson said this about itself once. Left in, it would be
+              // read by nothing and the lesson would stand under no heading.
+              if (meta.containsKey('group')) {
+                throw const FormatException(
+                  'The lesson declares a `group`. A group is a heading in the contents file of its subject now.',
+                );
               }
-              group = (lessonGroup as String?)?.trim() ?? group;
               runtime = _readRuntime(meta, 'The lesson') ?? runtime;
               layout = _readLayout(meta) ?? layout;
             } else {
@@ -699,7 +689,6 @@ class Lesson {
       subtitle: subtitle,
       emoji: emoji,
       optional: optional,
-      group: group,
       runtime: runtime,
       layout: layout,
       sections: sections,

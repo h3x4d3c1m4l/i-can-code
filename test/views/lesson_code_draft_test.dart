@@ -42,7 +42,7 @@ class _IdleRuntime implements PythonRuntime {
 /// One exercise whose starter differs per locale, which is what a comment in the
 /// starter block does.
 final CourseLesson _lesson = CourseLesson(
-  entry: LessonEntry(subject: 'python', order: 1, slug: 'loops', paths: const {'nl': 'x', 'en': 'y'}),
+  entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x', 'en': 'y'}),
   translations: {
     for (final (locale, starter) in [('nl', '# Schrijf hier'), ('en', '# Write here')])
       locale: Lesson(

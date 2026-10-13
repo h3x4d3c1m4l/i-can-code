@@ -354,7 +354,7 @@ void main() {
 
   testWidgets('reset is offered once there is progress, and asks first', (tester) async {
     final lesson = CourseLesson(
-      entry: const LessonEntry(subject: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
+      entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
       translations: {
         'nl': const Lesson(
           id: 'intro',

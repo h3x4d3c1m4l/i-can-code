@@ -1,43 +1,59 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/services/lessons/subject_contents.dart';
 
-/// One lesson as it appears on disk, before it is read.
+/// A heading in a subject's contents, over the lessons listed under it.
+class LessonGroup {
+
+  /// From the heading's `{#id}`. Shared by every locale, which the heading's
+  /// own words are not.
+  final String id;
+
+  /// The heading by locale code. Never empty.
+  final Map<String, String> titles;
+
+  const LessonGroup({required this.id, required this.titles});
+
+  /// The heading in [locale], falling back the way [CourseLesson.forLocale]
+  /// does.
+  String titleFor(String locale) => titles[locale] ?? titles['en'] ?? titles.values.first;
+
+}
+
+/// One lesson as its subject's contents list it, before it is read.
 ///
-/// A lesson has one file per locale, all sharing an order prefix and a slug:
-/// `assets/lessons/<subject>/<order>-<slug>.<locale>.md`, or one folder deeper
-/// in a [track].
+/// A lesson has one file per locale. Which files those are, and where the
+/// lesson stands, is what each `contents.<locale>.md` says: see
+/// [SubjectContents].
 class LessonEntry {
 
-  /// The subject the lesson teaches — the directory it sits in.
+  /// The subject the lesson teaches — the directory its contents file sits in.
   final String subject;
 
-  /// The folder inside the subject's directory that holds the lesson, or null
-  /// for a lesson directly in it.
-  ///
-  /// A track is numbered on its own and listed after the lessons outside it, so
-  /// a run of lessons can start again at `00-` without renumbering the course.
-  final String? track;
+  /// The heading the lesson is listed under, or null for a lesson under none.
+  final LessonGroup? group;
 
-  /// The `NN-` prefix. **The only source of course order** — there is no index
-  /// file.
+  /// Where the lesson stands in its subject's contents, counted from 1. **The
+  /// contents file is the only source of course order.**
   final int order;
 
-  /// The filename's `<order>-<slug>` part. Distinct from [Lesson.id], which the
-  /// file states about itself.
-  final String slug;
-
-  /// The lesson's files by locale code, e.g. `{'nl': '…/01-uitvoer.nl.md'}`.
+  /// The lesson's files by locale code, e.g. `{'nl': '…/week-1/01-uitvoer.nl.md'}`.
   /// Each is a key of the bundle [Course.load] reads.
   final Map<String, String> paths;
 
+  /// What each locale's contents file calls the lesson. The app shows the
+  /// lesson's own title; `test/content/lessons_test.dart` holds the two equal.
+  final Map<String, String> listedTitles;
+
   const LessonEntry({
     required this.subject,
-    this.track,
+    this.group,
     required this.order,
-    required this.slug,
     required this.paths,
+    this.listedTitles = const {},
   });
 
   /// The locales this lesson has been translated into.
@@ -67,10 +83,10 @@ class CourseLesson {
 
 /// Every lesson the app ships with, discovered and parsed.
 ///
-/// There is no index file: the build puts every file under [root] into
-/// [bundleAsset], so the directory *is* the index and reordering the course is a
-/// rename. Order and locale therefore come out of the filename, and anything not
-/// matching [_filePattern] is ignored rather than crashing the app.
+/// A subject is a directory under [root], and its `contents.<locale>.md` files
+/// say which lessons it has, in what order and under which headings. Where a
+/// lesson's file sits inside that directory, and what it is called, means
+/// nothing.
 class Course {
 
   static const String root = 'assets/lessons/';
@@ -80,28 +96,46 @@ class Course {
   /// so a cold start fetches the course in one request.
   static const String bundleAsset = 'assets/course.json';
 
-  /// `assets/lessons/<subject>/[<track>/]<order>-<slug>.<locale>.md`
-  static final RegExp _filePattern = RegExp(
-    r'^([a-z0-9_]+)/(?:([a-z0-9_-]+)/)?(\d+)-([a-z0-9-]+)\.([a-z]{2})\.md$',
-  );
+  /// `<subject>/contents.<locale>.md`, under [root].
+  static final RegExp _contentsPattern = RegExp(r'^([a-z0-9_]+)/contents\.([a-z]{2})\.md$');
 
-  /// In course order: by subject, then the lessons outside any
-  /// track before each track in turn, then by the filename's prefix.
+  /// Any markdown file inside a subject's directory, at any depth.
+  static final RegExp _subjectFilePattern = RegExp(r'^([a-z0-9_]+)/.+\.md$');
+
+  /// Whether [path], a key of the bundle, is a subject's contents file.
+  static bool isContents(String path) =>
+      path.startsWith(root) && _contentsPattern.hasMatch(path.substring(root.length));
+
+  /// Whether [path], a key of the bundle, is a markdown file in a subject's
+  /// directory: a lesson, a contents file, or a part of either.
+  static bool isInSubject(String path) =>
+      path.startsWith(root) && _subjectFilePattern.hasMatch(path.substring(root.length));
+
+  /// In course order: by subject, then as that subject's contents list them.
   final List<CourseLesson> lessons;
 
   const Course({required this.lessons});
 
   /// Reads [bundleAsset] and parses each translation of every lesson in it.
   ///
-  /// A malformed lesson throws — see [Lesson.parse]. These files ship with the
-  /// app, so that is a build mistake, not a state to render.
+  /// A malformed lesson or contents file throws — see [fromFiles]. These files
+  /// ship with the app, so that is a build mistake, not a state to render.
   static Future<Course> load({AssetBundle? bundle}) async {
     // Not cached: the bundle is every lesson's text, and it is read once.
     final source = await (bundle ?? rootBundle).loadString(bundleAsset, cache: false);
-    final files = (jsonDecode(source) as Map<String, dynamic>).cast<String, String>();
 
+    return fromFiles((jsonDecode(source) as Map<String, dynamic>).cast<String, String>());
+  }
+
+  /// The course [files] hold: file text by path under [root], with every
+  /// include already resolved.
+  ///
+  /// Throws a [FormatException] naming the file when a lesson or a contents
+  /// file is malformed, and when two locales' contents files put a different
+  /// lesson in the same place.
+  static Course fromFiles(Map<String, String> files) {
     final lessons = <CourseLesson>[];
-    for (final entry in entriesFrom(files.keys)) {
+    for (final entry in entriesFrom(files)) {
       final translations = <String, Lesson>{};
       for (final MapEntry(key: locale, value: path) in entry.paths.entries) {
         try {
@@ -110,6 +144,19 @@ class Course {
           throw FormatException('$path: ${error.message}');
         }
       }
+
+      // Translations are paired by where the contents files list them, so only
+      // the id can tell that two of them are the same lesson.
+      final first = translations.values.first;
+      for (final MapEntry(key: locale, value: lesson) in translations.entries) {
+        if (lesson.id != first.id) {
+          throw FormatException(
+            '${entry.paths[locale]} is "${lesson.id}" where ${entry.paths.values.first} is "${first.id}". '
+            'Every contents file of a subject lists the same lessons in the same order.',
+          );
+        }
+      }
+
       // A lesson whose steps all need a runtime this version cannot run parses
       // to no steps at all (see [LessonRuntime.isReady]). It is left out rather
       // than listed as a card that opens on nothing, and a course may carry one
@@ -139,7 +186,7 @@ class Course {
       lessons.where((lesson) => lesson.entry.subject == subject).toList();
 
   /// The lesson after [lesson] in its own subject, or null when it is the last
-  /// one. Course order is the filename's `NN-` prefix, so this follows a rename.
+  /// one. Course order is the contents file's, so this follows a reorder there.
   ///
   /// Matched on [Lesson.id] rather than on identity, so it still answers for a
   /// lesson that came from a second parse of the same course.
@@ -151,41 +198,113 @@ class Course {
     return index == -1 || index + 1 == siblings.length ? null : siblings[index + 1];
   }
 
-  /// Groups file paths into lessons. Separate from [load] so the naming rules
-  /// are testable without an asset bundle.
-  static List<LessonEntry> entriesFrom(Iterable<String> assets) {
-    final grouped = <String, LessonEntry>{};
+  /// The lessons [files] hold, as their subjects' contents files list them.
+  /// Separate from [fromFiles] so the structure is testable without a lesson
+  /// that parses.
+  ///
+  /// [files] is file text by path, and only the paths under [root] count. The
+  /// text matters for the contents files alone: of a lesson, only that its
+  /// path is there.
+  ///
+  /// Throws a [FormatException] when a contents file is malformed or lists a
+  /// file that is not in [files], when a subject's contents files do not all
+  /// have the same shape, and when a subject has markdown files and no
+  /// contents file to list them.
+  static List<LessonEntry> entriesFrom(Map<String, String> files) {
+    // Both sorted: by subject for the order of the course, and by locale so
+    // "the first translation" is the same one on every run.
+    final contents = SplayTreeMap<String, SplayTreeMap<String, SubjectContents>>();
 
-    for (final asset in assets) {
-      if (!asset.startsWith(root)) continue;
-      final match = _filePattern.firstMatch(asset.substring(root.length));
+    for (final MapEntry(key: path, value: text) in files.entries) {
+      if (!path.startsWith(root)) continue;
+      final match = _contentsPattern.firstMatch(path.substring(root.length));
       if (match == null) continue;
 
-      final subject = match.group(1)!;
-      final track = match.group(2);
-      final order = int.parse(match.group(3)!);
-      final slug = match.group(4)!;
-      final locale = match.group(5)!;
+      try {
+        (contents[match.group(1)!] ??= SplayTreeMap())[match.group(2)!] = SubjectContents.parse(text);
+      } on FormatException catch (error) {
+        throw FormatException('$path: ${error.message}');
+      }
+    }
 
-      final key = '$subject/${track ?? ''}/$order-$slug';
-      grouped[key] = LessonEntry(
-        subject: subject,
-        track: track,
-        order: order,
-        slug: slug,
-        paths: {...?grouped[key]?.paths, locale: asset},
+    // Without this a subject that was never given a contents file would be an
+    // empty catalog rather than a failed build.
+    for (final path in files.keys) {
+      if (!path.startsWith(root)) continue;
+      final subject = _subjectFilePattern.firstMatch(path.substring(root.length))?.group(1);
+      if (subject != null && !contents.containsKey(subject)) {
+        throw FormatException('$root$subject holds $path and no contents.<locale>.md to list it in.');
+      }
+    }
+
+    return [
+      for (final MapEntry(key: subject, value: byLocale) in contents.entries) ..._entriesOf(subject, byLocale, files),
+    ];
+  }
+
+  /// One subject's lessons, from its contents file in every locale.
+  static List<LessonEntry> _entriesOf(
+    String subject,
+    Map<String, SubjectContents> byLocale,
+    Map<String, String> files,
+  ) {
+    String contentsPath(String locale) => '$root$subject/contents.$locale.md';
+
+    final MapEntry(key: firstLocale, value: first) = byLocale.entries.first;
+    for (final MapEntry(key: locale, value: other) in byLocale.entries.skip(1)) {
+      if (other.items.length != first.items.length) {
+        throw FormatException(
+          '${contentsPath(locale)} lists ${other.items.length} lessons '
+          'where ${contentsPath(firstLocale)} lists ${first.items.length}.',
+        );
+      }
+      for (final (index, item) in other.items.indexed) {
+        if (item.group?.id != first.items[index].group?.id) {
+          throw FormatException(
+            '${contentsPath(locale)} lists "${item.title}" under a different group '
+            'than ${contentsPath(firstLocale)} lists "${first.items[index].title}".',
+          );
+        }
+      }
+    }
+
+    final groups = <String, LessonGroup>{};
+    final entries = <LessonEntry>[];
+
+    for (final (index, item) in first.items.indexed) {
+      final paths = <String, String>{};
+      for (final MapEntry(key: locale, value: translated) in byLocale.entries) {
+        final path = '$root$subject/${translated.items[index].path}';
+        if (!files.containsKey(path)) {
+          throw FormatException('${contentsPath(locale)} lists ${translated.items[index].path}, which does not exist.');
+        }
+        paths[locale] = path;
+      }
+
+      entries.add(
+        LessonEntry(
+          subject: subject,
+          group: switch (item.group) {
+            null => null,
+            final group => groups[group.id] ??= LessonGroup(
+              id: group.id,
+              titles: {
+                for (final MapEntry(key: locale, value: translated) in byLocale.entries)
+                  locale: translated.items[index].group!.title,
+              },
+            ),
+          },
+          order: index + 1,
+          paths: paths,
+          listedTitles: {
+            for (final MapEntry(key: locale, value: translated) in byLocale.entries)
+              locale: translated.items[index].title,
+          },
+        ),
       );
     }
 
-    return grouped.values.toList()
-      ..sort((a, b) {
-        final bySubject = a.subject.compareTo(b.subject);
-        if (bySubject != 0) return bySubject;
-        // The empty name sorts first, which puts the lessons outside any track
-        // ahead of every track.
-        final byTrack = (a.track ?? '').compareTo(b.track ?? '');
-        return byTrack != 0 ? byTrack : a.order.compareTo(b.order);
-      });
+    return entries;
   }
 
 }
@@ -200,9 +319,10 @@ String subjectLabel(String subject) => switch (subject) {
 
 /// The emoji on a subject's card, or null for one this table does not name.
 ///
-/// A subject is a directory, so unlike a lesson it has no file to carry its
-/// own. A new subject MAY be added without touching this — the card falls back
-/// to the initial [subjectLabel] gives it.
+/// A subject's contents files list its lessons and say nothing about the
+/// subject, so unlike a lesson it has no file to carry its own. A new subject
+/// MAY be added without touching this — the card falls back to the initial
+/// [subjectLabel] gives it.
 String? subjectEmoji(String subject) => switch (subject) {
   'python' => '🐍',
   _ => null,

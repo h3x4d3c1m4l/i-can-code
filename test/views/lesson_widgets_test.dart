@@ -1188,6 +1188,7 @@ void main() {
       int completedSteps = 3,
       VoidCallback? onNextLesson,
       Lesson? nextLesson,
+      String? nextGroup,
       VoidCallback? onMoreConfetti,
     }) =>
         LessonCompletePanel(
@@ -1197,6 +1198,7 @@ void main() {
       stepCount: 3,
       onNextLesson: onNextLesson,
       nextLesson: nextLesson,
+      nextGroup: nextGroup,
       onMoreConfetti: onMoreConfetti,
       onBack: () {},
       backLabel: 'Vorige stap',
@@ -1206,18 +1208,12 @@ void main() {
     );
 
     const loops = Lesson(id: 'for', title: 'Herhalen met for', emoji: '🔁', sections: []);
-    const grouped = Lesson(
-      id: 'for',
-      title: 'Herhalen met for',
-      emoji: '🔁',
-      group: 'Week 2 · Herhalen',
-      sections: [],
-    );
+    const week = 'Week 2 · Herhalen';
 
     testWidgets('names the lesson that comes next, after the group it is in', (tester) async {
       // "Volgende les" cannot say which one without growing as long as the
       // title, so the page says it above the button.
-      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: grouped)));
+      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: loops, nextGroup: week)));
       await tester.pumpAndSettle();
 
       expect(
@@ -1241,7 +1237,7 @@ void main() {
     });
 
     testWidgets('only the way back needs a tip to say where it goes', (tester) async {
-      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: grouped)));
+      await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: loops, nextGroup: week)));
       await tester.pumpAndSettle();
 
       AppButton button(IconData icon) =>

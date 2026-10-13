@@ -70,8 +70,7 @@ Pas de volgende code aan om eerst het getal `42` te printen en daarna het getal 
 Anders dan bij tekst gebruik je bij getallen geen aanhalingstekens. Let er ook op dat Python een punt als decimaalteken gebruikt en geen komma: schrijf dus `3.14` en niet `3,14`.
 
 ```python-assignment
-print(...)
-print(...)
+{{#include starters/printing-values.py}}
 ```
 
 ```python-validator

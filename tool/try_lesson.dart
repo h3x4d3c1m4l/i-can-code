@@ -15,6 +15,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:i_can_code/services/lessons/includes.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
@@ -33,7 +34,14 @@ Future<void> main(List<String> args) async {
 
   final Lesson lesson;
   try {
-    lesson = Lesson.parse(file.readAsStringSync());
+    lesson = Lesson.parse(
+      resolveIncludes(
+        file.readAsStringSync(),
+        // Absolute, so an include that climbs has a directory to climb into.
+        path: file.absolute.path.replaceAll(r'\', '/'),
+        read: (path) => File(path).existsSync() ? File(path).readAsStringSync() : null,
+      ),
+    );
   } on FormatException catch (error) {
     _bail('${args.first} does not parse: ${error.message}', code: 65);
     return;

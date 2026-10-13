@@ -236,7 +236,7 @@ void main() {
           Course(
             lessons: [
               CourseLesson(
-                entry: Course.entriesFrom(['assets/lessons/python/01-loops.nl.md']).single,
+                entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
                 translations: {
                   'nl': const Lesson(
                     id: 'loops',

@@ -22,23 +22,40 @@ class _CourseBundle extends CachingAssetBundle {
 
 }
 
+const String _root = 'assets/lessons/python';
+
+/// A lesson that parses, with [id] as its only distinguishing mark.
+String _lessonCalled(String id) =>
+    '# $id\n\n```metadata\nid: $id\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n';
+
 void main() {
   group('Course.load', () {
     final lesson = File('test/fixtures/lesson.md').readAsStringSync();
 
-    test('reads every lesson out of the one bundle, in course order', () async {
+    test('reads every lesson out of the one bundle, in the order the contents give', () async {
       final course = await Course.load(
         bundle: _CourseBundle({
-          'assets/lessons/python/02-second.en.md': lesson,
-          'assets/lessons/python/01-first.en.md': lesson,
-          'assets/lessons/python/01-first.nl.md': lesson,
+          '$_root/contents.en.md': '- [Second](b.en.md)\n- [First](a.en.md)\n',
+          '$_root/contents.nl.md': '- [Tweede](b.nl.md)\n- [Eerste](a.nl.md)\n',
+          '$_root/a.en.md': _lessonCalled('first'),
+          '$_root/a.nl.md': _lessonCalled('first'),
+          '$_root/b.en.md': _lessonCalled('second'),
+          '$_root/b.nl.md': _lessonCalled('second'),
           'assets/lessons/README.md': '# Not a lesson',
         }),
       );
 
-      expect(course.lessons.map((l) => l.entry.slug), ['first', 'second']);
+      expect(course.lessons.map((l) => l.forLocale('en').id), ['second', 'first']);
+      expect(course.lessons.map((l) => l.entry.order), [1, 2]);
       expect(course.lessons.first.translations.keys, unorderedEquals(['en', 'nl']));
-      expect(course.lessons.first.forLocale('en').sections, isNotEmpty);
+    });
+
+    test('reads a lesson written the way an author writes one', () async {
+      final course = await Course.load(
+        bundle: _CourseBundle({'$_root/contents.en.md': '- [Fixture](lesson.md)\n', '$_root/lesson.md': lesson}),
+      );
+
+      expect(course.lessons.single.forLocale('en').sections, isNotEmpty);
     });
 
     test('a bundle with nothing in it is a course with no lessons', () async {
@@ -49,64 +66,184 @@ void main() {
 
     test('a malformed lesson names its file', () async {
       const broken = '# Broken\n\n```metadata\nid: broken\n```\n\n## A step\n\nNo metadata block.\n';
-      const path = 'assets/lessons/python/01-broken.nl.md';
+      const path = '$_root/broken.nl.md';
 
       await expectLater(
-        Course.load(bundle: _CourseBundle(const {path: broken})),
+        Course.load(bundle: _CourseBundle(const {'$_root/contents.nl.md': '- [Broken](broken.nl.md)\n', path: broken})),
         throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('$path: '))),
+      );
+    });
+
+    test('two locales that list a different lesson in the same place are refused', () async {
+      // Translations are paired by position, so a contents file out of step
+      // would show one lesson's Dutch under another's English.
+      await expectLater(
+        Course.load(
+          bundle: _CourseBundle({
+            '$_root/contents.en.md': '- [First](a.md)\n- [Second](b.md)\n',
+            '$_root/contents.nl.md': '- [Tweede](b.md)\n- [Eerste](a.md)\n',
+            '$_root/a.md': _lessonCalled('first'),
+            '$_root/b.md': _lessonCalled('second'),
+          }),
+        ),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('same lessons in the same order'))),
       );
     });
   });
 
-  test('subjects are listed once each, in course order', () {
-    final entries = Course.entriesFrom([
-      'assets/lessons/python/02-variables.nl.md',
-      'assets/lessons/python/01-hello.nl.md',
-      'assets/lessons/javascript/01-hello.nl.md',
-    ]);
-    final course = Course(
-      lessons: [for (final entry in entries) CourseLesson(entry: entry, translations: const {})],
-    );
+  group('Course.entriesFrom', () {
+    test('lists a subject\'s lessons in the order its contents file gives, whatever the files are called', () {
+      final entries = Course.entriesFrom(const {
+        '$_root/contents.nl.md': '- [Hallo](z-hello.nl.md)\n- [Variabelen](week-1/00-variables.nl.md)\n',
+        '$_root/week-1/00-variables.nl.md': '',
+        '$_root/z-hello.nl.md': '',
+      });
 
-    // Sorted by subject then order, so javascript's single lesson comes first.
+      expect(entries.map((e) => e.paths['nl']), ['$_root/z-hello.nl.md', '$_root/week-1/00-variables.nl.md']);
+      expect(entries.map((e) => e.order), [1, 2]);
+      expect(entries.map((e) => e.listedTitles['nl']), ['Hallo', 'Variabelen']);
+      expect(entries.every((e) => e.subject == 'python'), isTrue);
+    });
+
+    test('pairs a lesson\'s translations by where each contents file lists them', () {
+      final entries = Course.entriesFrom(const {
+        '$_root/contents.en.md': '- [Hello](hello.en.md)\n',
+        '$_root/contents.nl.md': '- [Hallo](hallo.nl.md)\n',
+        '$_root/hello.en.md': '',
+        '$_root/hallo.nl.md': '',
+      });
+
+      expect(entries.single.paths, {'en': '$_root/hello.en.md', 'nl': '$_root/hallo.nl.md'});
+    });
+
+    test('a lesson with no translation is linked to in the language it has', () {
+      final entries = Course.entriesFrom(const {
+        '$_root/contents.en.md': '- [Hallo](hallo.nl.md)\n',
+        '$_root/contents.nl.md': '- [Hallo](hallo.nl.md)\n',
+        '$_root/hallo.nl.md': '',
+      });
+
+      expect(entries.single.paths, {'en': '$_root/hallo.nl.md', 'nl': '$_root/hallo.nl.md'});
+    });
+
+    test('a group carries its id and its heading in every locale', () {
+      final entries = Course.entriesFrom(const {
+        '$_root/contents.en.md': '- [Intro](intro.md)\n# Week 1 · The basics {#week-1}\n- [A](a.md)\n- [B](b.md)\n',
+        '$_root/contents.nl.md': '- [Intro](intro.md)\n# Week 1 · De basis {#week-1}\n- [A](a.md)\n- [B](b.md)\n',
+        '$_root/intro.md': '',
+        '$_root/a.md': '',
+        '$_root/b.md': '',
+      });
+
+      expect(entries.map((e) => e.group?.id), [null, 'week-1', 'week-1']);
+      expect(entries[1].group!.titleFor('nl'), 'Week 1 · De basis');
+      expect(entries[1].group!.titleFor('en'), 'Week 1 · The basics');
+      expect(entries[1].group!.titleFor('de'), 'Week 1 · The basics', reason: 'English, as a lesson falls back');
+    });
+
+    test('contents files of one subject that differ in shape are refused', () {
+      const lessons = {'$_root/a.md': '', '$_root/b.md': ''};
+
+      expect(
+        () => Course.entriesFrom(const {
+          '$_root/contents.en.md': '- [A](a.md)\n- [B](b.md)\n',
+          '$_root/contents.nl.md': '- [A](a.md)\n',
+          ...lessons,
+        }),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('lists 1 lessons'))),
+      );
+      expect(
+        () => Course.entriesFrom(const {
+          '$_root/contents.en.md': '# One {#one}\n- [A](a.md)\n- [B](b.md)\n',
+          '$_root/contents.nl.md': '# Een {#one}\n- [A](a.md)\n---\n- [B](b.md)\n',
+          ...lessons,
+        }),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('under a different group'))),
+      );
+    });
+
+    test('a listed file that is not there is refused, by name', () {
+      expect(
+        () => Course.entriesFrom(const {'$_root/contents.nl.md': '- [Weg](gone.nl.md)\n'}),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('$_root/contents.nl.md'), contains('gone.nl.md')),
+          ),
+        ),
+      );
+    });
+
+    test('a malformed contents file names itself and the line', () {
+      expect(
+        () => Course.entriesFrom(const {'$_root/contents.nl.md': '\n## Te diep\n'}),
+        throwsA(
+          isA<FormatException>().having((e) => e.message, 'message', startsWith('$_root/contents.nl.md: Line 2')),
+        ),
+      );
+    });
+
+    test('a subject with files and no contents is refused, rather than opening on an empty catalog', () {
+      expect(
+        () => Course.entriesFrom(const {'$_root/01-hello.nl.md': ''}),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('no contents.<locale>.md'))),
+      );
+    });
+
+    test('ignores what is not under a subject', () {
+      final entries = Course.entriesFrom(const {
+        'assets/lessons/README.md': '# Not a lesson',
+        'assets/fonts/Lexend-Variable.ttf': '',
+        '$_root/contents.nl.md': '- [Ok](ok.nl.md)\n',
+        '$_root/ok.nl.md': '',
+        '$_root/notes.txt': 'not markdown',
+        '$_root/README.md': 'listed nowhere, and that is fine',
+      });
+
+      expect(entries, hasLength(1));
+    });
+  });
+
+  /// A course of `count` python lessons plus one lesson in another subject.
+  Course courseOf(int count) => Course(
+    lessons: [
+      // Sorted by subject, as a loaded course is.
+      const CourseLesson(
+        entry: LessonEntry(subject: 'javascript', order: 1, paths: {'nl': 'x'}),
+        translations: {'nl': Lesson(id: 'hello', title: 'hello', sections: [])},
+      ),
+      for (var order = 1; order <= count; order++)
+        CourseLesson(
+          entry: LessonEntry(subject: 'python', order: order, paths: const {'nl': 'x'}),
+          translations: {'nl': Lesson(id: 'lesson-$order', title: 'lesson-$order', sections: const [])},
+        ),
+    ],
+  );
+
+  String idOf(CourseLesson lesson) => lesson.translations.values.first.id;
+
+  test('subjects are listed once each, in course order', () {
+    final course = courseOf(2);
+
     expect(course.subjects, ['javascript', 'python']);
-    expect(course.lessonsFor('python').map((l) => l.entry.slug), ['hello', 'variables']);
+    expect(course.lessonsFor('python').map(idOf), ['lesson-1', 'lesson-2']);
     expect(course.lessonsFor('ruby'), isEmpty);
   });
 
   group('lessonAfter', () {
-    /// A course of `count` python lessons plus one lesson in another subject,
-    /// which must never be offered as "next".
-    Course courseOf(int count) {
-      final entries = Course.entriesFrom([
-        for (var order = 1; order <= count; order++)
-          'assets/lessons/python/0$order-lesson-$order.nl.md',
-        'assets/lessons/javascript/01-hello.nl.md',
-      ]);
-
-      return Course(
-        lessons: [
-          for (final entry in entries)
-            CourseLesson(
-              entry: entry,
-              translations: {'nl': Lesson(id: entry.slug, title: entry.slug, sections: const [])},
-            ),
-        ],
-      );
-    }
-
     test('answers with the next lesson in course order', () {
       final course = courseOf(3);
       final first = course.lessonsFor('python').first;
 
-      expect(course.lessonAfter(first)!.entry.slug, 'lesson-2');
+      expect(idOf(course.lessonAfter(first)!), 'lesson-2');
     });
 
     test('the last lesson of a subject has none, rather than the next subject\'s first', () {
       final course = courseOf(2);
-      final last = course.lessonsFor('python').last;
 
-      expect(course.lessonAfter(last), isNull);
+      expect(course.lessonAfter(course.lessonsFor('javascript').last), isNull);
+      expect(course.lessonAfter(course.lessonsFor('python').last), isNull);
     });
 
     test('a lesson from a second parse of the same course still finds its successor', () {
@@ -114,10 +251,10 @@ void main() {
       // Matched on the lesson's id, so an equal-but-not-identical lesson works.
       final copy = CourseLesson(
         entry: course.lessonsFor('python').first.entry,
-        translations: {'nl': Lesson(id: 'lesson-1', title: 'Anders', sections: const [])},
+        translations: const {'nl': Lesson(id: 'lesson-1', title: 'Anders', sections: [])},
       );
 
-      expect(course.lessonAfter(copy)!.entry.slug, 'lesson-2');
+      expect(idOf(course.lessonAfter(copy)!), 'lesson-2');
     });
   });
 

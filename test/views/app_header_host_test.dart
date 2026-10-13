@@ -343,7 +343,7 @@ void main() {
 
     testWidgets('and opens the dialog that asks before wiping progress', (tester) async {
       final lesson = CourseLesson(
-        entry: const LessonEntry(subject: 'python', order: 1, slug: 'intro', paths: {'nl': 'x'}),
+        entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
         translations: {
           'nl': const Lesson(
             id: 'intro',

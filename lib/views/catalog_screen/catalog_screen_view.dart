@@ -121,17 +121,17 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
 
   /// One run of the course as slivers. A run with a group opens with its
   /// heading, which sticks under the bar while the run's lessons pass under it.
-  List<Widget> _buildRun(({String? key, List<CourseLesson> items}) run, String locale, {required bool first}) {
+  List<Widget> _buildRun(List<CourseLesson> run, String locale, {required bool first}) {
     final cards = SliverList.separated(
-      itemCount: run.items.length,
-      itemBuilder: (_, position) => _buildLessonCard(run.items[position], locale),
+      itemCount: run.length,
+      itemBuilder: (_, position) => _buildLessonCard(run[position], locale),
       separatorBuilder: (_, _) => const SizedBox(height: CatalogCard.spacing),
     );
 
-    return switch (run.key) {
-      final String group => [
+    return switch (run.first.entry.group) {
+      final LessonGroup group => [
         const SliverToBoxAdapter(child: SizedBox(height: _runGap - StickyGroupHeading.topGap)),
-        SliverMainAxisGroup(slivers: [StickyGroupHeading(group), cards]),
+        SliverMainAxisGroup(slivers: [StickyGroupHeading(group.titleFor(locale)), cards]),
       ],
       _ => [
         SliverToBoxAdapter(child: SizedBox(height: first ? _runGap : CatalogCard.spacing)),
@@ -183,7 +183,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
         // is. `lesson_test.dart` holds the two translations to the same answer.
         final optional = viewModel.lessons.where((it) => it.forLocale(locale).optional).toList();
         final lessons = viewModel.lessons.where((it) => !it.forLocale(locale).optional).toList();
-        final runs = runsBy(lessons, (it) => it.forLocale(locale).group);
+        final runs = runsBy(lessons, (it) => it.entry.group?.id);
         // A sliver has no box to centre, so the column is centred by its gutters.
         final gutter = math.max(_gutter, (MediaQuery.sizeOf(context).width - _maxWidth) / 2);
 
@@ -217,7 +217,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                       ),
                     ),
                   ),
-                  for (final (index, run) in runs.indexed) ..._buildRun(run, locale, first: index == 0),
+                  for (final (index, run) in runs.indexed) ..._buildRun(run.items, locale, first: index == 0),
                   if (optional.isNotEmpty) SliverToBoxAdapter(child: _buildDeepDive(context, optional, locale)),
                   if (subjectHasRepl(viewModel.subject) || subjectHasMicrobit(viewModel.subject))
                     SliverToBoxAdapter(child: _buildExtra(context)),

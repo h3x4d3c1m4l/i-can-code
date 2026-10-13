@@ -98,13 +98,14 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   /// The trail and nothing more. The sections on the page already say where the
   /// student is, so a progress bar here would say it twice.
   AppHeaderConfig _buildHeader(BuildContext context) {
-    final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
+    final locale = Localizations.localeOf(context).languageCode;
+    final lesson = viewModel.lesson.forLocale(locale);
 
     return AppHeaderConfig(
       onTapHome: controller.leave,
       crumbs: [
         AppCrumb(subjectLabel(viewModel.lesson.entry.subject), onTap: controller.openSubject),
-        if (lesson.group case final String group) AppCrumb(group),
+        if (viewModel.lesson.entry.group case final LessonGroup group) AppCrumb(group.titleFor(locale)),
         AppCrumb(lesson.title),
       ],
       offersZen: true,
@@ -328,7 +329,8 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   }
 
   Widget _buildComplete(BuildContext context, Lesson lesson) {
-    final next = viewModel.nextLesson?.forLocale(Localizations.localeOf(context).languageCode);
+    final locale = Localizations.localeOf(context).languageCode;
+    final next = viewModel.nextLesson?.forLocale(locale);
 
     return LessonCompletePanel(
       emoji: lesson.emoji,
@@ -336,6 +338,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       completedSteps: viewModel.passed.length,
       stepCount: lesson.stepCount,
       nextLesson: next,
+      nextGroup: viewModel.nextLesson?.entry.group?.titleFor(locale),
       onNextLesson: next == null ? null : controller.openNextLesson,
       onMoreConfetti: viewModel.earnedCelebration ? controller.moreConfetti : null,
       onBack: () => _openAndReveal(lesson.stepCount - 1),

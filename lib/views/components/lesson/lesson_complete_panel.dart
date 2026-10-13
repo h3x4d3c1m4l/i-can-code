@@ -45,6 +45,10 @@ class LessonCompletePanel extends StatelessWidget {
   /// name out.
   final Lesson? nextLesson;
 
+  /// The heading [nextLesson] is listed under, named in front of it. Null for
+  /// a lesson under none.
+  final String? nextGroup;
+
   /// Fires another burst of confetti. Null leaves the button out.
   final VoidCallback? onMoreConfetti;
 
@@ -76,6 +80,7 @@ class LessonCompletePanel extends StatelessWidget {
     this.emoji,
     this.onNextLesson,
     this.nextLesson,
+    this.nextGroup,
     this.onMoreConfetti,
     super.key,
   });
@@ -171,7 +176,7 @@ class LessonCompletePanel extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(text: '${context.localizations.lessonScreen_upNext} '),
-          if (next.group case final String group) TextSpan(text: '$group$_separator'),
+          if (nextGroup case final String group) TextSpan(text: '$group$_separator'),
           TextSpan(
             text: _nameOf(next),
             style: TextStyle(color: colors.foreground, fontWeight: FontWeight.w600),

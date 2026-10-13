@@ -1,61 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 
 void main() {
-  group('Course.entriesFrom', () {
-    test('groups a lesson\'s locales and orders by the filename prefix', () {
-      final entries = Course.entriesFrom([
-        'assets/lessons/python/02-variables.en.md',
-        'assets/lessons/python/01-hello.nl.md',
-        'assets/lessons/python/01-hello.en.md',
-        'assets/lessons/python/02-variables.nl.md',
-      ]);
-
-      expect(entries.map((e) => e.slug), ['hello', 'variables']);
-      expect(entries.first.locales, unorderedEquals(['nl', 'en']));
-      expect(entries.first.order, 1);
-      expect(entries.first.subject, 'python');
-    });
-
-    test('ignores anything that is not a lesson file', () {
-      final entries = Course.entriesFrom([
-        'assets/lessons/python/01-ok.nl.md',
-        'assets/lessons/python/notes.txt',
-        'assets/lessons/python/no-order-prefix.nl.md',
-        'assets/lessons/README.md',
-        'assets/fonts/Lexend-Variable.ttf',
-      ]);
-
-      expect(entries.map((e) => e.slug), ['ok']);
-    });
-
-    test('a folder inside a subject is a track, numbered on its own and listed after the rest', () {
-      final entries = Course.entriesFrom([
-        'assets/lessons/python/microbit/01-dice.nl.md',
-        'assets/lessons/python/microbit/00-meet.nl.md',
-        'assets/lessons/python/22-files.nl.md',
-        'assets/lessons/python/00-intro.nl.md',
-        'assets/lessons/python/microbit/deeper/01-too-deep.nl.md',
-      ]);
-
-      expect(entries.map((e) => e.slug), ['intro', 'files', 'meet', 'dice']);
-      expect(entries.map((e) => e.track), [null, null, 'microbit', 'microbit']);
-      expect(entries.every((e) => e.subject == 'python'), isTrue);
-    });
-
-    test('the same number in a track and outside it are two lessons', () {
-      final entries = Course.entriesFrom([
-        'assets/lessons/python/01-hello.nl.md',
-        'assets/lessons/python/microbit/01-hello.nl.md',
-      ]);
-
-      expect(entries, hasLength(2));
-    });
-  });
-
   group('Lesson.parse', () {
     // The samples are documentation, so they are not bundled and no student ever
     // sees them — but a sample that no longer parses is worse than none, and
@@ -567,30 +515,16 @@ void main() {
       expect(ordinary.optional, isFalse, reason: 'a lesson is part of the run unless it says otherwise');
     });
 
-    test('reads the lesson\'s `group`, which sets it under a heading', () {
-      final grouped = Lesson.parse(
-        '# T\n\n```metadata\nid: x\ngroup: "Week 1 · De basis"\n```\n\n'
-        '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+    test('rejects a `group`, which is a heading in the contents file now', () {
+      // Read by nothing, the line would leave the lesson under no heading
+      // without anyone being told.
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\ngroup: "Week 1 · De basis"\n```\n\n'
+          '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+        ),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('contents file'))),
       );
-      final loose = Lesson.parse(
-        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
-      );
-
-      expect(grouped.group, 'Week 1 · De basis');
-      expect(loose.group, isNull, reason: 'a lesson belongs to no group unless it says so');
-    });
-
-    test('rejects a `group` that is not a line of text', () {
-      for (final value in ['3', '""', '"   "', '[a, b]']) {
-        expect(
-          () => Lesson.parse(
-            '# T\n\n```metadata\nid: x\ngroup: $value\n```\n\n'
-            '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
-          ),
-          throwsA(isA<FormatException>()),
-          reason: value,
-        );
-      }
     });
 
     test('rejects a lesson `optional` that is not a boolean', () {

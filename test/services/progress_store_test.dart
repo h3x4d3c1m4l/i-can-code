@@ -6,7 +6,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 CourseLesson _lesson({required String id, required List<String> sectionIds}) => CourseLesson(
-  entry: LessonEntry(subject: 'python', order: 1, slug: id, paths: const {'nl': 'x'}),
+  entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
   translations: {
     'nl': Lesson(
       id: id,

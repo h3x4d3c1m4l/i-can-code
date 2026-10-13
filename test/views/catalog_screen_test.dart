@@ -57,17 +57,21 @@ void main() {
           lessons: [
             // Two weeks of three, so each week's cards are taller than the
             // distance the tests scroll into it.
-            for (final (index, entry) in Course.entriesFrom([
-              // A slug apiece: progress keys on the lesson's id.
-              for (var order = 1; order <= 6; order++) 'assets/lessons/python/0$order-lesson-$order.nl.md',
-            ]).indexed)
+            for (var order = 1; order <= 6; order++)
               CourseLesson(
-                entry: entry,
+                entry: LessonEntry(
+                  subject: 'python',
+                  group: order <= 3
+                      ? const LessonGroup(id: 'week-1', titles: {'nl': 'Week 1'})
+                      : const LessonGroup(id: 'week-2', titles: {'nl': 'Week 2'}),
+                  order: order,
+                  paths: const {'nl': 'x'},
+                ),
                 translations: {
                   'nl': Lesson(
-                    id: entry.slug,
-                    title: entry.slug,
-                    group: index < 3 ? 'Week 1' : 'Week 2',
+                    // An id apiece: progress keys on it.
+                    id: 'lesson-$order',
+                    title: 'lesson-$order',
                     sections: const [
                       LessonSection(id: 'a', title: 'A', kind: SectionKind.info, prose: ''),
                       LessonSection(id: 'b', title: 'B', kind: SectionKind.info, prose: ''),

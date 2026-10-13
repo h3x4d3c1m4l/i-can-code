@@ -181,7 +181,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   }
 
   AppHeaderConfig _buildHeader(BuildContext context) {
-    final lesson = viewModel.lesson.forLocale(Localizations.localeOf(context).languageCode);
+    final locale = Localizations.localeOf(context).languageCode;
+    final lesson = viewModel.lesson.forLocale(locale);
     final deepDive = !viewModel.completed && lesson.sections[viewModel.step].optional;
 
     return AppHeaderConfig(
@@ -193,7 +194,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           tip: context.localizations.lessonScreen_tourSubject,
         ),
         // Not tappable: a group is a heading in the catalog, not a screen.
-        if (lesson.group case final String group) AppCrumb(group),
+        if (viewModel.lesson.entry.group case final LessonGroup group) AppCrumb(group.titleFor(locale)),
         // The step is deliberately not a crumb: it is already the page heading
         // and the progress bar, and a third showing made the trail change
         // length as the student moved.
@@ -233,7 +234,8 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// The lesson's end page, after the last step. Set to the reading measure, so
   /// it sits where the prose the student just read did.
   Widget _buildComplete(BuildContext context, Lesson lesson) {
-    final next = viewModel.nextLesson?.forLocale(Localizations.localeOf(context).languageCode);
+    final locale = Localizations.localeOf(context).languageCode;
+    final next = viewModel.nextLesson?.forLocale(locale);
 
     return _Page(
       maxWidth: _readingWidth,
@@ -247,6 +249,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           completedSteps: viewModel.passed.length,
           stepCount: lesson.stepCount,
           nextLesson: next,
+          nextGroup: viewModel.nextLesson?.entry.group?.titleFor(locale),
           onNextLesson: next == null ? null : controller.openNextLesson,
           // Only where the first burst fired by itself: more of something the
           // visit never had would celebrate a skipped step.

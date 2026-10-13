@@ -1,56 +1,160 @@
 # Lesson format
 
-A lesson is **one markdown file per locale**. Its metadata, its prose, the code
-the editor opens with and the hidden checks all live in that one file — there is
-no sidecar YAML and no index.
+A course is plain files: a **contents file** per subject that says which lessons
+there are, and **one markdown file per lesson per locale**. A lesson's metadata,
+its prose, the code the editor opens with and the hidden checks all live in that
+one file — there is no sidecar YAML.
 
 ```text
 assets/lessons/
   python/
-    01-uitvoer.nl.md
-    01-uitvoer.en.md
+    contents.nl.md
+    contents.en.md
+    week-1/
+      01-uitvoer.nl.md
+      01-uitvoer.en.md
 ```
 
-## The filename carries three things
+## The contents file
 
 ```text
-assets/lessons/<subject>/<order>-<slug>.<locale>.md
+assets/lessons/<subject>/contents.<locale>.md
 ```
 
-- **`<subject>`** — what the lesson teaches, as a directory.
-  Python is the first; a second subject is a second directory, not a rewrite.
-- **`<order>`** — a zero-padded number. **This is the only source of course
-  order.** Reordering the course is a rename.
-- **`<slug>`** — what the file is about, in kebab case.
-- **`<locale>`** — `nl`, `en`, … One file per translation.
+**`<subject>`** is what the lessons teach, as a directory. Python is the first; a
+second subject is a second directory, not a rewrite. A subject has one contents
+file per locale it is offered in, and that file is the whole structure of the
+subject: which lessons, in what order, under which headings.
 
-`Course.entriesFrom` ignores anything that does not match this pattern, so a
-`README.md` or an editor backup in the folder is harmless.
+```markdown
+- [Introductie](00-introductie.nl.md)
 
-### A folder inside a subject is a track
+# Week 1 · De basis {#week-1}
 
-```text
-assets/lessons/python/microbit/01-dobbelsteen.nl.md
+- [Uitvoer](week-1/00-uitvoer.nl.md)
+- [Waarden bewaren](week-1/01-waarden-bewaren.nl.md)
+
+---
+
+- [Kommagetallen zijn benaderingen](verdieping/00-kommagetallen.nl.md)
+
+# Projecten · micro:bit {#microbit}
+
+- [Dobbelsteen](microbit/00-dobbelsteen.nl.md)
 ```
 
-One folder deeper, a lesson belongs to a **track**: a run numbered on its own,
-listed after the lessons outside any track, and after any track whose folder
-name sorts before its own. That lets a run start again at `00-` without
-renumbering the course. Nothing else changes: it is a lesson of the same
-subject, its `group` puts the heading over it, and its id shares the subject's
-namespace, so **a lesson id is unique across the whole subject, tracks
-included** (`test/content/lessons_test.dart` holds that).
+The form is mdBook's [`SUMMARY.md`](https://rust-lang.github.io/mdBook/format/summary.html),
+kept to what a course needs.
 
-Only one level. A folder inside a track is not read.
+| Line | Meaning |
+| --- | --- |
+| `- [Title](path)` | A lesson. `*` works as well as `-`. |
+| `# Title {#id}` | A **group**: a heading over the lessons that follow it. |
+| `---` | Ends the group. What follows stands under no heading, until the next one. |
+| Lessons before the first heading | Stand under no heading. |
+| Anything else | A `FormatException` naming the line. |
 
-### There is no index file
+- **The order of the list is the order of the course**, and nothing else is.
+  Where a lesson's file sits and what it is called mean nothing to the app.
+  Numbering the files is still worth doing, for the directory listing.
+- **A path is relative to the contents file** and stays inside the subject's
+  directory. A lesson is listed once.
+- **The link's text is the lesson's own title.** The app shows the `#` heading
+  of the lesson file, and `test/content/lessons_test.dart` fails when the
+  contents file calls the lesson something else. That keeps the file readable
+  as the course it describes.
+- **Strict on purpose.** A deeper heading, a nested list, a link with no file
+  and a loose line of text are each refused rather than skipped, because a
+  skipped line is a lesson that quietly left the course.
+
+### A group and its id
+
+The catalog sets a small heading over the lessons of a group.
+
+- **The words are the course's, not the app's.** A course that follows a
+  schedule names its weeks; one that does not names its chapters, or lists its
+  lessons under no heading at all.
+- **The id is required.** It is written `{#id}` at the end of the heading, in
+  lower case, digits and dashes, and is unique within the file. The heading is
+  translated and may be reworded; the id is neither, so it is what names the
+  group wherever a name has to last.
+- **It is shown outside the catalog too.** A lesson's bar names its group
+  between the subject and the lesson, and the end page of the lesson before it
+  names it in front of the lesson that comes next. Keep it short: in the bar the
+  widest name is cut to an ellipsis first when the window is narrow.
+- A lesson that is `optional: true` is listed under *Verdieping* whatever
+  heading the contents file puts it under.
+
+### One contents file per locale
+
+Every contents file of a subject describes the same course: as many lessons, the
+same group ids in the same places, and in each place the same lesson, by its
+`id`. Translations are paired by where they are listed, so `Course.load` refuses
+a subject whose files disagree.
+
+- The headings and the link texts are translated. The ids are not.
+- **A lesson with no translation is linked to in the language it has.**
+  `contents.en.md` lists `week-1/00-uitvoer.nl.md`, and an English reader gets
+  the Dutch lesson.
+- A subject offered in one language has one contents file, and a reader in any
+  other language gets that one.
+
+### Every file is listed
+
+This format had no index once, because a lesson could be added to the app and
+then forgotten in the old `index.yaml`. The contents file is an index again, and
+two things keep that failure out:
+
+- `test/content/lessons_test.dart` fails on a markdown file under a subject that
+  no contents file lists and no listed file includes. A `README.md` is exempt.
+- A subject with markdown files and no contents file fails the load, rather than
+  opening on an empty catalog.
 
 The build puts every `.md` file under `assets/lessons/`, at any depth, into one
-asset (`assets/course.json`, written by `bin/bundle_lessons.dart`), so the
-directory *is* the index. A lesson therefore cannot be added to the app and then
-forgotten in an index — the failure mode the old `index.yaml` had.
+asset (`assets/course.json`, written by `bin/bundle_lessons.dart`). A new subject
+directory, or a new folder inside one, needs no entry in `pubspec.yaml`.
 
-A new subject directory, or a new track, needs no entry in `pubspec.yaml`.
+## `{{#include}}` — a part in a file of its own
+
+````markdown
+```python-validator
+{{#include checks/zelf-printen.py}}
+```
+
+{{#include stappen/samenvatting.nl.md}}
+````
+
+A line that is `{{#include path}}` and nothing else is replaced by the text of
+that file. It is mdBook's
+[include](https://rust-lang.github.io/mdBook/format/mdbook.html#including-files),
+for whole files only.
+
+- **Use it where a file of its own helps**: a validator long enough to want an
+  editor that knows Python, a step long enough to want a file to itself. And a
+  starter, which is not translated: one `.py` included by every locale cannot
+  drift, where two copies can.
+- **The path is relative to the file the line is in**, not to the lesson that
+  started the chain. It may not leave `assets/lessons/`.
+- **It is text, put in before anything is parsed.** So it works inside a fenced
+  block and outside one, in a lesson and in a contents file, and an included
+  file may include another. A link in an included part of a contents file is
+  still relative to the contents file.
+- **The text goes in as it is.** It is not indented to match the line it
+  replaces, and it is not checked for what it does to the file around it: an
+  included file holding a closing fence ends the block it is included in. The
+  file's own last newline is dropped, so a block gains no empty line.
+- `\{{#include …}}` writes the line out as it stands, for a lesson that has to
+  show one.
+- A missing file, a file that includes itself through any number of others, and
+  an include that shares its line with other text are each a `FormatException`.
+  So are `path:2:10` and `path:anchor`, mdBook's partial includes, which are
+  kept free for later.
+
+**The app never sees one.** `bin/bundle_lessons.dart` resolves them while it
+bundles, and the build fails there on one it cannot resolve.
+`tool/try_lesson.dart` and `test/content/lessons_test.dart` resolve them the
+same way. A line number in a parser's message therefore counts lines *after*
+including.
 
 ## Worked examples of every type
 
@@ -107,7 +211,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `group`, `runtime` and `layout`. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime` and `layout`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -204,39 +308,9 @@ emoji: "🔬"
 optional: true
 ```
 
-The `<order>` prefix still decides where it sits, now within that group. Numbering
-these from 90 up keeps them out of the main run in a directory listing as well as
-on screen.
-
-### `group:` — a heading over a run of lessons
-
-A lesson may name the group it belongs to in its document-level `metadata`. The
-catalog sets a small heading over each run of lessons that share one.
-
-```metadata
-id: waarden-bewaren
-emoji: "🏷️"
-group: "Week 1 · De basis"
-```
-
-- **The words are the course's, not the app's.** A course that follows a
-  schedule names its weeks; one that does not names its chapters, or leaves the
-  field out and gets no headings at all.
-- **Grouping never reorders.** A heading starts wherever the group changes from
-  one lesson to the next in filename order, so a group that comes back later
-  gets a heading of its own rather than pulling its lessons forward. The number
-  in the filename stays the only source of order.
-- **It is shown outside the catalog too.** A lesson's bar names its group
-  between the subject and the lesson, and the end page of the lesson before it
-  names it in front of the lesson that comes next. Keep it short: in the bar the
-  widest name is cut to an ellipsis first when the window is narrow.
-- **It is translated**, like the title, but a lesson grouped in one locale is
-  grouped in all of them; `test/content/lessons_test.dart` holds that.
-- A `group` that is not a line of text — a number, a list, an empty string — is a
-  `FormatException`.
-
-A lesson that is also `optional: true` is listed under *Verdieping* whatever its
-group says.
+Its place in the contents file still decides where it sits, now among the other
+*Verdieping* lessons, and which lesson "Volgende les" leads to from the one
+before it.
 
 ### `runtime:` — what the step's code runs on
 
@@ -293,14 +367,14 @@ Both fields are **optional in the parser** — a lesson missing one still opens,
 with a plain title or a numbered tile — but **required of every lesson that
 ships**, which is a rule the test holds rather than the format.
 
-A **subject** has no file of its own, so its emoji is a case in
-`subjectEmoji()` in `lib/services/lessons/course.dart`. A subject the table
+A **subject**'s contents files say nothing about the subject itself, so its
+emoji is a case in `subjectEmoji()` in `lib/services/lessons/course.dart`. A subject the table
 does not name falls back to the initial on its card, so adding a subject
 directory does not require touching it.
 
 It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
 makes a step look the same on every platform instead of borrowing Apple's emoji
-on a Mac and Google's on the web; see *Theming* in `.claude/rules/ui.md`.
+on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
 
 ## `layout: project` — one program, built up over tasks
 
@@ -319,7 +393,6 @@ id: dobbelsteen
 emoji: "🎲"
 layout: project
 runtime: microbit
-group: "Projecten · micro:bit"
 ```
 
 ## Eén worp
@@ -419,8 +492,7 @@ Three things to know:
 
 - **Folding is not remembered.** Leave the step and come back and every group is
   back in the state its heading asked for. It is a reading convenience, not
-  progress — see the note on `ProgressStore` in
-  `.claude/rules/progress.md`.
+  progress — see *Progress* in `CLAUDE.md`.
 - **A `###` inside a fenced block is code**, not a heading, so a Python sample
   containing one will not cut the prose in half.
 - **`####` and deeper are left alone.** They render as ordinary headings inside
@@ -1056,8 +1128,12 @@ want a student to read.**
 
 ## Adding a lesson
 
-1. Create `assets/lessons/<subject>/<order>-<slug>.<locale>.md`.
-2. Add translations as further `.<locale>.md` files beside it.
+1. Write it as a `.md` file anywhere under `assets/lessons/<subject>/`.
+2. List it in that subject's `contents.<locale>.md`, where it belongs in the
+   order.
+3. Add translations as further files, each listed in the contents file of its
+   own locale. Until one exists, that locale's contents file lists the lesson in
+   the language it has.
 
 No code change and no regeneration: the next build, or the next start of
 `flutter run`, bundles it. `test/content/lessons_test.dart` checks

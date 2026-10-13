@@ -43,23 +43,19 @@ const List<LessonSection> _sections = [
   LessonSection(id: 'shake', title: 'Schudden', kind: SectionKind.task, prose: 'Schud.', doneWhen: 'Het werkt.'),
 ];
 
-CourseLesson get _project => GetIt.I<Course>().lessons.firstWhere((l) => l.entry.slug == 'dice');
+CourseLesson get _project => GetIt.I<Course>().lessons.last;
 
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
 
-    final entries = Course.entriesFrom([
-      'assets/lessons/python/01-loops.nl.md',
-      'assets/lessons/python/microbit/01-dice.nl.md',
-    ]);
     GetIt.I
       ..registerSingleton<Course>(
         Course(
           lessons: [
             CourseLesson(
-              entry: entries.first,
+              entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
               translations: {
                 'nl': const Lesson(
                   id: 'loops',
@@ -69,7 +65,7 @@ void main() {
               },
             ),
             CourseLesson(
-              entry: entries.last,
+              entry: const LessonEntry(subject: 'python', order: 2, paths: {'nl': 'y'}),
               translations: {
                 'nl': const Lesson(
                   id: 'dice',

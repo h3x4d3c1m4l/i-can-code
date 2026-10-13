@@ -22,16 +22,13 @@ void main() {
           lessons: [
             // Two, because a subject with every lesson done shows a tick in
             // place of the count.
-            for (final entry in Course.entriesFrom([
-              'assets/lessons/python/01-hello.nl.md',
-              'assets/lessons/python/02-again.nl.md',
-            ]))
+            for (final (index, id) in ['hello', 'again'].indexed)
               CourseLesson(
-                entry: entry,
+                entry: LessonEntry(subject: 'python', order: index + 1, paths: const {'nl': 'x'}),
                 translations: {
                   'nl': Lesson(
-                    id: entry.slug,
-                    title: entry.slug,
+                    id: id,
+                    title: id,
                     sections: const [LessonSection(id: 'a', title: 'A', kind: SectionKind.info, prose: '')],
                   ),
                 },
