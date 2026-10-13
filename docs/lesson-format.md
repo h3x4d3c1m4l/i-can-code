@@ -77,7 +77,9 @@ The catalog sets a small heading over the lessons of a group.
 - **The id is required.** It is written `{#id}` at the end of the heading, in
   lower case, digits and dashes, and is unique within the file. The heading is
   translated and may be reworded; the id is neither, so it is what names the
-  group wherever a name has to last.
+  group wherever a name has to last. One such place is an address:
+  `/learn-python?group=week-1` opens the catalog at that group. Changing an id
+  breaks every link to it that is already out there.
 - **It is shown outside the catalog too.** A lesson's bar names its group
   between the subject and the lesson, and the end page of the lesson before it
   names it in front of the lesson that comes next. Keep it short: in the bar the

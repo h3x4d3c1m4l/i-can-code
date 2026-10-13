@@ -137,7 +137,7 @@ Three rules behind that shape:
 
 **A crumb that was cut says its whole name on hover.** `ShortenedTip` (`lib/views/components/`) is a `HoverTip` that opens only while its child is narrower than it wants to be, which is the trail's own test for having shortened it. It asks on the hover instead of keeping the answer, so a window that grows needs no rebuild to take the tip away. A crumb that fits opens none, and the tip is not in the crumb's semantics: a cut `Text` still reads out the whole label.
 
-**A lesson's trail names its group**, between the subject and the lesson, when the lesson has one. That crumb has no `onTap`: a group is a heading in the catalog, not a screen.
+**A lesson's trail names its group**, between the subject and the lesson, when the lesson has one. A group is a heading in the catalog and not a screen, so that crumb opens the catalog at the heading (see *Anchors*).
 
 **The version is named once, on the home screen**, beside the mark and not inside the app crumb — the crumb is the app's *name*, and a version tacked onto it would be read out as part of it on every screen. The two are set at different sizes on one line, so the trail aligns them on their **baseline**; centring their boxes leaves the smaller one sitting low. `appVersion` (`lib/app_info.dart`) reads it back out of the running build through `package_info_plus`, so it cannot drift from `pubspec.yaml` — on the web that is a fetch of the `version.json` the build writes beside `index.html`, same origin and so untouched by cross-origin isolation. `main()` awaits `loadPackageInfo()`, which registers the `PackageInfo` in GetIt; it is **not** an initialization step, because that screen's failures are fatal and a version string is not worth failing a start over. It is null when there is nothing to show — the plugin answers empty strings rather than throwing when `version.json` is missing, and a widget test registers nothing at all — and the bar then omits it.
 
@@ -307,6 +307,8 @@ No service worker means no console — private browsing, storage disabled, no ht
 /                                              the subject picker
 /licenses                                      the licences of the app and of what it ships
 /learn-python                                  that subject's lessons
+/learn-python?group=week-1                     ... scrolled to that group, which lights up
+/learn-python?lesson=uitvoer                   ... scrolled to that lesson's card
 /learn-python/uitvoer                          resume: wherever you left off
 /learn-python/uitvoer/zelf-printen             one step, named by its section id
 /learn-python/repl                             the interactive console
@@ -328,6 +330,28 @@ The step is a **`LessonSection.id`, never a position** — the same reason progr
 `test/routing/app_router_test.dart` builds the router, which is the only place that validation happens. Add to it when you touch the table — a green analyze and a green build prove nothing here.
 
 `/:subjectSlug` is a catch-all, so `/initialization` and `/licenses` must stay declared above it.
+
+### Anchors
+
+**The catalog's address can name a place on it**: `?group=<LessonGroup.id>` or `?lesson=<Lesson.id>`. The catalog scrolls there and lights it up, with a ring in the text colour that runs outward from the part and fades, twice. A group lights its heading and every card under it. Ids and never positions or titles, for the reason progress keys on them. An id the course does not have names nothing, and the catalog opens at its top. Given both, the lesson wins.
+
+It is a query parameter and not a second `#`. The route already sits behind the hash, and a `#` inside a fragment is not valid in a URL, so a chat app is free to mangle one. `BootstrapGuard` carries the query over the bootstrap. **The anchor stays in the address**, as an anchor on the web does: a reload scrolls there again.
+
+Three things hold it together:
+
+- **The view reads the anchor off the screen's own widget at every build** (`context.widget as CatalogScreen`). auto_route hands a page that only changed its query new arguments in place, which is what a link pasted into a tab with the catalog open does. `ScreenBase` makes the view model once, so nothing else would see it, and `base/` stays closed. A change *to* an anchor is a request. A change to none is not, so a reader who navigates back keeps their place.
+- **`catalogRoute()` gives a route with an anchor a `UniqueKey`.** Arguments that did not change move nothing, so a group crumb pressed a second time would do nothing. Every `CatalogRoute` that carries an anchor MUST be built there. Without an anchor there is no key, and the catalog a reader returns to is the one they left.
+- **Every card is built, on screen or not**: a run is a `Column`, not a sliver list. `AnchorTarget` scrolls by `getOffsetToReveal`, which adds up scroll extents, and a lazy list only estimates the rows it has not laid out. The same call already leaves room for the pinned slivers ahead of a part, the `BarClearanceSliver` and the stuck heading, which is why a card lands under its heading and not behind it.
+
+`CatalogAnchorScope` owns the one `AnimationController` the ring runs on, so a heading and its cards pulse as one. An `AnchorTarget` wraps each part: it scrolls itself there, says it has arrived, and draws from that clock. The ring is the text colour because the accent cannot be the signal: the neutral yellow is 1.2:1 on the page. For a reader who asked for less motion the page jumps and one ring stands still for a moment, which is why the ring's duration does not go through `context.motion`.
+
+**A right click on a lesson card or a group heading opens `CopyLinkMenu`**: the cog's kind of menu with one item, which copies `catalogAddress()` and says "Gekopieerd" for a second before it closes. Shift+F10 and the menu key open it on a card with the focus, and a screen reader gets the copy as a custom action on the card's own node. There is no long press, for the reason `HoverTip` gives, so a touch screen has no way to it. The cards under *Extra* have none: each has an address of its own.
+
+`BrowserMenuSuppressor` keeps the browser's own menu off those parts. `BrowserContextMenu` is one switch for the whole page, and `SelectableCode` needs it on everywhere else, so the switch is thrown only while the pointer is over a part. **None of that runs under `flutter test`. Check a change to it in a browser.**
+
+`catalogAddress()` puts the route in the fragment. That is Flutter's hash URL strategy, which the app leaves at its default; a path strategy would need the function to change with it.
+
+`test/views/catalog_anchor_navigation_test.dart` goes through the real router: an address pasted over an open catalog, a cold start past the bootstrap, and the crumb pressed twice.
 
 ### Progress
 
@@ -496,7 +520,7 @@ A single run of a section is an **attempt** (`AttemptResult`, `PythonAttemptRunn
 
 A **whole lesson** may be optional too, by saying `optional: true` in its document-level metadata. The catalog then lists it under a *Verdieping* heading of its own rather than in the numbered run, so the main sequence still reads as one path and skipping every one of them still finishes the course. Inside, it is an ordinary lesson: checked, ticked and recorded the normal way. Same word and same promise as the section flag below, one level up.
 
-**Lessons stand under the heading of their group**, a `# Title {#id}` in their subject's contents file — this course uses it for its weeks. The catalog sets a small `CatalogGroupHeading` over each run of lessons that share a group, and `runsBy` (`lib/views/catalog_screen/`) is the whole rule: consecutive lessons with the same group id, in the order the contents file lists them. The heading is translated and the id is not, so `LessonGroup.titleFor(locale)` is what a screen shows and the id is what names the group. The words come from the course, which is what keeps week numbers — a fact about one school's schedule — out of the app. The heading is small capitals rather than another `h2`, so it names the cards under it without competing with them. It **sticks under the bar** while its lessons pass under it: `StickyGroupHeading` is the first sliver of a `SliverMainAxisGroup` that holds its run, and the end of that group is what pushes it off for the next week. Stuck, it floats as a small label, because a band the width of the page would cut the cards off along its edge. The catalog is a `CustomScrollView` for that reason, so its rows are built during layout and each card is an `Observer` of its own.
+**Lessons stand under the heading of their group**, a `# Title {#id}` in their subject's contents file — this course uses it for its weeks. The catalog sets a small `CatalogGroupHeading` over each run of lessons that share a group, and `runsBy` (`lib/views/catalog_screen/`) is the whole rule: consecutive lessons with the same group id, in the order the contents file lists them. The heading is translated and the id is not, so `LessonGroup.titleFor(locale)` is what a screen shows and the id is what names the group. The words come from the course, which is what keeps week numbers — a fact about one school's schedule — out of the app. The heading is small capitals rather than another `h2`, so it names the cards under it without competing with them. It **sticks under the bar** while its lessons pass under it: `StickyGroupHeading` is the first sliver of a `SliverMainAxisGroup` that holds its run, and the end of that group is what pushes it off for the next week. Stuck, it floats as a small label, because a band the width of the page would cut the cards off along its edge. The catalog is a `CustomScrollView` for that reason. A run's cards are a plain `Column` in it, so every one of them is built (see *Anchors*), and each card is an `Observer` of its own.
 
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 

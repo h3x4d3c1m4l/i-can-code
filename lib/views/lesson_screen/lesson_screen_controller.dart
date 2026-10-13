@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/routing/catalog_anchor.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
@@ -285,6 +286,19 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
       const SubjectsRoute(),
       CatalogRoute(subjectSlug: subjectSlug(next.entry.subject)),
       openingRoute(next, _progress),
+    ]);
+  }
+
+  /// Opens this lesson's catalog at [group]: scrolled to its heading, which
+  /// lights up.
+  Future<void> openGroup(LessonGroup group) async {
+    if (_disposed || !contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.replaceAll([
+      const SubjectsRoute(),
+      catalogRoute(
+        subjectSlug: subjectSlug(viewModel.lesson.entry.subject),
+        anchor: (kind: CatalogAnchorKind.group, id: group.id),
+      ),
     ]);
   }
 

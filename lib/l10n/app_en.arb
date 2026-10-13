@@ -476,6 +476,14 @@
   "@codeSample_copied": {
     "description": "Announced to a screen reader once the button has copied the block. The screen shows a tick instead."
   },
+  "catalogScreen_copyLink": "Copy link",
+  "@catalogScreen_copyLink": {
+    "description": "The only item in the menu a right click opens on a lesson card or a group heading in the catalog. Puts the address on the clipboard that opens the catalog at that place."
+  },
+  "catalogScreen_linkCopied": "Copied",
+  "@catalogScreen_linkCopied": {
+    "description": "Stands in for 'Copy link' for a second once the link has been copied, and is announced to a screen reader."
+  },
   "resetCode_title": "Reset this code?",
   "@resetCode_title": {},
   "resetCode_body": "Your code goes back to how the exercise started. This cannot be undone.",

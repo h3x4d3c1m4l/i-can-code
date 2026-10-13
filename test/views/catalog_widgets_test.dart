@@ -4,7 +4,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/routing/catalog_anchor.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/catalog_screen/components/anchor_target.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_anchor_scope.dart';
 import 'package:i_can_code/views/components/catalog_group_heading.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
 
@@ -108,6 +111,122 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_message), findsOneWidget);
+    });
+  });
+
+  group('AnchorTarget', () {
+    const CatalogAnchor here = (kind: CatalogAnchorKind.group, id: 'week-1');
+    const size = Size(200, 60);
+    // On the middle of the box's left edge: a little way out, and a long way.
+    const near = Offset(-1, 30);
+    const far = Offset(-20, 30);
+
+    /// A box a screenful down the page, which the address asks for.
+    Widget page({CatalogAnchor? asked = here, bool lessMotion = false}) => FTheme(
+      data: buildAppTheme(),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: MediaQuery(
+          data: MediaQueryData(size: const Size(800, 600), disableAnimations: lessMotion),
+          child: CatalogAnchorScope(
+            anchor: asked,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 900),
+                  AnchorTarget(anchor: here, radius: 8, child: SizedBox.fromSize(size: size)),
+                  const SizedBox(height: 900),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    RenderObject ring(WidgetTester tester) =>
+        tester.renderObject(find.descendant(of: find.byType(AnchorTarget), matching: find.byType(CustomPaint)));
+
+    /// Up to the frame the ring starts on. A scroll is over once its time has
+    /// passed, not as it runs out, hence the millisecond.
+    Future<void> arrive(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(AnchorTarget.scrollDuration + const Duration(milliseconds: 1));
+    }
+
+    testWidgets('draws nothing until the page has come to rest on it', (tester) async {
+      await tester.pumpWidget(page());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(ring(tester), paintsNothing, reason: 'a ring over a part that is still moving points at nothing');
+    });
+
+    testWidgets('then sends a ring outward from its edge, twice, and is done', (tester) async {
+      await tester.pumpWidget(page());
+      await arrive(tester);
+      final half = CatalogAnchorScope.ringDuration ~/ 2;
+
+      for (var round = 0; round < 2; round++) {
+        await tester.pump(const Duration(milliseconds: 60));
+        expect(
+          ring(tester),
+          paints..path(style: PaintingStyle.stroke, includes: [near], excludes: [far]),
+          reason: 'ring ${round + 1} starts at the edge',
+        );
+
+        await tester.pump(half - const Duration(milliseconds: 120));
+        expect(
+          ring(tester),
+          paints..path(style: PaintingStyle.stroke, includes: [near, const Offset(-8, 30)], excludes: [far]),
+          reason: 'ring ${round + 1} has run outward',
+        );
+        await tester.pump(const Duration(milliseconds: 60));
+      }
+
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(ring(tester), paintsNothing);
+    });
+
+    testWidgets('holds one ring still for a reader who asked for less motion', (tester) async {
+      await tester.pumpWidget(page(lessMotion: true));
+      await tester.pump();
+      await tester.pump();
+
+      for (final wait in const [Duration(milliseconds: 60), Duration(milliseconds: 900)]) {
+        await tester.pump(wait);
+        expect(
+          ring(tester),
+          paints..path(style: PaintingStyle.stroke, includes: [near], excludes: [const Offset(-8, 30)]),
+          reason: 'after $wait',
+        );
+      }
+
+      await tester.pump(CatalogAnchorScope.reducedHold);
+      expect(ring(tester), paintsNothing);
+    });
+
+    testWidgets('stays as it is for an address that asks for another part, or for none', (tester) async {
+      for (final asked in <CatalogAnchor?>[null, (kind: CatalogAnchorKind.lesson, id: 'week-1')]) {
+        await tester.pumpWidget(page(asked: asked));
+        await arrive(tester);
+        await tester.pump(const Duration(milliseconds: 60));
+
+        expect(ring(tester), paintsNothing, reason: '$asked');
+        expect(tester.hasRunningAnimations, isFalse, reason: '$asked');
+      }
+    });
+
+    testWidgets('is a plain wrapper where nothing asks at all', (tester) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(child: AnchorTarget(anchor: here, radius: 8, child: SizedBox(width: 200, height: 60))),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(AnchorTarget)), size);
+      expect(ring(tester), paintsNothing);
     });
   });
 

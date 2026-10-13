@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/routing/catalog_anchor.dart';
 
 void main() {
   // `config()` builds a router delegate, which needs a binding.
@@ -101,5 +102,58 @@ void main() {
     final other = projectRoute(subjectSlug: 'learn-python', lessonId: 'marble');
 
     expect(first.args!.key, isNot(other.args!.key));
+  });
+
+  group('a place in the catalog', () {
+    const CatalogAnchor week = (kind: CatalogAnchorKind.group, id: 'week-1');
+    const CatalogAnchor lesson = (kind: CatalogAnchorKind.lesson, id: 'uitvoer');
+
+    test('is named in the query, which leaves the catalog its own address', () {
+      for (final anchor in [week, lesson]) {
+        final matched = AppRouter().matcher.match('/learn-python?${anchor.kind.parameter}=${anchor.id}');
+
+        expect(matched, hasLength(1));
+        expect(matched!.single.name, 'CatalogRoute');
+        expect(matched.single.queryParams.optString(anchor.kind.parameter), anchor.id);
+      }
+    });
+
+    test('goes out in the address a route to it is given, under the name the screen reads it by', () {
+      // The parameter names are written twice, on the screen's constructor and
+      // on the kind. A route built from one has to be read back by the other.
+      for (final anchor in [week, lesson]) {
+        final route = catalogRoute(subjectSlug: 'learn-python', anchor: anchor);
+
+        expect(route.rawQueryParams[anchor.kind.parameter], anchor.id);
+        expect(route.rawQueryParams.values.nonNulls, [anchor.id], reason: 'and names nothing else');
+      }
+    });
+
+    test('is a new screen every time it is asked for, and the catalog itself is not', () {
+      // auto_route updates the page it has in place, and arguments that did not
+      // change move nothing. A key of its own is what makes asking for the same
+      // group twice scroll twice.
+      final once = catalogRoute(subjectSlug: 'learn-python', anchor: week);
+      final again = catalogRoute(subjectSlug: 'learn-python', anchor: week);
+
+      expect(once.args!.key, isNotNull);
+      expect(once.args!.key, isNot(again.args!.key));
+      // And none where nothing is asked for: a reader comes back to the page
+      // they left.
+      expect(catalogRoute(subjectSlug: 'learn-python').args!.key, isNull);
+    });
+
+    test('has a whole address, with the route behind the hash', () {
+      final base = Uri.parse('https://example.org/i-can-code/#/learn-python/uitvoer/intro');
+
+      expect(
+        catalogAddress(subjectSlug: 'learn-python', anchor: week, base: base).toString(),
+        'https://example.org/i-can-code/#/learn-python?group=week-1',
+      );
+      expect(
+        catalogAddress(subjectSlug: 'learn-python', anchor: lesson, base: base).toString(),
+        'https://example.org/i-can-code/#/learn-python?lesson=uitvoer',
+      );
+    });
   });
 }

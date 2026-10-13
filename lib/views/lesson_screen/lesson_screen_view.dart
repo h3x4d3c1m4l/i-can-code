@@ -193,8 +193,10 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           onTap: () => controller.openSubject(viewModel.lesson.entry.subject),
           tip: context.localizations.lessonScreen_tourSubject,
         ),
-        // Not tappable: a group is a heading in the catalog, not a screen.
-        if (viewModel.lesson.entry.group case final LessonGroup group) AppCrumb(group.titleFor(locale)),
+        // A group is a heading in the catalog and not a screen, so its crumb
+        // opens the catalog at that heading.
+        if (viewModel.lesson.entry.group case final LessonGroup group)
+          AppCrumb(group.titleFor(locale), onTap: () => controller.openGroup(group)),
         // The step is deliberately not a crumb: it is already the page heading
         // and the progress bar, and a third showing made the trail change
         // length as the student moved.

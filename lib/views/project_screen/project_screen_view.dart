@@ -105,7 +105,8 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       onTapHome: controller.leave,
       crumbs: [
         AppCrumb(subjectLabel(viewModel.lesson.entry.subject), onTap: controller.openSubject),
-        if (viewModel.lesson.entry.group case final LessonGroup group) AppCrumb(group.titleFor(locale)),
+        if (viewModel.lesson.entry.group case final LessonGroup group)
+          AppCrumb(group.titleFor(locale), onTap: () => controller.openGroup(group)),
         AppCrumb(lesson.title),
       ],
       offersZen: true,

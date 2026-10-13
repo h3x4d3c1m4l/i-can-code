@@ -247,6 +247,14 @@
   "@codeSample_copied": {
     "description": "Wordt aan een schermlezer gemeld nadat de knop het blok heeft gekopieerd. Op het scherm staat dan een vinkje."
   },
+  "catalogScreen_copyLink": "Link kopiëren",
+  "@catalogScreen_copyLink": {
+    "description": "Het enige item in het menu dat opent bij een rechtermuisklik op een leskaart of een groepskop in de catalogus. Zet het adres op het klembord waarmee de catalogus op die plek opent."
+  },
+  "catalogScreen_linkCopied": "Gekopieerd",
+  "@catalogScreen_linkCopied": {
+    "description": "Staat een seconde in plaats van 'Link kopiëren' nadat de link is gekopieerd, en wordt aan een schermlezer gemeld."
+  },
   "resetCode_title": "Code herstellen?",
   "resetCode_body": "Je code gaat terug naar hoe de opdracht begon. Dit kun je niet ongedaan maken.",
   "resetCode_confirm": "Herstel",

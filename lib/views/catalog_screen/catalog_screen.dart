@@ -1,4 +1,5 @@
 import 'package:auto_route/annotations.dart';
+import 'package:i_can_code/routing/catalog_anchor.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/base/screen_base.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
@@ -12,7 +13,26 @@ class CatalogScreen extends ScreenBase<CatalogScreenViewModel, CatalogScreenCont
   /// `learn-python`. A path parameter, so a reload lands on the same catalog.
   final String subjectSlug;
 
-  const CatalogScreen({@PathParam('subjectSlug') required this.subjectSlug, super.key});
+  /// The group the address asks for, by its id: `?group=week-1`.
+  final String? group;
+
+  /// The lesson the address asks for, by its id: `?lesson=uitvoer`.
+  final String? lesson;
+
+  const CatalogScreen({
+    @PathParam('subjectSlug') required this.subjectSlug,
+    @QueryParam('group') this.group,
+    @QueryParam('lesson') this.lesson,
+    super.key,
+  });
+
+  /// What the address asks the catalog to scroll to and light up, or null when
+  /// it asks for nothing. A lesson is the narrower of the two, so it wins.
+  CatalogAnchor? get anchor => switch ((lesson, group)) {
+    (final String id, _) => (kind: CatalogAnchorKind.lesson, id: id),
+    (_, final String id) => (kind: CatalogAnchorKind.group, id: id),
+    _ => null,
+  };
 
   @override
   CatalogScreenController createController({

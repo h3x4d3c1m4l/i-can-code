@@ -4,12 +4,18 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/routing/catalog_anchor.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
+import 'package:i_can_code/views/catalog_screen/catalog_screen.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
+import 'package:i_can_code/views/catalog_screen/components/anchor_target.dart';
 import 'package:i_can_code/views/catalog_screen/components/bar_clearance_sliver.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_anchor_scope.dart';
+import 'package:i_can_code/views/catalog_screen/components/copy_link_menu.dart';
 import 'package:i_can_code/views/catalog_screen/components/sticky_group_heading.dart';
 import 'package:i_can_code/views/catalog_screen/lesson_runs.dart';
 import 'package:i_can_code/views/components/app_header.dart';
@@ -28,18 +34,31 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
   /// itself says where one group ends.
   static const double _runGap = 40;
 
+  /// The air above a card an address asked for, under the bar and under the
+  /// heading stuck there.
+  static const double _cardClearance = 12;
+
   const CatalogScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
 
   @override
   Widget get body {
+    // Read off the screen's own widget, as it is at this build. auto_route
+    // hands a page new arguments in place, and `ScreenBase` makes the view
+    // model once, so the widget is the only place the address of the moment
+    // reaches.
+    final anchor = (context.widget as CatalogScreen).anchor;
+
     return AppHeaderPublisher(
       builder: (context) => AppHeaderConfig(
         onTapHome: controller.goHome,
         crumbs: [AppCrumb(subjectLabel(viewModel.subject))],
       ),
-      child: _buildContent(),
+      child: CatalogAnchorScope(anchor: anchor, child: _buildContent()),
     );
   }
+
+  /// The address that opens this catalog at [anchor].
+  Uri _addressOf(CatalogAnchor anchor) => catalogAddress(subjectSlug: subjectSlug(viewModel.subject), anchor: anchor);
 
   /// Everything this subject offers beside the course itself.
   ///
@@ -90,48 +109,88 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
     );
   }
 
-  /// One row of the course, for whichever run it belongs to.
+  /// One row of the course, for whichever run it belongs to. [group] is the
+  /// heading it stands under on this page, which it lights up along with.
   ///
-  /// An [Observer] of its own, because a sliver list builds its rows during
-  /// layout, after the screen's own build has stopped listening. A tick would
-  /// then wait for the next visit.
-  Widget _buildLessonCard(CourseLesson courseLesson, String locale) {
-    return Observer(
-      builder: (context) {
-        final lesson = courseLesson.forLocale(locale);
-        final progress = viewModel.progress;
-        final done = progress.completedSteps(courseLesson);
+  /// An [Observer] of its own, so a tick redraws one card. Nothing above it is
+  /// one.
+  Widget _buildLessonCard(CourseLesson courseLesson, String locale, {LessonGroup? group}) {
+    final CatalogAnchor anchor = (kind: CatalogAnchorKind.lesson, id: courseLesson.translations.values.first.id);
 
-        return CatalogCard(
-          label: '${courseLesson.entry.order}',
-          emoji: lesson.emoji,
-          title: lesson.title,
-          subtitle: lesson.subtitle,
-          finished: progress.isFinished(courseLesson),
-          // How far in, from the first visit on. A lesson not started reads
-          // "0 / 5" rather than "5 stappen", so the number in this position
-          // never changes meaning between one row and the next. Finished: the
-          // card shows a tick instead.
-          meta: context.localizations.catalogScreen_progress(done, lesson.stepCount),
-          onTap: () => controller.openLesson(courseLesson),
-        );
-      },
+    return AnchorTarget(
+      anchor: anchor,
+      alongWith: group == null ? null : (kind: CatalogAnchorKind.group, id: group.id),
+      clearance: _cardClearance,
+      radius: kCardCornerRadius,
+      child: CopyLinkMenu(
+        address: () => _addressOf(anchor),
+        child: Observer(
+          builder: (context) {
+            final lesson = courseLesson.forLocale(locale);
+            final progress = viewModel.progress;
+            final done = progress.completedSteps(courseLesson);
+
+            return CatalogCard(
+              label: '${courseLesson.entry.order}',
+              emoji: lesson.emoji,
+              title: lesson.title,
+              subtitle: lesson.subtitle,
+              finished: progress.isFinished(courseLesson),
+              // How far in, from the first visit on. A lesson not started
+              // reads "0 / 5" rather than "5 stappen", so the number in this
+              // position never changes meaning between one row and the next.
+              // Finished: the card shows a tick instead.
+              meta: context.localizations.catalogScreen_progress(done, lesson.stepCount),
+              onTap: () => controller.openLesson(courseLesson),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// A group's heading, as something an address can name and a right click can
+  /// copy the address of.
+  Widget _buildGroupHeading(LessonGroup group, String locale) {
+    final CatalogAnchor anchor = (kind: CatalogAnchorKind.group, id: group.id);
+
+    return StickyGroupHeading(
+      group.titleFor(locale),
+      labelBuilder: (heading) => AnchorTarget(
+        anchor: anchor,
+        // Where the heading stands when nothing holds it up: its own gap
+        // under the bar. Any higher and it would arrive stuck.
+        clearance: StickyGroupHeading.topGap,
+        radius: StickyGroupHeading.labelCornerRadius,
+        outset: StickyGroupHeading.labelPadding,
+        child: CopyLinkMenu(address: () => _addressOf(anchor), child: heading),
+      ),
     );
   }
 
   /// One run of the course as slivers. A run with a group opens with its
   /// heading, which sticks under the bar while the run's lessons pass under it.
   List<Widget> _buildRun(List<CourseLesson> run, String locale, {required bool first}) {
-    final cards = SliverList.separated(
-      itemCount: run.length,
-      itemBuilder: (_, position) => _buildLessonCard(run[position], locale),
-      separatorBuilder: (_, _) => const SizedBox(height: CatalogCard.spacing),
+    final group = run.first.entry.group;
+    // A column and not a sliver list, so every card is built, on screen or
+    // not. An address scrolls to a card by the scroll extent of what is above
+    // it, and a lazy list only estimates the rows it has not laid out.
+    final cards = SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (index, lesson) in run.indexed) ...[
+            if (index > 0) const SizedBox(height: CatalogCard.spacing),
+            _buildLessonCard(lesson, locale, group: group),
+          ],
+        ],
+      ),
     );
 
-    return switch (run.first.entry.group) {
+    return switch (group) {
       final LessonGroup group => [
         const SliverToBoxAdapter(child: SizedBox(height: _runGap - StickyGroupHeading.topGap)),
-        SliverMainAxisGroup(slivers: [StickyGroupHeading(group.titleFor(locale)), cards]),
+        SliverMainAxisGroup(slivers: [_buildGroupHeading(group, locale), cards]),
       ],
       _ => [
         SliverToBoxAdapter(child: SizedBox(height: first ? _runGap : CatalogCard.spacing)),

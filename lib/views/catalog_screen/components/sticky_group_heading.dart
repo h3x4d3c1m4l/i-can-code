@@ -28,11 +28,11 @@ class StickyGroupHeading extends StatelessWidget {
 
   /// How far the label's surface reaches past the heading's own text. Drawn
   /// outside the text's box, so the words do not move when it appears.
-  static const EdgeInsets _labelPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 6);
+  static const EdgeInsets labelPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 6);
 
   /// The design's smallest radius. A chip's would bow inward on a label only
   /// one line of small capitals tall.
-  static const double _cornerRadius = 8;
+  static const double labelCornerRadius = 8;
 
   /// The surface coming and going. Matters of taste, like the shadow under it.
   static const Duration _fade = Duration(milliseconds: 160);
@@ -43,7 +43,11 @@ class StickyGroupHeading extends StatelessWidget {
 
   final String label;
 
-  const StickyGroupHeading(this.label, {super.key});
+  /// Wraps the heading's own text, for a caller that hangs something on it.
+  /// The surface a stuck heading floats on stays behind whatever this returns.
+  final Widget Function(Widget heading)? labelBuilder;
+
+  const StickyGroupHeading(this.label, {this.labelBuilder, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +74,10 @@ class StickyGroupHeading extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          left: -_labelPadding.left,
-          top: -_labelPadding.top,
-          right: -_labelPadding.right,
-          bottom: -_labelPadding.bottom,
+          left: -labelPadding.left,
+          top: -labelPadding.top,
+          right: -labelPadding.right,
+          bottom: -labelPadding.bottom,
           child: AnimatedOpacity(
             opacity: stuck ? 1 : 0,
             duration: context.motion(_fade),
@@ -81,7 +85,7 @@ class StickyGroupHeading extends StatelessWidget {
             child: DecoratedBox(
               decoration: ShapeDecoration(
                 color: colors.card,
-                shape: squircle(_cornerRadius, side: BorderSide(color: colors.border)),
+                shape: squircle(labelCornerRadius, side: BorderSide(color: colors.border)),
                 shadows: [
                   BoxShadow(
                     color: colors.border.darken(_shadowDarken).withValues(alpha: _shadowOpacity),
@@ -93,7 +97,7 @@ class StickyGroupHeading extends StatelessWidget {
             ),
           ),
         ),
-        CatalogGroupHeading(label),
+        labelBuilder?.call(CatalogGroupHeading(label)) ?? CatalogGroupHeading(label),
       ],
     );
   }
