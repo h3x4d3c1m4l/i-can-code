@@ -10,8 +10,22 @@ import 'package:i_can_code/services/python/python_runtime.dart';
 /// `flutter test` has no host for the app's `wasm32-wasi` build, but the wrapper
 /// is ordinary Python 3, so this still covers the capture, the traceback
 /// trimming, the `output` stripping and the JSON envelope.
-Future<AttemptResult> attempt({required String code, String? validator, String? stdin}) async {
-  final program = PythonAttemptRunner.buildProgram(code: code, validator: validator);
+Future<AttemptResult> attempt({
+  required String code,
+  String? validator,
+  String? stdin,
+  Map<String, String> files = const {},
+}) async {
+  final result = await runOnHost(
+    PythonAttemptRunner.buildProgram(code: code, validator: validator, files: files),
+    stdin: stdin,
+  );
+  return PythonAttemptRunner.parseResult(result);
+}
+
+/// Runs [program] the way [attempt] does, and hands back what came out of it
+/// unread, for a test that has to cut it first.
+Future<PythonResult> runOnHost(String program, {String? stdin}) async {
   // Run as main.py in its own directory, the way web/python/python_worker.js
   // runs it. With `-c` there is no main.py on disk, which hid that tracebacks
   // quoted the wrapper's lines instead of the student's.
@@ -33,9 +47,7 @@ Future<AttemptResult> attempt({required String code, String? validator, String? 
     fail('The harness itself failed to run:\n${streams[1]}');
   }
 
-  return PythonAttemptRunner.parseResult(
-    PythonResult(stdout: streams[0], stderr: streams[1], exitCode: exitCode),
-  );
+  return PythonResult(stdout: streams[0], stderr: streams[1], exitCode: exitCode);
 }
 
 /// Whether this machine can run [attempt] at all. A test that needs it skips

@@ -4,6 +4,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/output_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
@@ -100,6 +101,11 @@ class PredictionVerdict extends StatelessWidget {
           text: result.output.trimRight(),
           note: result.truncated ? context.localizations.lessonScreen_truncated : null,
         ),
+        // After the output, which is what the prediction is held against.
+        if (FilesCard.writtenBy(context, result) case final Widget files) ...[
+          const SizedBox(height: 16),
+          files,
+        ],
         // Last, because it explains what is above it. Markdown, the way a
         // validator's message is: it is authored beside the prose and names
         // functions in the same `code` spans.

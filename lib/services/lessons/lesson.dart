@@ -184,9 +184,10 @@ class LessonSection {
   final bool optional;
 
   /// The section's prose, as markdown source, with every block that has a role
-  /// of its own removed — `metadata`, `<lang>-assignment`, `<lang>-validator`,
-  /// `<lang>-predict`, `pairs` and `explanation`. Plain fenced blocks stay in:
-  /// those are worked examples the student reads.
+  /// of its own removed: `metadata`, `<lang>-assignment`, `<lang>-validator`,
+  /// `<lang>-predict`, `<lang>-order`, `<lang>-distractors`, `pairs`,
+  /// `explanation`, `stdin`, `file` and `done-when`. Plain fenced blocks stay
+  /// in: those are worked examples the student reads.
   final String prose;
 
   /// What the editor opens with. Empty for a blank start; null on an [info]
@@ -246,6 +247,14 @@ class LessonSection {
   /// student sees as their own traceback.
   final String? stdin;
 
+  /// Files beside the program, by name, from the section's `file` blocks. Empty
+  /// when it declares none, and on every kind that runs nothing.
+  ///
+  /// Each is written into the working directory before every run, so a program
+  /// may change one and the next run still starts from what the lesson wrote.
+  /// The text ends in a newline unless the file is empty.
+  final Map<String, String> files;
+
   /// What the program does once a [SectionKind.task] is done, from the
   /// section's `done-when` block. Inline markdown. Null on every other kind,
   /// and never null on a task.
@@ -275,6 +284,7 @@ class LessonSection {
     this.lines = const [],
     this.distractors = const [],
     this.stdin,
+    this.files = const {},
     this.doneWhen,
     this.requires = const [],
   });
@@ -380,6 +390,9 @@ class Lesson {
     // Nullable for the same reason `explanation` is: no block and an empty one
     // are different mistakes.
     String? stdin;
+    // Name and body as written. The names are checked in `flush`, past the
+    // runtime check, because nothing about a step that is left out is read.
+    var files = <(String, List<String>)>[];
     String? doneWhen;
     List<String>? requires;
 
@@ -398,6 +411,7 @@ class Lesson {
       ordered = null;
       distractors = null;
       stdin = null;
+      files = [];
       doneWhen = null;
       requires = null;
     }
@@ -495,6 +509,12 @@ class Lesson {
           'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `stdin` block; nothing here runs.',
         );
       }
+      if (!sectionKind!.runsCode && files.isNotEmpty) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `file` block; nothing here runs.',
+        );
+      }
+      final seeded = _readFiles(files, sectionTitle);
       // Optional where it belongs, refused everywhere else: it is shown with the
       // answer to a prediction, and no other kind has an answer to show it with.
       if (sectionKind != SectionKind.predictOutput && explanation != null) {
@@ -528,6 +548,7 @@ class Lesson {
           lines: ordered ?? const [],
           distractors: distractors ?? const [],
           stdin: stdin,
+          files: seeded,
           doneWhen: doneWhen,
           requires: requires ?? const [],
         ),
@@ -633,6 +654,11 @@ class Lesson {
             // and a blank line here is one empty answer to `input()`. The
             // terminating newline is what makes the last line a whole line.
             stdin = '${body.join('\n')}\n';
+          case _BlockRole.file:
+            if (sectionTitle == null) {
+              throw const FormatException('A `file` block belongs to a section, not to the lesson.');
+            }
+            files.add((fence.argument, body));
           case _BlockRole.doneWhen:
             if (sectionTitle == null) {
               throw const FormatException('A `done-when` block belongs to a section, not to the lesson.');
@@ -741,6 +767,49 @@ class Lesson {
     return pairs;
   }
 
+  static final RegExp _fileName = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]*$');
+
+  /// Reads a section's `file` blocks into the files written beside its program.
+  static Map<String, String> _readFiles(List<(String, List<String>)> blocks, String section) {
+    final files = <String, String>{};
+    final seen = <String>{};
+
+    for (final (name, body) in blocks) {
+      if (name.isEmpty) {
+        throw FormatException('Section "$section" declares a `file` block with no name, as in ```file data.csv.');
+      }
+      // No folder: the browser and the machine `try_lesson` runs on would
+      // otherwise have to agree on how one is made.
+      if (!_fileName.hasMatch(name)) {
+        throw FormatException(
+          'Section "$section" declares a file named "$name"; a name is letters, digits, dots, dashes and '
+          'underscores, with no folder.',
+        );
+      }
+      // The harness writes the student's code to `main.py`, and in the browser
+      // `tmp` is a folder already.
+      if (name == 'main.py' || name == 'tmp') {
+        throw FormatException('Section "$section" declares a file named "$name", which the app uses itself.');
+      }
+      // The working directory is first on `sys.path`, so a module here would
+      // be imported in place of the standard library's, by the checks as well.
+      if (name.endsWith('.py')) {
+        throw FormatException('Section "$section" declares a Python file "$name"; only data files may be given.');
+      }
+      // A Mac's filesystem cannot tell the two apart, and the browser's can.
+      if (!seen.add(name.toLowerCase())) {
+        throw FormatException('Section "$section" declares the file "$name" twice, ignoring case.');
+      }
+      // Excel writes one, and `csv` would read it as part of the first heading.
+      if (body.isNotEmpty && body.first.startsWith('﻿')) {
+        throw FormatException('Section "$section" declares a file "$name" that starts with a byte order mark.');
+      }
+      files[name] = body.isEmpty ? '' : '${body.join('\n')}\n';
+    }
+
+    return files;
+  }
+
   /// One tile per line of an order or distractors block.
   ///
   /// Blank lines are dropped — a blank line is a gap in the source, not a tile —
@@ -799,6 +868,7 @@ enum _BlockRole {
   distractors,
   explanation,
   stdin,
+  file,
   pairs,
   doneWhen,
   sample,
@@ -817,7 +887,11 @@ class _Fence {
   /// The programming language, with any role suffix removed.
   final String? language;
 
-  const _Fence({required this.marker, required this.role, required this.language});
+  /// What follows the first word of the info string, trimmed. Only a `file`
+  /// block reads it, as the file's name.
+  final String argument;
+
+  const _Fence({required this.marker, required this.role, required this.language, this.argument = ''});
 
   /// Reads [line] as an opening fence, or returns null if it is not one.
   static _Fence? opening(String line) {
@@ -844,6 +918,15 @@ class _Fence {
     // a name as an identifier is exactly the wrong reading of it.
     if (declared == 'stdin') {
       return _Fence(marker: marker, role: _BlockRole.stdin, language: null);
+    }
+    // Data the program reads, not code, so nothing to highlight either.
+    if (declared == 'file') {
+      return _Fence(
+        marker: marker,
+        role: _BlockRole.file,
+        language: null,
+        argument: line.substring(match.end).trim(),
+      );
     }
     // Prose about the program again, like `explanation`.
     if (declared == 'done-when') {

@@ -23,6 +23,8 @@ import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
+import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
@@ -69,19 +71,31 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   static Widget _pastGutter(Widget child) =>
       Padding(padding: const EdgeInsets.only(left: _gutter), child: child);
 
-  /// What this step feeds the program on standard input. Null when it scripts
-  /// none, which is most steps.
+  /// What this step gives the program: the files beside it, and what it reads
+  /// on standard input. Null when it gives neither, which is most steps.
   ///
   /// Always shown: a check that feeds numbers the prose never mentions cannot be
   /// passed by reading it, and restating them in prose is one more thing that can
   /// drift from the block they are written in.
   static Widget? _buildInput(BuildContext context, LessonSection section) {
     final stdin = section.stdin;
-    if (stdin == null) return null;
+    if (stdin == null && section.files.isEmpty) return null;
 
-    // Trimmed for the reason the output card is: the stored text ends in a
-    // newline, which would draw an empty line inside the card.
-    return OutputCard(label: context.localizations.lessonScreen_input, text: stdin.trimRight());
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (section.files.isNotEmpty)
+          FilesCard(
+            label: context.localizations.lessonScreen_files,
+            files: [for (final MapEntry(:key, :value) in section.files.entries) ShownFile.given(key, value)],
+          ),
+        if (stdin != null && section.files.isNotEmpty) const SizedBox(height: 16),
+        // Trimmed for the reason the output card is: the stored text ends in a
+        // newline, which would draw an empty line inside the card.
+        if (stdin != null) OutputCard(label: context.localizations.lessonScreen_input, text: stdin.trimRight()),
+      ],
+    );
   }
 
   /// How long a quick exercise's answer may run. The editor is sized to it and

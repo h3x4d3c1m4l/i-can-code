@@ -6,6 +6,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/output_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// What the last run produced: its verdict, then the program's output. The
@@ -35,6 +36,10 @@ class OutputPanel extends StatelessWidget {
         if (_hasVerdict) _buildVerdict(context),
         if (_hasVerdict && _hasOutput) const SizedBox(height: 16),
         if (_hasOutput) _buildOutput(context),
+        if (FilesCard.writtenBy(context, result) case final Widget files) ...[
+          if (_hasVerdict || _hasOutput) const SizedBox(height: 16),
+          files,
+        ],
       ],
     );
   }

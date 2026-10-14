@@ -223,6 +223,7 @@ if "print(" not in code:
 | `<lang>-distractors` | Lines that belong to no correct program. Optional. |
 | `explanation` | Why that program's output is what it is. Shown after the answer. |
 | `stdin` | What the program reads on standard input. Shown to the student. See below. |
+| `file <name>` | A file beside the program, by that name. Shown to the student. See below. |
 | `done-when` | What a project's task looks like once it works. See *`layout: project`*. |
 | `pairs` | What a `match-pairs` step's board holds. See below. |
 | Any other fenced block | A worked example, rendered as part of the prose. |
@@ -255,18 +256,18 @@ a position survives none of that.
 
 Which blocks a section may carry follows from its type:
 
-| `type` | Assignment | Validator | `pairs` | `<lang>-predict` | `explanation` | `<lang>-order` | `stdin` |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `info` | Must not | Must not | Must not | Must not | Must not | Must not | Must not |
-| `quick-exercise`, `exercise` | Must carry one | Must carry one | Must not | Must not | Must not | Must not | May carry one |
-| `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not | Must not |
-| `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not | May carry one |
-| `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one | May carry one |
-| `task` | The first task may | Must not | Must not | Must not | Must not | Must not | Must not |
+| `type` | Assignment | Validator | `pairs` | `<lang>-predict` | `explanation` | `<lang>-order` | `stdin` | `file` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `info` | Must not | Must not | Must not | Must not | Must not | Must not | Must not | Must not |
+| `quick-exercise`, `exercise` | Must carry one | Must carry one | Must not | Must not | Must not | Must not | May carry one | May carry any |
+| `match-pairs` | Must not | Must not | Must carry one | Must not | Must not | Must not | Must not | Must not |
+| `predict-output` | Must not | Must not | Must not | Must carry one | May carry one | Must not | May carry one | May carry any |
+| `order-lines` | Must not | **Must carry one** | Must not | Must not | Must not | Must carry one | May carry one | May carry any |
+| `task` | The first task may | Must not | Must not | Must not | Must not | Must not | Must not | Must not |
 
-No type ever *has* to carry a `stdin` block: the four that may are the four that
-hand a program to the interpreter, and a program that reads nothing is the
-ordinary case. That set is `SectionKind.runsCode`, the third of the three
+No type ever *has* to carry a `stdin` or a `file` block: the four that may are
+the four that hand a program to the interpreter, and a program that reads nothing
+is the ordinary case. That set is `SectionKind.runsCode`, the third of the three
 predicates beside `isAssignment` (has an editor) and `usesValidator` (is
 checked).
 
@@ -530,10 +531,12 @@ ordinary list with an emoji at the start of each item.
 
 ## Why the role rides in the fence language
 
-Five words are reserved outright rather than read as a language: `metadata`,
-`pairs`, `explanation`, `stdin` and `done-when`. None of them is code, so there is no suffix
+Six words are reserved outright rather than read as a language: `metadata`,
+`pairs`, `explanation`, `stdin`, `file` and `done-when`. None of them is code, so there is no suffix
 to strip and nothing to hand a highlighter — colouring a student's typed name as
-an identifier is exactly the wrong reading of it.
+an identifier is exactly the wrong reading of it. `file` is the one that takes a
+word after it, the file's name; every other fence ignores what follows its first
+word.
 
 ` ```python-assignment ` parses with the stock `markdown` package —
 the language becomes `class="language-python-assignment"` on the `code` element,
@@ -586,9 +589,9 @@ student will be measured against — check a new step with it.
 Two rules follow, and neither is enforced by the parser:
 
 - **The program MUST be deterministic.** No `random` and no clock. Input is
-  allowed when the section scripts it in a `stdin` block, because a scripted read
-  is the same read for every student; without one there is nothing to read and
-  `input()` stops the program with `EOFError`. The same program has to print the
+  allowed when the section scripts it in a `stdin` block or gives it a `file`
+  block, because a scripted read is the same read for every student; without one
+  there is nothing to read and `input()` stops the program with `EOFError`. The same program has to print the
   same thing for every student, on every visit.
 - **It MUST print something.** A program with no output has nothing to predict.
   The parser refuses an *empty block*, but it cannot see that `x = 1` prints
@@ -795,6 +798,95 @@ stdin (2 lines):
     3
 ```
 
+## `file` — a file beside the program
+
+A section that hands a program to the interpreter may give it files to read.
+Each `file` block is one file, named by the word after `file`, and before every
+run it sits in the program's working directory with exactly that text. That is
+what lets a step read a CSV with Python's own `csv` module.
+
+````markdown
+## Het gemiddelde cijfer
+
+```metadata
+type: exercise
+id: read-a-csv
+emoji: "📊"
+```
+
+Naast je programma staat `cijfers.csv`. Toon het gemiddelde cijfer.
+
+```file cijfers.csv
+naam,cijfer
+Sanne,7.5
+Tim,4.5
+```
+
+```python-assignment
+import csv
+
+with open("cijfers.csv") as bestand:
+    regels = list(csv.reader(bestand))
+```
+
+```python-validator
+...
+```
+````
+
+The program opens it by that plain name, `open("cijfers.csv")`, in the browser
+and under `tool/try_lesson.dart` alike. `docs/samples/file.md` has a step that
+reads one, a step that writes one and a prediction about one.
+
+- **The text is kept verbatim** and ends in a newline, like `stdin`. An empty
+  block is an empty file. A file that holds a fence of its own is opened with a
+  longer fence, as anywhere in markdown.
+- **A name is one word**: letters, digits, dots, dashes and underscores, no
+  folder. Two files in one section may not share a name, whatever their case.
+- **`main.py` and `tmp` are refused**, because the app uses both, and so is any
+  `.py` file. The working directory is first on `sys.path`, so a module there
+  would be imported in place of the standard library's, by the checks as well.
+- **No byte order mark.** Excel writes one, and `csv` would read it as part of
+  the first heading. Save the file as UTF-8 without one.
+- **Every section carries its own.** Steps that read the same file each carry
+  the block, or each include the same file with `{{#include}}`, which keeps a
+  long CSV out of the lesson:
+
+  ````markdown
+  ```file cijfers.csv
+  {{#include cijfers.csv}}
+  ```
+  ````
+
+- **Keep it under 32 KB.** It travels in the course bundle once per locale and
+  in every run. `test/content/lessons_test.dart` holds that.
+- **Every translation names the same files** in the same sections. The text in
+  them may be translated, so only the names are compared.
+
+### The student opens it with a button
+
+Each file is a button with its name, in a card labelled **Bestanden** beside the
+editor or under the program, the way `stdin` is shown under **Invoer**. The
+button opens the file in a dialog, so a long file costs the step one button and
+does not push Run off the screen.
+
+### The program may change it
+
+A file is not read-only. A program can overwrite it, add to it or delete it, and
+**the next run starts from the lesson's text again**. So a step can ask for a row
+to be added to `cijfers.csv` and check that it was.
+
+### What the program wrote is shown too
+
+After a run, every file the program created or changed in its working directory
+is a button under the output, in a card labelled **Geschreven bestanden**. A file
+the lesson gave and the program changed says *gewijzigd*. The dialog offers the
+text to copy and, in the browser, to download. A file that is not text says so
+and shows nothing, and a large one shows its start.
+
+`/tmp` is not shown: it is somewhere to put a file nobody needs to see. A step
+whose point is the file it writes has the program write it under a plain name.
+
 ## `pairs` — a match-the-pairs board
 
 A `match-pairs` section carries one `pairs` block in place of an assignment and
@@ -929,25 +1021,32 @@ import csv, io
 if not program.calls(".writerow"):
     raise Exception("Schrijf de regels weg met `writerow`.")
 try:
-    rows = list(csv.reader(io.StringIO(open("/tmp/cijfers.csv").read())))
+    rows = list(csv.reader(io.StringIO(open("cijfers.csv").read())))
 except FileNotFoundError:
-    raise Exception("Sla het bestand op als `/tmp/cijfers.csv`.")
+    raise Exception("Sla het bestand op als `cijfers.csv`.")
 if rows[0] != ["naam", "cijfer"]:
     raise Exception("Begin met een regel met de kopjes `naam` en `cijfer`.")
 ```
 
-**Write under `/tmp`, and say so in the prose.** In the app the whole tree is
-writable, but `tool/try_lesson.dart` runs on the machine's own `python3`, where
-`/` is a real filesystem that refuses it. A step that writes to `/cijfers.csv`
-therefore passes in the browser and fails for the author checking it, which is
-the worst way round. `/tmp` is writable in both.
+**Write under a plain name, like `geslaagd.csv`, and say so in the prose.** The
+program's working directory is a fresh one in the browser and under
+`tool/try_lesson.dart` alike, so a relative name works in both. An absolute
+`/cijfers.csv` does not: `try_lesson` runs on the machine's own `python3`, where
+`/` is a real filesystem that refuses it, so the step would pass in the browser
+and fail for the author checking it. A file in the working directory is also the
+one the student is shown under the output; one under `/tmp` is not.
+
+**The checks see the files as the program left them.** A file the program opened
+and never closed has been flushed by then, as it would be when `python main.py`
+exits. A program that changed directory has been moved back, so a relative path
+in a validator means the same thing it does in the prose.
 
 The filesystem is in memory and starts empty but for the standard library, the
-student's own source at `/main.py` and an empty `/tmp`. **Nothing persists
-between runs**, so a step cannot leave a file for the next one, and a validator
-that reads a file has to be written against the same run that wrote it. The
-standard library archive is read-only; everything else is fair game, up to a
-quota past which writes fail with `ENOSPC`.
+student's own source at `main.py`, the section's `file` blocks and an empty
+`/tmp`. **Nothing persists between runs**, so a step cannot leave a file for the
+next one, and a validator that reads a file has to be written against the same
+run that wrote it. The standard library archive is read-only; everything else is
+fair game, up to a quota past which writes fail with `ENOSPC`.
 
 #### What you can ask
 

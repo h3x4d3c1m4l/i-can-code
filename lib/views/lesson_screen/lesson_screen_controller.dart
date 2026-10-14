@@ -72,7 +72,12 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     unawaited(_drafts.flush());
     final token = ++_runToken;
     viewModel.startRun();
-    final result = await _runner.attempt(code: code, validator: section.validator, stdin: section.stdin);
+    final result = await _runner.attempt(
+      code: code,
+      validator: section.validator,
+      stdin: section.stdin,
+      files: section.files,
+    );
     if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
     if (!result.passed) return;
@@ -97,7 +102,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
 
     final token = ++_runToken;
     viewModel.startRun(prediction: prediction);
-    final result = await _runner.attempt(code: section.program ?? '', stdin: section.stdin);
+    final result = await _runner.attempt(code: section.program ?? '', stdin: section.stdin, files: section.files);
     if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
     if (!result.passed) return;

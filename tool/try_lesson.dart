@@ -91,7 +91,8 @@ void _listSections(Lesson lesson) {
       _ => '   (nothing to run)',
     };
     final optional = section.optional ? '  [verdieping]' : '';
-    stdout.writeln('  $index  ${section.kind.name.padRight(16)} ${section.title}$optional$runnable');
+    final files = section.files.isEmpty ? '' : '   [${section.files.keys.join(', ')}]';
+    stdout.writeln('  $index  ${section.kind.name.padRight(16)} ${section.title}$optional$runnable$files');
   }
   stdout
     ..writeln()
@@ -120,7 +121,7 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
   // traceback here quotes the same lines the student will see.
   final dir = Directory.systemTemp.createTempSync('try_lesson_');
   File('${dir.path}/main.py').writeAsStringSync(
-    PythonAttemptRunner.buildProgram(code: code, validator: section.validator),
+    PythonAttemptRunner.buildProgram(code: code, validator: section.validator, files: section.files),
   );
   final process = await Process.start('python3', ['main.py'], workingDirectory: dir.path);
   process.stdin.write(section.stdin ?? '');
@@ -144,6 +145,13 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
       ..writeln('stdin (${lines.length} line${lines.length == 1 ? '' : 's'}):')
       ..writeln(_indent(scripted.trimRight()));
   }
+  for (final MapEntry(key: name, value: text) in section.files.entries) {
+    final lines = text.isEmpty ? 0 : text.trimRight().split('\n').length;
+    stdout
+      ..writeln()
+      ..writeln('file $name ($lines line${lines == 1 ? '' : 's'}):')
+      ..writeln(_indent(text.trimRight().isEmpty ? '(empty)' : text.trimRight()));
+  }
   stdout
     ..writeln()
     ..writeln('code:')
@@ -152,6 +160,21 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
     ..writeln('output:')
     ..writeln(_indent(result.output.trimRight().isEmpty ? '(nothing)' : result.output.trimRight()))
     ..writeln();
+  for (final file in result.writtenFiles) {
+    // What the student finds under the output, so an author can see a step that
+    // writes a file did write the one the prose asks for.
+    final flags = [
+      if (file.changed) 'changed' else 'new',
+      '${file.size} bytes',
+      if (file.truncated) 'cut short',
+      if (file.text == null) 'not text',
+    ];
+    stdout
+      ..writeln('wrote ${file.path} (${flags.join(', ')}):')
+      ..writeln(_indent(file.text?.trimRight() ?? '(not shown)'))
+      ..writeln();
+  }
+  if (result.filesCut) stdout.writeln('(more files were written than are listed)\n');
 
   if (result.programError case final String error) {
     stdout

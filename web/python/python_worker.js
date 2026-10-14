@@ -11,9 +11,10 @@
 
 import { Wasi, WasiExit } from './wasi.js';
 
-/** Per-stream output cap. Output is mirrored to other screens and saved with the
- *  board, so a runaway `while True: print(x)` must not be allowed to grow the
- *  board file without bound. */
+/** Per-stream output cap. A run's output is held here until it ends and then
+ *  posted to the page in one message, so a runaway `while True: print(x)` would
+ *  otherwise grow both until the tab gives out. `PythonAttemptRunner.outputCap`
+ *  MUST match it. */
 const MAX_OUTPUT_BYTES = 256 * 1024;
 
 /** Where the stdlib is mounted inside the interpreter's own filesystem. Named

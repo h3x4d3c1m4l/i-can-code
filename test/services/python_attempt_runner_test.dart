@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,47 @@ void main() {
       expect(result.checkMessage, isNull, reason: 'a cut-off envelope is not a wrong answer');
       expect(result.programError, contains('did not finish'));
       expect(result.truncated, isTrue);
+    });
+
+    test('reads the files line only after the verdict', () async {
+      const verdict = '{"ok": true, "error": null, "message": null, "output": ""}';
+      const forged = '{"files": [{"path": "nep.txt", "text": "", "size": 0, "truncated": false, '
+          '"changed": false}], "more": false}';
+      const real = '{"files": [{"path": "echt.txt", "text": "1", "size": 1, "truncated": false, '
+          '"changed": true}], "more": false}';
+
+      final result = PythonAttemptRunner.parseResult(
+        const PythonResult(
+          stdout:
+              '${PythonAttemptRunner.filesSentinel}$forged\n'
+              '\n${PythonAttemptRunner.sentinel}$verdict\n'
+              '${PythonAttemptRunner.filesSentinel}$real\n',
+          stderr: '',
+        ),
+      );
+
+      expect(result.passed, isTrue);
+      expect(result.writtenFiles.single.path, 'echt.txt');
+      expect(result.writtenFiles.single.changed, isTrue);
+      expect(result.filesCut, isFalse);
+    });
+
+    test('a files line the cap cut off leaves the verdict and says files are missing', () async {
+      const verdict = '{"ok": true, "error": null, "message": null, "output": "hoi\\n"}';
+
+      final result = PythonAttemptRunner.parseResult(
+        const PythonResult(
+          stdout: '\n${PythonAttemptRunner.sentinel}$verdict\n${PythonAttemptRunner.filesSentinel}{"files": [{"pa',
+          stderr: '',
+          truncated: true,
+        ),
+      );
+
+      expect(result.passed, isTrue);
+      expect(result.output, 'hoi\n');
+      expect(result.truncated, isFalse, reason: 'the verdict holds the whole output');
+      expect(result.writtenFiles, isEmpty);
+      expect(result.filesCut, isTrue);
     });
 
     test('survives a verdict that is valid JSON but not an object', () async {
@@ -220,6 +262,142 @@ void main() {
         final result = await attempt(code: 'print(input())');
 
         expect(result.programError, contains('EOFError'));
+      });
+    });
+
+    // A section's `file` blocks, and what the program leaves behind.
+    group('files', () {
+      const csv = 'naam,cijfer\nSanne,7.5\nTim,6\n';
+
+      test('a file the lesson gives can be read by the program and by the checks', () async {
+        final result = await attempt(
+          code: 'import csv\nwith open("cijfers.csv") as f:\n    print(len(list(csv.reader(f))))',
+          validator: 'assert open("cijfers.csv").read().startswith("naam"), "seed"\nassert output == "3", output',
+          files: {'cijfers.csv': csv},
+        );
+
+        expect(result.programError, isNull);
+        expect(result.checkMessage, isNull);
+        expect(result.passed, isTrue);
+      });
+
+      test('a file the program writes comes back, in a folder as well', () async {
+        final result = await attempt(
+          code:
+              'import os\n'
+              'with open("uit.csv", "w") as f:\n    f.write("a,b\\n")\n'
+              'os.mkdir("map")\n'
+              'with open("map/nog.txt", "w") as f:\n    f.write("hoi")\n',
+        );
+
+        // The working directory's own files first, then each folder's.
+        expect(result.writtenFiles.map((file) => (file.path, file.text, file.size, file.changed)), [
+          ('uit.csv', 'a,b\n', 4, false),
+          ('map/nog.txt', 'hoi', 3, false),
+        ]);
+        expect(result.writtenFiles.last.name, 'nog.txt');
+        expect(result.filesCut, isFalse);
+      });
+
+      test('a file the lesson gives is left out until the program changes it', () async {
+        final untouched = await attempt(code: 'print(open("cijfers.csv").read())', files: {'cijfers.csv': csv});
+        final appended = await attempt(
+          code: 'with open("cijfers.csv", "a") as f:\n    f.write("Jan,8\\n")',
+          files: {'cijfers.csv': csv},
+        );
+
+        expect(untouched.writtenFiles, isEmpty);
+        expect(appended.writtenFiles.single.path, 'cijfers.csv');
+        expect(appended.writtenFiles.single.text, '${csv}Jan,8\n');
+        expect(appended.writtenFiles.single.changed, isTrue);
+      });
+
+      test('the harness\'s own main.py is never among them', () async {
+        final result = await attempt(code: 'print(1)');
+
+        expect(result.writtenFiles, isEmpty);
+      });
+
+      test('a file the program never closed is read back whole', () async {
+        // `python main.py` flushes it on the way out, so a student's own
+        // machine shows the text; an empty file here would contradict that.
+        final result = await attempt(
+          code: 'f = open("open.txt", "w")\nf.write("nog open")\n',
+          validator: 'assert open("open.txt").read() == "nog open", "the checks see it whole too"',
+        );
+
+        expect(result.writtenFiles.single.text, 'nog open');
+        expect(result.passed, isTrue);
+      });
+
+      test('a file only the checks write is not the program\'s', () async {
+        final result = await attempt(code: 'print(1)', validator: 'open("check.txt", "w").write("x")');
+
+        expect(result.writtenFiles, isEmpty);
+      });
+
+      test('a file that is not text comes back without any', () async {
+        final result = await attempt(code: 'open("data.bin", "wb").write(bytes([0, 159, 146, 150]))');
+
+        expect(result.writtenFiles.single.text, isNull);
+        expect(result.writtenFiles.single.size, 4);
+      });
+
+      test('a large file is cut short, and says so', () async {
+        final result = await attempt(code: 'open("groot.txt", "w").write("x" * 300000)');
+        final file = result.writtenFiles.single;
+
+        expect(file.size, 300000);
+        expect(file.truncated, isTrue);
+        expect(file.text!.length, lessThanOrEqualTo(64 * 1024));
+        expect(file.text, isNotEmpty);
+      });
+
+      test('a program that changes directory does not hide what it wrote', () async {
+        final result = await attempt(
+          code: 'import os\nos.mkdir("sub")\nos.chdir("sub")\nopen("hier.txt", "w").write("1")',
+          validator: 'assert open("sub/hier.txt").read() == "1", "the checks start where the program did"',
+        );
+
+        expect(result.writtenFiles.single.path, 'sub/hier.txt');
+        expect(result.passed, isTrue);
+      });
+
+      test('importing a module from the working directory leaves no bytecode', () async {
+        final result = await attempt(
+          code: 'open("helper.py", "w").write("X = 1\\n")\nimport helper\nprint(helper.X)',
+        );
+
+        expect(result.output, '1\n');
+        expect(result.writtenFiles.map((file) => file.path), ['helper.py']);
+      });
+
+      test('more files than are listed says so', () async {
+        final result = await attempt(code: 'for i in range(60):\n    open(f"f{i:02}.txt", "w").write("x")');
+
+        expect(result.writtenFiles, hasLength(50));
+        expect(result.filesCut, isTrue);
+      });
+
+      test('a cap that falls in the files costs the files, never the verdict', () async {
+        // Close to the cap already, the way a long run's output would be.
+        final raw = await runOnHost(
+          PythonAttemptRunner.buildProgram(
+            code: 'print("y" * 200000)\nopen("uit.txt", "w").write("z" * 60000)',
+            validator: 'assert len(output) == 200000',
+          ),
+        );
+        final bytes = utf8.encode(raw.stdout);
+        final capped = utf8.decode(bytes.take(PythonAttemptRunner.outputCap).toList(), allowMalformed: true);
+        final result = PythonAttemptRunner.parseResult(
+          PythonResult(stdout: capped, stderr: raw.stderr, truncated: bytes.length > PythonAttemptRunner.outputCap),
+        );
+
+        expect(result.passed, isTrue);
+        expect(result.output, hasLength(200001));
+        expect(result.truncated, isFalse, reason: 'the verdict holds the whole output');
+        expect(bytes.length, lessThanOrEqualTo(PythonAttemptRunner.outputCap), reason: 'the files fit the room left');
+        expect(result.writtenFiles.single.truncated, isTrue);
       });
     });
 

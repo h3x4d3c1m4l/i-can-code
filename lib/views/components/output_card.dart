@@ -15,13 +15,19 @@ class OutputCard extends StatelessWidget {
   /// Set small and upper-cased, so it names the block without competing with it.
   final String label;
 
-  final String text;
+  final String? text;
 
-  /// A line under the text, in the warning colour — that the output was cut
-  /// short, and nothing else so far.
+  /// Drawn in place of [text], for a card that holds something other than one
+  /// block of it.
+  final Widget? child;
+
+  /// A line under the text, in the warning colour, such as that the output was
+  /// cut short.
   final String? note;
 
-  const OutputCard({required this.label, required this.text, this.note, super.key});
+  const OutputCard({required String this.text, required this.label, this.note, super.key}) : child = null;
+
+  const OutputCard.holding({required Widget this.child, required this.label, this.note, super.key}) : text = null;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +50,7 @@ class OutputCard extends StatelessWidget {
               style: tokens.text.label.copyWith(fontSize: 12, color: theme.colors.mutedForeground),
             ),
             const SizedBox(height: 10),
-            Text(text, style: tokens.text.code.copyWith(fontSize: 15, height: 1.7)),
+            child ?? Text(text!, style: tokens.text.code.copyWith(fontSize: 15, height: 1.7)),
             if (note case final String note) ...[
               const SizedBox(height: 10),
               Text(note, style: tokens.text.bodySmall.copyWith(fontSize: 14, color: tokens.colors.warning)),

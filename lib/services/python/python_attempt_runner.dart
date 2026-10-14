@@ -33,6 +33,15 @@ class AttemptResult {
   /// Output hit the runtime's per-run cap and was cut short.
   final bool truncated;
 
+  /// The files the student's program created or changed, by path, as they
+  /// stood before the checks ran. A file the lesson gave and the program left
+  /// alone is not among them.
+  final List<WrittenFile> writtenFiles;
+
+  /// The program wrote more than [writtenFiles] holds: past the cap on how
+  /// many are listed, or past the room left in the run's output.
+  final bool filesCut;
+
   final Duration duration;
 
   const AttemptResult({
@@ -42,6 +51,8 @@ class AttemptResult {
     this.checkMessage,
     this.disallowedConstruct,
     this.truncated = false,
+    this.writtenFiles = const [],
+    this.filesCut = false,
     this.duration = Duration.zero,
   });
 
@@ -54,7 +65,40 @@ class AttemptResult {
       checkMessage = null,
       disallowedConstruct = null,
       truncated = false,
+      writtenFiles = const [],
+      filesCut = false,
       duration = Duration.zero;
+
+}
+
+/// One file a run left behind in the program's working directory.
+class WrittenFile {
+
+  /// Relative to the working directory, with `/` between folders.
+  final String path;
+
+  /// The file's text, or the start of it when [truncated]. Null when the file
+  /// is not UTF-8 text, which has nothing to show.
+  final String? text;
+
+  /// The whole file's size in bytes, however much of it [text] holds.
+  final int size;
+
+  final bool truncated;
+
+  /// A file the lesson gave, which the program changed.
+  final bool changed;
+
+  const WrittenFile({
+    required this.path,
+    required this.text,
+    required this.size,
+    this.truncated = false,
+    this.changed = false,
+  });
+
+  /// The file's own name, without the folders it is in.
+  String get name => path.split('/').last;
 
 }
 
@@ -68,6 +112,18 @@ class PythonAttemptRunner {
   /// Marks the harness's own line on stdout, for output that escapes the
   /// capture buffer — a write to `sys.__stdout__`, or a C-level write.
   static const String sentinel = '__ICC_VERDICT__';
+
+  /// Marks the line after the verdict that lists the files the program wrote.
+  /// A line of its own, so a cap that cuts it costs the files and never the
+  /// verdict. Not prefixed by [sentinel], which would make it read as one.
+  static const String filesSentinel = '__ICC_FILES__';
+
+  /// What the runtime keeps of a run's stdout, in bytes. MUST match
+  /// `MAX_OUTPUT_BYTES` in `web/python/python_worker.js`.
+  static const int outputCap = 256 * 1024;
+
+  /// The most the files line may take, in bytes, however much room is left.
+  static const int _filesCap = 64 * 1024;
 
   /// [kCheckLibrary], carried the same way the student's code is. Encoded once
   /// rather than per attempt: it is a constant and every run gets the same bytes.
@@ -86,13 +142,24 @@ class PythonAttemptRunner {
   /// [buildProgram] stays the one string that is the whole experiment. A program
   /// that reads past the end of it stops with `EOFError`, which comes back as a
   /// [AttemptResult.programError] and never as a failed check.
-  Future<AttemptResult> attempt({required String code, String? validator, String? stdin}) async {
+  ///
+  /// [files] are written into the program's working directory, by name, before
+  /// it starts. Every attempt gets them as given, whatever the last one did.
+  Future<AttemptResult> attempt({
+    required String code,
+    String? validator,
+    String? stdin,
+    Map<String, String> files = const {},
+  }) async {
     if (!_runtime.isSupported) {
       return const AttemptResult.broken('Running code is not available in this browser.');
     }
 
     await _runtime.ready();
-    final result = await _runtime.run(buildProgram(code: code, validator: validator), stdin: stdin ?? '');
+    final result = await _runtime.run(
+      buildProgram(code: code, validator: validator, files: files),
+      stdin: stdin ?? '',
+    );
 
     return parseResult(result);
   }
@@ -102,17 +169,21 @@ class PythonAttemptRunner {
   /// The validator's scope gets `code` and `output`, plus [kCheckLibrary]'s own
   /// names and a `program` already reading the student's source as a tree.
   ///
-  /// The student's source and the validator MUST be carried as **base64 of a
-  /// JSON document**, never interpolated: base64's alphabet contains no quote,
-  /// so the payload cannot terminate the literal holding it.
-  static String buildProgram({required String code, String? validator}) {
+  /// The student's source, the validator and [files] MUST be carried as
+  /// **base64 of a JSON document**, never interpolated: base64's alphabet
+  /// contains no quote, so the payload cannot terminate the literal holding it.
+  static String buildProgram({required String code, String? validator, Map<String, String> files = const {}}) {
     final payload = base64.encode(
-      utf8.encode(jsonEncode({'code': code, 'validator': validator ?? ''})),
+      utf8.encode(jsonEncode({'code': code, 'validator': validator ?? '', 'files': files})),
     );
 
     return '''
-import base64, io, json, linecache, sys, traceback
+import base64, codecs, gc, io, json, linecache, os, sys, traceback
 
+# Off for the browser already. The host scripts run python3 without -B, and a
+# module imported from the working directory would leave a __pycache__ behind
+# that reads as a file the student wrote.
+sys.dont_write_bytecode = True
 _p = json.loads(base64.b64decode("$payload").decode("utf-8"))
 # The code is compiled as "main.py", and CPython reads a traceback's lines, and a
 # SyntaxError's text and column, back from the file by that name. The browser runs
@@ -124,6 +195,15 @@ try:
 except OSError:
     # mtime None keeps linecache.checkcache from dropping the entry.
     linecache.cache["main.py"] = (len(_p["code"]), None, _p["code"].splitlines(True), "main.py")
+_root = os.getcwd()
+for _name, _text in _p["files"].items():
+    # newline="" writes the text as the lesson has it, on a host that would
+    # otherwise turn every \\n into \\r\\n.
+    with open(_name, "w", encoding="utf-8", newline="") as _f:
+        _f.write(_text)
+# Everything here before the program starts that is not the lesson's: main.py,
+# and in the browser the standard library and /tmp. None of it is shown.
+_harness = set(os.listdir(_root)) - set(_p["files"])
 _out = sys.stdout
 _in = sys.stdin
 _buf = io.StringIO()
@@ -161,7 +241,73 @@ class _Echo:
     def __getattr__(self, name):
         return getattr(self._real, name)
 
+
+def _collect():
+    # What the program left in its working directory, as it stood before the
+    # checks ran. Bounded in files and in entries looked at, because creating an
+    # empty file costs a program nothing.
+    found = []
+    more = False
+    visited = 0
+    for here, folders, names in os.walk(_root):
+        at = os.path.relpath(here, _root)
+        if at == ".":
+            folders[:] = [f for f in folders if f not in _harness]
+            names = [n for n in names if n not in _harness]
+        folders.sort()
+        for name in sorted(names):
+            visited += 1
+            path = name if at == "." else at.replace(os.sep, "/") + "/" + name
+            if len(found) >= 50 or visited > 2000:
+                more = True
+                continue
+            full = os.path.join(here, name)
+            size = os.path.getsize(full)
+            with open(full, "rb") as f:
+                data = f.read($_filesCap)
+            seed = _p["files"].get(path)
+            if seed is not None and data == seed.encode("utf-8") and size == len(data):
+                continue
+            text = None
+            if b"\\0" not in data:
+                try:
+                    # Not final while bytes are left: a character cut in half at
+                    # the end of what was read is dropped, not called broken.
+                    text = codecs.getincrementaldecoder("utf-8")().decode(data, final=len(data) == size)
+                except UnicodeDecodeError:
+                    pass
+            found.append({
+                "path": path,
+                "text": text,
+                "size": size,
+                "truncated": text is not None and len(data) < size,
+                "changed": seed is not None,
+            })
+    return found, more
+
+
+def _fit(found, more, room):
+    # As much of every file as fits in [room] bytes of JSON, in order. With
+    # ensure_ascii on, a character of JSON is a byte.
+    kept = []
+    for entry in found:
+        cost = len(json.dumps(entry)) + 2
+        if cost > room and entry["text"]:
+            text = entry["text"]
+            while text and len(json.dumps(dict(entry, text=text, truncated=True))) + 2 > room:
+                text = text[: len(text) * 3 // 4]
+            entry = dict(entry, text=text, truncated=True)
+            cost = len(json.dumps(entry)) + 2
+        if cost > room:
+            more = True
+            break
+        kept.append(entry)
+        room -= cost
+    return json.dumps({"files": kept, "more": more})
+
+
 _verdict = {"ok": True, "error": None, "message": None}
+_g = {"__name__": "__main__"}
 
 try:
     _compiled = compile(_p["code"], "main.py", "exec")
@@ -172,7 +318,7 @@ else:
     sys.stdout = _buf
     sys.stdin = _Echo(_in)
     try:
-        exec(_compiled, {"__name__": "__main__"})
+        exec(_compiled, _g)
     except SystemExit:
         pass
     except BaseException as _e:
@@ -185,6 +331,28 @@ else:
     finally:
         sys.stdout = _out
         sys.stdin = _in
+
+# What `python main.py` does on its way out. A file the program opened and never
+# closed is flushed once nothing holds it, and would otherwise be read back
+# empty. Anything printed on the way is dropped, as it would be after the end.
+sys.stdout = io.StringIO()
+try:
+    _g.clear()
+    gc.collect()
+except BaseException:
+    pass
+finally:
+    sys.stdout = _out
+# A program that changed directory would move the checks' relative paths too.
+try:
+    os.chdir(_root)
+except OSError:
+    pass
+
+try:
+    _found, _more = _collect()
+except BaseException:
+    _found, _more = [], True
 
 _captured = _buf.getvalue()
 
@@ -209,7 +377,17 @@ if _verdict["ok"] and _p["validator"].strip():
         _verdict["notAllowed"] = getattr(_e, "icc_construct", None)
 
 _verdict["output"] = _captured
-_out.write("\\n$sentinel" + json.dumps(_verdict) + "\\n")
+_line = "\\n$sentinel" + json.dumps(_verdict) + "\\n"
+_out.write(_line)
+# The verdict is written first and as it always was, so a cap that falls in the
+# files costs only the files. The slack is for what the program wrote to the
+# real stdout, which nothing here counted.
+_room = min($_filesCap, $outputCap - len(_line) - len("$filesSentinel") - 8192)
+try:
+    _listed = _fit(_found, _more, _room)
+except BaseException:
+    _listed = json.dumps({"files": [], "more": True})
+_out.write("$filesSentinel" + _listed + "\\n")
 ''';
   }
 
@@ -217,11 +395,9 @@ _out.write("\\n$sentinel" + json.dumps(_verdict) + "\\n")
   ///
   /// Visible for testing.
   static AttemptResult parseResult(PythonResult result) {
-    final line = result.stdout
-        .split('\n')
-        .reversed
-        .where((line) => line.startsWith(sentinel))
-        .firstOrNull;
+    final lines = result.stdout.split('\n');
+    final at = lines.lastIndexWhere((line) => line.startsWith(sentinel));
+    final line = at < 0 ? null : lines[at];
 
     // No usable verdict: the runtime failed before the harness ran, or output
     // was capped mid-envelope. Never report that as a wrong answer.
@@ -248,15 +424,46 @@ _out.write("\\n$sentinel" + json.dumps(_verdict) + "\\n")
       return unreadable();
     }
 
+    // Only a line after the verdict is the harness's: the program could have
+    // written one of its own to the real stdout before it.
+    final listing = lines.skip(at + 1).where((line) => line.startsWith(filesSentinel)).lastOrNull;
+    final (files, filesCut) = _readFiles(listing, cut: result.truncated);
+
     return AttemptResult(
       passed: verdict['ok'] as bool,
       output: verdict['output'] as String? ?? '',
       programError: verdict['error'] as String?,
       checkMessage: verdict['message'] as String?,
       disallowedConstruct: verdict['notAllowed'] as String?,
-      truncated: result.truncated,
+      // The verdict carries the whole output, so the cap can only have cut
+      // what came after it: the files, which say so themselves.
+      writtenFiles: files,
+      filesCut: filesCut,
       duration: result.duration,
     );
+  }
+
+  /// Reads the files line, if there is a whole one. Without it the files are
+  /// cut when the run's output was, and there were none to cut otherwise.
+  static (List<WrittenFile>, bool) _readFiles(String? line, {required bool cut}) {
+    if (line == null) return (const [], cut);
+
+    try {
+      final listing = jsonDecode(line.substring(filesSentinel.length)) as Map<String, dynamic>;
+      final files = [
+        for (final entry in (listing['files'] as List).cast<Map<String, dynamic>>())
+          WrittenFile(
+            path: entry['path'] as String,
+            text: entry['text'] as String?,
+            size: entry['size'] as int,
+            truncated: entry['truncated'] as bool,
+            changed: entry['changed'] as bool,
+          ),
+      ];
+      return (files, listing['more'] as bool);
+    } on Object {
+      return (const [], true);
+    }
   }
 
 }

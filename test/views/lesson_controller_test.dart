@@ -37,6 +37,10 @@ class _HeldRuntime implements PythonRuntime {
   /// can be followed all the way to the interpreter.
   String? lastStdin;
 
+  /// The whole program the last run was handed, which is where a section's
+  /// files travel.
+  String? lastProgram;
+
   /// How often the interpreter was asked to start. It is no longer compiled
   /// during the bootstrap, so a step that runs code has to ask for it.
   int readies = 0;
@@ -57,6 +61,7 @@ class _HeldRuntime implements PythonRuntime {
   @override
   Future<PythonResult> run(String code, {String stdin = ''}) {
     lastStdin = stdin;
+    lastProgram = code;
     return (_pending = Completer<PythonResult>()).future;
   }
 
@@ -108,6 +113,7 @@ const List<LessonSection> _sections = [
     prose: '',
     starter: '',
     stdin: 'Sanne\n',
+    files: {'namen.txt': 'Sanne\n'},
   ),
   LessonSection(
     id: 'guess-asked',
@@ -116,6 +122,7 @@ const List<LessonSection> _sections = [
     prose: '',
     program: 'print(input())',
     stdin: '7\n',
+    files: {'getal.txt': '7\n'},
   ),
   LessonSection(
     id: 'pairs',
@@ -516,6 +523,32 @@ void main() {
     await pumpEventQueue();
 
     expect(runtime.lastStdin, '7\n');
+  });
+
+  test('a section\'s files travel with the program, run or predicted', () async {
+    final accessor = BuildContextAccessor();
+    final asked = _sections.firstWhere((s) => s.id == 'asked');
+    final guessed = _sections.firstWhere((s) => s.id == 'guess-asked');
+    final runs = LessonScreenController(
+      viewModel: LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'asked'),
+      contextAccessor: accessor,
+    );
+
+    unawaited(runs.run(asked, 'print(1)'));
+    await pumpEventQueue();
+    expect(
+      runtime.lastProgram,
+      PythonAttemptRunner.buildProgram(code: 'print(1)', validator: asked.validator, files: asked.files),
+    );
+    await runs.stop();
+
+    final predicts = LessonScreenController(
+      viewModel: LessonScreenViewModel(contextAccessor: accessor, lessonId: 'loops', sectionId: 'guess-asked'),
+      contextAccessor: accessor,
+    );
+    unawaited(predicts.predict(guessed, '7'));
+    await pumpEventQueue();
+    expect(runtime.lastProgram, PythonAttemptRunner.buildProgram(code: guessed.program!, files: guessed.files));
   });
 
   test('a section without one is run with nothing to read', () async {

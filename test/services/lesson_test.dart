@@ -503,6 +503,130 @@ void main() {
       expect(lesson.sections.map((section) => section.stdin), ['7\n', null]);
     });
 
+    group('a `file` block', () {
+      String exercise(String blocks) =>
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: quick-exercise\nid: s\n```\n\nprose\n\n'
+          '```python-assignment\n```\n\n```python-validator\npass\n```\n\n$blocks';
+
+      test('is read by its name, kept verbatim and ended in a newline', () {
+        final lesson = Lesson.parse(exercise('```file cijfers.csv\nnaam,cijfer\n  Sanne ,7.5\n\nTim,6\n```\n'));
+
+        expect(lesson.sections.single.files, {'cijfers.csv': 'naam,cijfer\n  Sanne ,7.5\n\nTim,6\n'});
+        expect(lesson.sections.single.prose, 'prose', reason: 'the file is drawn by the step, not in the prose');
+      });
+
+      test('may come more than once, and keeps the order the author wrote', () {
+        final lesson = Lesson.parse(exercise('```file b.txt\n2\n```\n\n```file a.txt\n1\n```\n'));
+
+        expect(lesson.sections.single.files.keys, ['b.txt', 'a.txt']);
+      });
+
+      test('may be empty, which is an empty file', () {
+        final lesson = Lesson.parse(exercise('```file leeg.txt\n```\n'));
+
+        expect(lesson.sections.single.files, {'leeg.txt': ''});
+      });
+
+      test('may hold a fence when it is opened with a longer one', () {
+        final lesson = Lesson.parse(exercise('````file notities.md\n```\ncode\n```\n````\n'));
+
+        expect(lesson.sections.single.files, {'notities.md': '```\ncode\n```\n'});
+      });
+
+      test('is allowed on every step that runs code', () {
+        final predict = Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: predict-output\nid: s\n```\n\n'
+          '```python-predict\nprint(open("a.txt").read())\n```\n\n```file a.txt\nhoi\n```\n',
+        );
+        final order = Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: order-lines\nid: s\n```\n\n'
+          '```python-order\na = 1\nprint(a)\n```\n\n```python-validator\npass\n```\n\n```file a.txt\nhoi\n```\n',
+        );
+
+        expect(predict.sections.single.files, {'a.txt': 'hoi\n'});
+        expect(order.sections.single.files, {'a.txt': 'hoi\n'});
+      });
+
+      test('rejects a name that is missing, has a folder or is not one word', () {
+        for (final name in ['', 'data/cijfers.csv', '../cijfers.csv', 'twee namen.csv', '.verborgen']) {
+          expect(
+            () => Lesson.parse(exercise('```file $name\n1\n```\n')),
+            throwsA(isA<FormatException>()),
+            reason: '"$name"',
+          );
+        }
+      });
+
+      test('rejects the names the app uses itself, and Python modules', () {
+        // A module in the working directory would be imported in place of the
+        // standard library's, and the checks import `ast`.
+        for (final name in ['main.py', 'tmp', 'ast.py']) {
+          expect(
+            () => Lesson.parse(exercise('```file $name\n1\n```\n')),
+            throwsA(isA<FormatException>()),
+            reason: name,
+          );
+        }
+      });
+
+      test('rejects the same name twice, whatever its case', () {
+        expect(
+          () => Lesson.parse(exercise('```file Data.csv\n1\n```\n\n```file data.csv\n2\n```\n')),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('rejects a byte order mark, which `csv` would read as part of the first heading', () {
+        expect(
+          () => Lesson.parse(exercise('```file data.csv\n﻿naam,cijfer\n```\n')),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('is rejected on a step that runs nothing', () {
+        expect(
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n\n'
+            '```file a.txt\n1\n```\n',
+          ),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('is rejected above the first section', () {
+        expect(
+          () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n```file a.txt\n1\n```\n'),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('is not read on a step for a runtime that is not ready', () {
+        // Such a step is left out whole, so a name this version would refuse
+        // must not stop the lesson from loading.
+        final lesson = Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n'
+          '## Lezen\n\n```metadata\nid: read\ntype: info\n```\n\nprose\n\n'
+          '## Venster\n\n```metadata\nid: window\nruntime: tkinter\ntype: window-exercise\n```\n\n'
+          '```file plaatje.py\n1\n```\n',
+        );
+
+        expect(lesson.sections.map((section) => section.id), ['read']);
+      });
+
+      test('does not leak into the next section', () {
+        final lesson = Lesson.parse(
+          '${exercise('```file a.txt\n1\n```\n')}\n'
+          '## B\n\n```metadata\ntype: quick-exercise\nid: b\n```\n\n'
+          '```python-assignment\n```\n\n```python-validator\npass\n```\n',
+        );
+
+        expect(lesson.sections.map((section) => section.files), [
+          {'a.txt': '1\n'},
+          isEmpty,
+        ]);
+      });
+    });
+
     test('reads `optional: true` off the lesson\'s own metadata', () {
       final deepDive = Lesson.parse(
         '# T\n\n```metadata\nid: x\noptional: true\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',

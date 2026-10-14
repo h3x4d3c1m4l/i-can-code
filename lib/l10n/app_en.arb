@@ -40,6 +40,41 @@
   "@lessonScreen_input": {
     "description": "Corner label on the card showing the text a step feeds to its program on standard input. Read as a pair with lessonScreen_output."
   },
+  "lessonScreen_files": "Files",
+  "@lessonScreen_files": {
+    "description": "Corner label on the card listing the files a step puts beside the student's program before it runs. Each file is a button that opens it."
+  },
+  "lessonScreen_writtenFiles": "Files written",
+  "@lessonScreen_writtenFiles": {
+    "description": "Corner label on the card under the output listing the files the student's program created or changed."
+  },
+  "lessonScreen_fileChanged": "changed",
+  "@lessonScreen_fileChanged": {
+    "description": "Small tag beside a file the step gave, which the student's program changed."
+  },
+  "lessonScreen_filesCut": "Your program wrote more files than are listed here.",
+  "lessonScreen_openFile": "Open {name}",
+  "@lessonScreen_openFile": {
+    "description": "Screen reader label of the button that opens a file.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fileDialog_given": "This file is next to your program. Every time your program starts, the file is as it is here.",
+  "fileDialog_created": "Your program wrote this file.",
+  "fileDialog_changed": "Your program changed this file. The next time it starts, the file is back to how it was.",
+  "fileDialog_truncated": "The file is too large to show whole. This is the start of it.",
+  "fileDialog_notText": "This file does not hold text, so there is nothing to show.",
+  "fileDialog_empty": "The file is empty.",
+  "fileDialog_copy": "Copy",
+  "fileDialog_copied": "Copied",
+  "@fileDialog_copied": {
+    "description": "Announced to a screen reader once the file's text is on the clipboard; the button itself only swaps its icon."
+  },
+  "fileDialog_download": "Download",
+  "fileDialog_close": "Close",
   "lessonScreen_output": "Output",
   "@lessonScreen_output": {},
   "lessonScreen_passed": "Correct!",

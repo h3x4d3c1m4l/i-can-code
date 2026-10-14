@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -141,14 +142,22 @@ void main() {
           final translations = [for (final path in entry.paths.values) parsed(path)];
 
           for (var i = 0; i < translations.first.sections.length; i++) {
-            final validator = translations.first.sections[i].validator;
+            final section = translations.first.sections[i];
+            final validator = section.validator;
             if (validator == null) continue;
 
             for (final code in answers) {
-              final first = await attempt(code: code, validator: validator);
+              // Each with its own input and files: without them a validator
+              // that reads either fails the same way in every language.
+              final first = await attempt(code: code, validator: validator, stdin: section.stdin, files: section.files);
 
               for (final other in translations.skip(1)) {
-                final verdict = await attempt(code: code, validator: other.sections[i].validator);
+                final verdict = await attempt(
+                  code: code,
+                  validator: other.sections[i].validator,
+                  stdin: other.sections[i].stdin,
+                  files: other.sections[i].files,
+                );
                 final why = '${named(entry.paths.values.first)} section $i, $code';
 
                 expect(verdict.passed, first.passed, reason: why);
@@ -243,6 +252,15 @@ void _holdsTheRules(Lesson lesson) {
       expect(section.requires, isEmpty, reason: '${section.title} is not a task');
     }
 
+    for (final MapEntry(key: name, value: text) in section.files.entries) {
+      // Carried in the course bundle once per locale, and in every run's program.
+      expect(
+        utf8.encode(text).length,
+        lessThanOrEqualTo(32 * 1024),
+        reason: '${section.title} gives a file "$name" larger than 32 KB',
+      );
+    }
+
     expect(section.prose, isNot(contains('&quot;')), reason: 'prose must not be HTML-escaped');
     expect(section.prose, isNot(contains('```metadata')), reason: 'metadata must not reach the reader');
     expect(section.prose, isNot(contains('-validator')), reason: 'validators must never be rendered');
@@ -272,6 +290,13 @@ void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why})
   // in one language reads in every other, because it is the same program.
   expect(lesson.sections.map((s) => s.program == null), first.sections.map((s) => s.program == null), reason: why);
   expect(lesson.sections.map((s) => s.stdin == null), first.sections.map((s) => s.stdin == null), reason: why);
+  // The files by name only: the starters name them and are the same in every
+  // language, while the data in them may be translated.
+  expect(
+    lesson.sections.map((s) => s.files.keys.toList()),
+    first.sections.map((s) => s.files.keys.toList()),
+    reason: why,
+  );
   // A project in one language is a project in all of them, and recommends the
   // same lessons: those are ids, not words.
   expect(lesson.layout, first.layout, reason: why);

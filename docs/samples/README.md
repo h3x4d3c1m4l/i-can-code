@@ -20,6 +20,7 @@ fvm dart run tool/try_lesson.dart docs/samples/predict-output.md 0   # see the a
 | [order-lines.md](order-lines.md) | `order-lines` | A `<lang>-order` block, its `<lang>-distractors`, and a validator that runs what was built |
 | [project.md](project.md) | `info`, `task` | A `layout: project` on `runtime: microbit`: tasks with `done-when` and `requires`, and the starter on the first task only |
 | [stdin.md](stdin.md) | `exercise`, `predict-output` | A `stdin` block on each: what the program reads when it calls `input()` |
+| [file.md](file.md) | `exercise`, `predict-output` | A `file` block on each: a CSV beside the program, read with `csv`, and a step that writes one |
 
 **These are documentation, not content.** They live here rather than under
 `assets/lessons/`, which is the only directory the app discovers, so nothing here

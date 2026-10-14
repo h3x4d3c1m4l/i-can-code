@@ -29,6 +29,8 @@ import 'package:i_can_code/views/components/lesson/optional_step_banner.dart';
 import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
+import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
 import 'package:i_can_code/views/lesson_screen/components/output_panel.dart';
 import 'package:i_can_code/views/lesson_screen/components/pair_match_board.dart';
@@ -505,6 +507,129 @@ void main() {
     });
   });
 
+  group('FilesCard', () {
+    testWidgets('names each file as written, under an upper-cased label', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          FilesCard(label: 'Bestanden', files: [ShownFile.given('Cijfers.csv', 'naam\n')]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('BESTANDEN'), findsOneWidget);
+      expect(find.text('Cijfers.csv'), findsOneWidget, reason: 'a file name is not a label to shout');
+      expect(find.text('naam'), findsNothing, reason: 'what it holds opens in a dialog');
+    });
+
+    testWidgets('opens a file in a dialog, and closes it again', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          FilesCard(label: 'Bestanden', files: [ShownFile.given('cijfers.csv', 'naam,cijfer\nSanne,7.5\n')]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Open cijfers.csv'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('naam,cijfer\nSanne,7.5'), findsOneWidget);
+      expect(find.textContaining('staat naast je programma'), findsOneWidget);
+
+      await tester.tap(find.text('Sluiten'));
+      await tester.pumpAndSettle();
+      expect(find.text('naam,cijfer\nSanne,7.5'), findsNothing);
+    });
+
+    testWidgets('shows rows ended in \\r\\n as plain lines, and copies them as written', (tester) async {
+      // What `csv.writer` writes. Drawn as is, every row would leave a gap under it.
+      final copied = _clipboard(tester);
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          const FilesCard(
+            label: 'Geschreven bestanden',
+            files: [ShownFile(path: 'uit.csv', text: 'a\r\nb\r\n', origin: FileOrigin.created)],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('uit.csv'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('a\nb'), findsOneWidget);
+      expect(find.textContaining('Je programma heeft dit bestand geschreven'), findsOneWidget);
+
+      await tester.tap(find.text('Kopiëren'));
+      await tester.pumpAndSettle();
+      expect(copied(), 'a\r\nb\r\n');
+      // The tick has to be gone before the test ends, or its timer outlives it.
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('tags a file the program changed, and says so when it is opened', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          const FilesCard(
+            label: 'Geschreven bestanden',
+            files: [ShownFile(path: 'cijfers.csv', text: 'x\n', origin: FileOrigin.changed)],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('gewijzigd'), findsOneWidget);
+
+      await tester.tap(find.text('cijfers.csv'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('weer zoals het was'), findsOneWidget);
+    });
+
+    testWidgets('says what it cannot show, and offers nothing to copy', (tester) async {
+      for (final (file, says) in const [
+        (ShownFile(path: 'data.bin', text: null, origin: FileOrigin.created), 'geen tekst'),
+        (ShownFile(path: 'leeg.txt', text: '', origin: FileOrigin.created), 'is leeg'),
+      ]) {
+        await tester.pumpWidget(_hostWithNavigator(FilesCard(label: 'Geschreven bestanden', files: [file])));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(file.path));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining(says), findsOneWidget, reason: file.path);
+        expect(find.text('Kopiëren'), findsNothing, reason: file.path);
+        await tester.tap(find.text('Sluiten'));
+        await tester.pumpAndSettle();
+        // A fresh Navigator for the next file: the old one keeps its page.
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('says when it shows only the start of a file', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          const FilesCard(
+            label: 'Geschreven bestanden',
+            files: [ShownFile(path: 'groot.txt', text: 'xxx', truncated: true, origin: FileOrigin.created)],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('groot.txt'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Dit is het begin'), findsOneWidget);
+    });
+
+    testWidgets('offers no download where there is no browser to save through', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(FilesCard(label: 'Bestanden', files: [ShownFile.given('a.txt', '1\n')])),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('a.txt'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Downloaden'), findsNothing);
+    });
+  });
+
   group('OutputPanel', () {
     testWidgets('a pass shows the output and the verdict', (tester) async {
       await tester.pumpWidget(
@@ -514,6 +639,55 @@ void main() {
 
       expect(find.text('Hello, world'), findsOneWidget);
       expect(find.text('Goed!'), findsOneWidget);
+    });
+
+    testWidgets('lists the files the program wrote under its output', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          const OutputPanel(
+            result: AttemptResult(
+              passed: true,
+              output: 'klaar\n',
+              writtenFiles: [WrittenFile(path: 'uit.csv', text: 'a\n', size: 2)],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('GESCHREVEN BESTANDEN'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('uit.csv')).dy,
+        greaterThan(tester.getTopLeft(find.text('klaar')).dy),
+        reason: 'the output is what the student asked for; the files come after it',
+      );
+    });
+
+    testWidgets('shows no files card for a program that wrote none', (tester) async {
+      await tester.pumpWidget(
+        _host(const OutputPanel(result: AttemptResult(passed: true, output: 'klaar\n'))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('GESCHREVEN BESTANDEN'), findsNothing);
+    });
+
+    testWidgets('says so when more files were written than it lists', (tester) async {
+      await tester.pumpWidget(
+        _hostWithNavigator(
+          const OutputPanel(
+            result: AttemptResult(
+              passed: true,
+              output: '',
+              writtenFiles: [WrittenFile(path: 'f00.txt', text: 'x', size: 1)],
+              filesCut: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('meer bestanden'), findsOneWidget);
     });
 
     testWidgets('the verdict stands above the output, whatever it says', (tester) async {
