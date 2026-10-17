@@ -2,8 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shared_preferences_platform_interface/types.dart';
 
 CourseLesson _lesson({required String id, required List<String> sectionIds}) => CourseLesson(
   entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
@@ -207,4 +209,66 @@ void main() {
       expect(reloaded.snapshotFor(project, 'roll'), isNull);
     });
   });
+
+  group('a page', () {
+    // No course names a page, so a reload has to find its draft without one.
+    Future<CodeDraftStore> reload() async {
+      final reloaded = CodeDraftStore();
+      await reloaded.load(const Course(lessons: []));
+      return reloaded;
+    }
+
+    test('keeps its draft across a reload, which is what a discarded tab gets', () async {
+      store.keepPage('tkinter.python', 'print("hoi")');
+      await store.flush();
+
+      expect((await reload()).pageCodeFor('tkinter.python'), 'print("hoi")');
+    });
+
+    test('never shares a draft with another page', () async {
+      store.keepPage('tkinter.python', 'a');
+
+      expect(store.pageCodeFor('tkinter.other'), isNull);
+    });
+
+    test('with nothing typed has no draft', () {
+      expect(store.pageCodeFor('tkinter.python'), isNull);
+    });
+
+    test('is cleared with everything else', () async {
+      store.keepPage('tkinter.python', 'print(1)');
+      await store.flush();
+
+      await store.clear();
+      expect((await reload()).pageCodeFor('tkinter.python'), isNull);
+    });
+
+    test('a key of something else is not read as a draft', () async {
+      await SharedPreferencesAsync().setString('theme.mode', 'dark');
+
+      expect((await reload()).hasDrafts, isFalse);
+    });
+
+    test('storage that refuses is swallowed, both ways', () async {
+      SharedPreferencesAsyncPlatform.instance = _RefusingStorage();
+      final refused = CodeDraftStore()..keepPage('tkinter.python', 'x');
+
+      await expectLater(refused.flush(), completes);
+      expect((await reload()).hasDrafts, isFalse);
+    });
+  });
+}
+
+/// Storage that refuses everything, the way a private window can.
+final class _RefusingStorage extends InMemorySharedPreferencesAsync {
+
+  _RefusingStorage() : super.empty();
+
+  @override
+  Future<Map<String, Object>> getPreferences(GetPreferencesParameters parameters, SharedPreferencesOptions options) =>
+      throw StateError('refused');
+
+  @override
+  Future<bool> setString(String key, String value, SharedPreferencesOptions options) => throw StateError('refused');
+
 }

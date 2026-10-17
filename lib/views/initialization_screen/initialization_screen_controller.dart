@@ -4,6 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
@@ -57,6 +58,8 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       // Before the first catalog, which lists what the toggles let through. A
       // read that fails leaves every toggle off.
       await GetIt.I<FeatureToggles>().load();
+      // So does this: a setting read wrong falls back to its default.
+      await GetIt.I<EditorSettings>().load();
       if (_disposed) return;
     } on Object catch (error) {
       if (!_disposed) viewModel.setError('$error');

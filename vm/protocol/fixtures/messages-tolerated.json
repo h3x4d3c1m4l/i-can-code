@@ -1,0 +1,162 @@
+{
+  "description": "Non-canonical payloads a receiver MUST accept. Decoding 'frame_hex' MUST give 'message' (unknown keys dropped, nullable keys left out read as null); encoding 'message' gives 'canonical_frame_hex'.",
+  "frames": [
+    {
+      "name": "READY with whitespace and its keys reordered",
+      "from": "agent",
+      "frame_hex": "040181010101627b20227761726d223a20747275652c0a202022747a223a2022555443222c2022746b223a2022382e362e3136222c2022707974686f6e223a2022507974686f6e20332e31322e3132222c20226167656e74223a2022302e312e3022207d4632278500",
+      "message": {
+        "type": "READY",
+        "id": 1,
+        "body": {
+          "agent": "0.1.0",
+          "python": "Python 3.12.12",
+          "tk": "8.6.16",
+          "tz": "UTC",
+          "warm": true
+        }
+      },
+      "canonical_frame_hex": "040181010101557b226167656e74223a22302e312e30222c22707974686f6e223a22507974686f6e20332e31322e3132222c22746b223a22382e362e3136222c22747a223a22555443222c227761726d223a747275657d3402ab9c00"
+    },
+    {
+      "name": "READY with keys this version does not know",
+      "from": "agent",
+      "frame_hex": "040181010101887b226167656e74223a22302e312e30222c22707974686f6e223a22507974686f6e20332e31322e3132222c22746b223a22382e362e3136222c22747a223a22555443222c227761726d223a747275652c22696d616765223a2261316232222c226578747261223a7b226e6573746564223a5b312c322c7b2278223a6e756c6c7d5d7d7d0f95dad900",
+      "message": {
+        "type": "READY",
+        "id": 1,
+        "body": {
+          "agent": "0.1.0",
+          "python": "Python 3.12.12",
+          "tk": "8.6.16",
+          "tz": "UTC",
+          "warm": true
+        }
+      },
+      "canonical_frame_hex": "040181010101557b226167656e74223a22302e312e30222c22707974686f6e223a22507974686f6e20332e31322e3132222c22746b223a22382e362e3136222c22747a223a22555443222c227761726d223a747275657d3402ab9c00"
+    },
+    {
+      "name": "EXIT pretty-printed",
+      "from": "agent",
+      "frame_hex": "0401850201015b7b0a202022636f6465223a20302c0a2020227369676e616c223a206e756c6c2c0a202022726561736f6e223a202265786974222c0a2020227472756e6361746564223a2066616c73652c0a2020226d73223a20370a7dd3c0fc1800",
+      "message": {
+        "type": "EXIT",
+        "id": 2,
+        "body": {
+          "code": 0,
+          "signal": null,
+          "reason": "exit",
+          "truncated": false,
+          "ms": 7
+        }
+      },
+      "canonical_frame_hex": "040185020101467b22636f6465223a302c227369676e616c223a6e756c6c2c22726561736f6e223a2265786974222c227472756e6361746564223a66616c73652c226d73223a377dccc2a5be00"
+    },
+    {
+      "name": "WINDOW entry with a key this version does not know",
+      "from": "agent",
+      "frame_hex": "0401860201018d7b2277696e646f7773223a5b7b22666f6375736564223a747275652c22786964223a323039373136362c227469746c65223a224d7920617070222c2278223a302c2279223a302c2277223a3332302c2268223a3230302c226d6170706564223a747275652c22726f6f74223a747275652c227472616e7369656e745f666f72223a6e756c6c7d5d7df1d2725900",
+      "message": {
+        "type": "WINDOW",
+        "id": 2,
+        "body": {
+          "windows": [
+            {
+              "xid": 2097166,
+              "title": "My app",
+              "x": 0,
+              "y": 0,
+              "w": 320,
+              "h": 200,
+              "mapped": true,
+              "root": true,
+              "transient_for": null
+            }
+          ]
+        }
+      },
+      "canonical_frame_hex": "0401860201017e7b2277696e646f7773223a5b7b22786964223a323039373136362c227469746c65223a224d7920617070222c2278223a302c2279223a302c2277223a3332302c2268223a3230302c226d6170706564223a747275652c22726f6f74223a747275652c227472616e7369656e745f666f72223a6e756c6c7d5d7dd69d1a3600"
+    },
+    {
+      "name": "PING with an escaped key",
+      "from": "host",
+      "frame_hex": "040105030101117b225c7530303738223a317ddfedb5a900",
+      "message": {
+        "type": "PING",
+        "id": 3,
+        "body": {}
+      },
+      "canonical_frame_hex": "040105030101077b7d422f5b9f00"
+    },
+    {
+      "name": "READY with its nullable fields left out",
+      "from": "agent",
+      "frame_hex": "0301810101012e7b226167656e74223a22302e312e30222c22747a223a22555443222c227761726d223a66616c73657d9e19d6fa00",
+      "message": {
+        "type": "READY",
+        "id": 0,
+        "body": {
+          "agent": "0.1.0",
+          "python": null,
+          "tk": null,
+          "tz": "UTC",
+          "warm": false
+        }
+      },
+      "canonical_frame_hex": "030181010101467b226167656e74223a22302e312e30222c22707974686f6e223a6e756c6c2c22746b223a6e756c6c2c22747a223a22555443222c227761726d223a66616c73657da327627000"
+    },
+    {
+      "name": "EXIT with signal left out",
+      "from": "agent",
+      "frame_hex": "040185020101387b22636f6465223a302c22726561736f6e223a2265786974222c227472756e6361746564223a66616c73652c226d73223a377d7a3a743400",
+      "message": {
+        "type": "EXIT",
+        "id": 2,
+        "body": {
+          "code": 0,
+          "signal": null,
+          "reason": "exit",
+          "truncated": false,
+          "ms": 7
+        }
+      },
+      "canonical_frame_hex": "040185020101467b22636f6465223a302c227369676e616c223a6e756c6c2c22726561736f6e223a2265786974222c227472756e6361746564223a66616c73652c226d73223a377dccc2a5be00"
+    },
+    {
+      "name": "WINDOW entry with transient_for left out",
+      "from": "agent",
+      "frame_hex": "040186020101697b2277696e646f7773223a5b7b22786964223a323039373136362c227469746c65223a224d7920617070222c2278223a302c2279223a302c2277223a3332302c2268223a3230302c226d6170706564223a747275652c22726f6f74223a747275657d5d7dc16e86c300",
+      "message": {
+        "type": "WINDOW",
+        "id": 2,
+        "body": {
+          "windows": [
+            {
+              "xid": 2097166,
+              "title": "My app",
+              "x": 0,
+              "y": 0,
+              "w": 320,
+              "h": 200,
+              "mapped": true,
+              "root": true,
+              "transient_for": null
+            }
+          ]
+        }
+      },
+      "canonical_frame_hex": "0401860201017e7b2277696e646f7773223a5b7b22786964223a323039373136362c227469746c65223a224d7920617070222c2278223a302c2279223a302c2277223a3332302c2268223a3230302c226d6170706564223a747275652c22726f6f74223a747275652c227472616e7369656e745f666f72223a6e756c6c7d5d7dd69d1a3600"
+    },
+    {
+      "name": "STOP with a body this version does not know",
+      "from": "host",
+      "frame_hex": "040104020101237b22776879223a2273747564656e7420707265737365642053746f70227dd8af2c2600",
+      "message": {
+        "type": "STOP",
+        "id": 2,
+        "body": {}
+      },
+      "canonical_frame_hex": "040104020101077b7d53f770f200"
+    }
+  ]
+}

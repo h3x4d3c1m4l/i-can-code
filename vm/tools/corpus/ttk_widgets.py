@@ -1,0 +1,27 @@
+import tkinter as tk
+from tkinter import ttk
+
+root = tk.Tk()
+root.title("ttk")
+ttk.Style().theme_use("clam")
+tabs = ttk.Notebook(root)
+first = ttk.Frame(tabs, padding=10)
+tabs.add(first, text="First")
+tabs.add(ttk.Frame(tabs), text="Second")
+tabs.pack(fill="both", expand=True)
+ttk.Label(first, text="Pick a colour:").grid(row=0, column=0, sticky="w")
+ttk.Combobox(first, values=["red", "green", "blue"], state="readonly").grid(row=0, column=1)
+ttk.Checkbutton(first, text="Dark").grid(row=1, column=0, sticky="w")
+ttk.Scale(first, from_=0, to=100).grid(row=1, column=1, sticky="ew")
+ttk.Progressbar(first, value=60).grid(row=2, column=0, columnspan=2, sticky="ew", pady=5)
+ttk.Spinbox(first, from_=1, to=10).grid(row=3, column=0)
+ttk.Button(first, text="Save").grid(row=3, column=1)
+tree = ttk.Treeview(first, columns=("points",), height=3)
+tree.heading("#0", text="Name")
+tree.heading("points", text="Points")
+for name, points in [("Sanne", 8), ("Daan", 7)]:
+    tree.insert("", "end", text=name, values=(points,))
+tree.grid(row=4, column=0, columnspan=2)
+root.update()
+print("done", flush=True)
+root.mainloop()

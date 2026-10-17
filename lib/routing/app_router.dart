@@ -33,6 +33,15 @@ const String microbitLesson = 'microbit';
 /// running, and a program has to be left alone to run. Reserved like the others.
 const String microbitReplLesson = 'microbit-repl';
 
+/// The lesson id the Tkinter page sits on, a program with windows run in the VM.
+///
+/// Reserved like the others, for the same reason and held by the same test.
+const String tkinterLesson = 'tkinter';
+
+/// The code-editor settings, which belong to no subject. One segment, like a
+/// subject's own address, so it is declared above that route.
+const String editorSettingsPath = 'editor-settings';
+
 /// One step of a lesson, as a route. **Build a [LessonRoute] through here
 /// rather than directly**, because of the key.
 ///
@@ -98,6 +107,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: InitializationRoute.page, path: '/initialization'),
     AutoRoute(page: LicensesRoute.page, path: '/licenses'),
     AutoRoute(page: AboutRoute.page, path: '/about'),
+    AutoRoute(page: EditorSettingsRoute.page, path: '/$editorSettingsPath'),
     AutoRoute(page: CatalogRoute.page, path: '/:subjectSlug'),
     // Above the lesson addresses below, which it would otherwise match as a
     // lesson called "repl". Same arrangement as /initialization above the
@@ -105,6 +115,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: ReplRoute.page, path: '/:subjectSlug/$replLesson'),
     AutoRoute(page: MicrobitProgramRoute.page, path: '/:subjectSlug/$microbitLesson'),
     AutoRoute(page: MicrobitReplRoute.page, path: '/:subjectSlug/$microbitReplLesson'),
+    AutoRoute(page: TkinterRoute.page, path: '/:subjectSlug/$tkinterLesson'),
     // Three segments, like a lesson step, so above that route too. `microbit`
     // is reserved as a lesson id, which keeps the two from ever meaning the
     // same address.

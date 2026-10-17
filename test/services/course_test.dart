@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
 
 /// An asset bundle holding the course bundle and nothing else.
 class _CourseBundle extends CachingAssetBundle {
@@ -363,5 +364,13 @@ void main() {
   test('Python indents by four spaces, and a subject the table does not name by two', () {
     expect(subjectIndentSize('python'), 4);
     expect(subjectIndentSize('javascript'), 2);
+  });
+
+  test('windows are offered only by a build that ships the machine\'s image', () {
+    expect(subjectHasWindows('python', imageIncluded: true), isTrue);
+    expect(subjectHasWindows('javascript', imageIncluded: true), isFalse);
+    // What a deploy without the image gets: no card for a page that can only 404.
+    expect(subjectHasWindows('python', imageIncluded: false), isFalse);
+    expect(subjectHasWindows('python'), vmImageIncluded);
   });
 }

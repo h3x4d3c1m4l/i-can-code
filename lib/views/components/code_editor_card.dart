@@ -52,6 +52,9 @@ class CodeEditorCard extends StatefulWidget {
   /// does by default.
   final bool autofocus;
 
+  /// The name in the strip.
+  final String fileName;
+
   /// What the student's code started as. Shows a reset button in the strip
   /// that asks, then restores it. Null hides the button — the micro:bit and
   /// Tkinter pages share this card but have no lesson section to reset from.
@@ -88,6 +91,7 @@ class CodeEditorCard extends StatefulWidget {
     this.maxLines,
     this.autofocus = true,
     this.starterCode,
+    this.fileName = 'main.py',
     super.key,
   });
 
@@ -150,7 +154,7 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
             padding: CodeEditorCard.headerPadding,
             child: Row(
               children: [
-                Text('main.py', style: muted),
+                Text(widget.fileName, style: muted),
                 // The way out, which WCAG 2.1.2 wants stated, the way the
                 // Tkinter page's window frame states its own. Centred, so it
                 // does not run into the status as one line.

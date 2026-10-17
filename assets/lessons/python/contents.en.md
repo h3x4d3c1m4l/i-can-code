@@ -1,6 +1,7 @@
 - [Introduction](00-introduction.en.md)
 - [Input and output](01-input-and-output.en.md)
 - [Files](02-files.en.md)
+- [A first window](03-first-window.en.md)
 
 # Projects · micro:bit {#microbit}
 

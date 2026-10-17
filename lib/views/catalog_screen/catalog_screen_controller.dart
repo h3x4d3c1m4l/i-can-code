@@ -7,6 +7,9 @@ import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
 
 class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewModel> {
 
+  /// A push of the Tkinter page that has not reached the stack yet.
+  bool _openingTkinter = false;
+
   CatalogScreenController({required super.viewModel, required super.contextAccessor});
 
   /// Back to the subject picker, which is the app's home.
@@ -39,6 +42,33 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     await contextAccessor.buildContext.router.push(
       MicrobitReplRoute(subjectSlug: subjectSlug(viewModel.subject)),
     );
+  }
+
+  /// Opens the page a program with windows is written and run on. Ignored while
+  /// such a page is open or on its way: the host keeps one machine per tab, and
+  /// a second page's would destroy the first's.
+  ///
+  /// Not a flag held until [StackRouter.push] resolves, because that waits for
+  /// a pop, and a page `replaceAll` removes is never popped while this catalog's
+  /// own page survives the call.
+  Future<void> openTkinter() async {
+    if (_openingTkinter || !contextAccessor.buildContext.mounted) return;
+    final router = contextAccessor.buildContext.router;
+    if (router.stackData.any((route) => route.name == TkinterRoute.name)) return;
+
+    _openingTkinter = true;
+    void landed() {
+      _openingTkinter = false;
+      router.removeListener(landed);
+    }
+
+    // The router notifies as the page lands, and from then on the stack answers.
+    router.addListener(landed);
+    try {
+      await router.push(TkinterRoute(subjectSlug: subjectSlug(viewModel.subject)));
+    } finally {
+      landed();
+    }
   }
 
   /// Opens a lesson where the student left off — its first unfinished step, or

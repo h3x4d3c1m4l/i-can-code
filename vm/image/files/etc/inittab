@@ -1,0 +1,10 @@
+# No getty on any terminal: ttyS0 is the kernel console, ttyS1 belongs to the agent, and the
+# display belongs to X. There is no ctrlaltdel entry either, so busybox init ignores the
+# Ctrl+Alt+Del a student can type into the display instead of rebooting.
+::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc boot
+::wait:/sbin/openrc default
+::shutdown:/sbin/openrc shutdown
+# The agent, on the page's control line. init starts it again if it dies, and it opens with an
+# unasked READY so the host knows it did.
+::respawn:/usr/local/bin/icc-agent --serial /dev/ttyS1

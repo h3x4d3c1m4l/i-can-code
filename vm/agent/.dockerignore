@@ -1,0 +1,6 @@
+# The build needs the manifest, the lock and the source. Anything else, target/ above all, would
+# only make the context slower to send.
+*
+!Cargo.toml
+!Cargo.lock
+!src

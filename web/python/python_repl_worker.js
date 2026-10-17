@@ -29,22 +29,11 @@ const FLUSH_INTERVAL_MS = 16;
 let compiled = null;
 let stdlib = null;
 
-async function init({ wasmUrl, stdlibUrl }) {
-  // Not compileStreaming, for the same reason as python_worker.js: Flutter's
-  // dev server does not send `application/wasm`, so streaming would work in a
-  // release build and fail the moment anyone ran the app from the IDE.
-  const [wasmBytes, zip] = await Promise.all([
-    fetchStrict(wasmUrl),
-    fetchStrict(stdlibUrl),
-  ]);
-  compiled = await WebAssembly.compile(wasmBytes);
+/** Takes the module the page compiled (`python_build_web.dart`), the same one
+ *  the lesson runner gets, so a console started after a lesson compiles nothing. */
+function init({ module, stdlib: zip }) {
+  compiled = module;
   stdlib = new Uint8Array(zip);
-}
-
-async function fetchStrict(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status} fetching ${url}`);
-  return response.arrayBuffer();
 }
 
 /** Never returns while the session lives. */
@@ -157,7 +146,7 @@ self.onmessage = async (event) => {
   const message = event.data;
   try {
     if (message.type === 'init') {
-      await init(message);
+      init(message);
       self.postMessage({ type: 'ready' });
     } else if (message.type === 'start') {
       // Blocks this worker for the rest of the session. Nothing may be posted

@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/microbit/microbit_firmware.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/about_screen/about_screen_controller.dart';
@@ -84,6 +85,11 @@ class AboutScreenView extends ScreenViewBase<AboutScreenViewModel, AboutScreenCo
                     label: l10n.aboutScreen_pythonBrowser,
                     value: asked(viewModel.python, loaded: viewModel.pythonLoaded),
                   ),
+                  if (tkinterShown)
+                    AboutRow(
+                      label: l10n.aboutScreen_pythonTkinter,
+                      value: asked(viewModel.tkinter, loaded: viewModel.tkinterLoaded),
+                    ),
                   AboutRow(
                     label: l10n.aboutScreen_pythonMicrobit,
                     value: Text(l10n.aboutScreen_microbitFirmware(kMicrobitFirmwareVersion)),

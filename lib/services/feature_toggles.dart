@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
 import 'package:mobx/mobx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,9 +26,13 @@ class StaticFeatureToggle {
 
 }
 
+/// The Tkinter page and what leads to it. A build without the VM image has no
+/// page to show, whatever this says (`vmImageIncluded`).
+const StaticFeatureToggle tkinterFeature = StaticFeatureToggle('tkinter', description: 'The Tkinter environment');
+
 /// Every static toggle the app declares, which the debug menu offers whether or
-/// not the course names it too. Empty until a feature needs one.
-const List<StaticFeatureToggle> kStaticFeatureToggles = [];
+/// not the course names it too.
+const List<StaticFeatureToggle> kStaticFeatureToggles = [tkinterFeature];
 
 /// Every toggle the debug menu offers: [statics] and the names [course] uses,
 /// once each and sorted. [course] is null before the course is read.
@@ -121,3 +126,7 @@ Course get visibleCourse => GetIt.I<Course>().visibleWith(GetIt.I<FeatureToggles
 /// that is not hidden, whether or not [lesson] itself is.
 CourseLesson? visibleLessonAfter(CourseLesson lesson) =>
     GetIt.I<Course>().lessonAfter(lesson, isOn: GetIt.I<FeatureToggles>().isOn);
+
+/// Whether the app offers the Tkinter page: the build ships the VM image and
+/// [tkinterFeature] is on. Tracked when an observer reads it.
+bool get tkinterShown => vmImageIncluded && GetIt.I<FeatureToggles>().isOn(tkinterFeature.name);

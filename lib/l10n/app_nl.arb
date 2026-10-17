@@ -249,6 +249,149 @@
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Je programma start zodra het op het bordje staat. Wat het print verschijnt hieronder, en wat je typt gaat ernaartoe",
   "@microbitProgramScreen_hint": {},
+  "tkinterScreen_crumb": "Vensters met Tkinter",
+  "tkinterScreen_title": "Vensters met Tkinter",
+  "@tkinterScreen_title": {
+    "description": "De pagina waar een leerling een Python-programma met Tk-vensters schrijft en uitvoert op een kleine nagebootste Linux-computer. Ook de titel van de kaart onder Extra."
+  },
+  "tkinterScreen_subtitle": "Schrijf een programma met vensters en knoppen en probeer het meteen uit. Hier wordt niets gecontroleerd.",
+  "tkinterScreen_run": "Uitvoeren",
+  "tkinterScreen_stop": "Stoppen",
+  "tkinterScreen_statusLoading": "Machine laden…",
+  "tkinterScreen_statusStarting": "Machine starten…",
+  "tkinterScreen_statusWaiting": "Wacht op de machine…",
+  "tkinterScreen_statusRunning": "Bezig…",
+  "tkinterScreen_downloadTitle": "De machine wordt gedownload",
+  "tkinterScreen_downloadBody": "Je programma draait op een kleine Linux-computer in deze pagina. Die wordt één keer gedownload en start daarna meteen. Intussen kun je al aan je programma werken.",
+  "tkinterScreen_downloadProgress": "{loaded} van {total} MB",
+  "@tkinterScreen_downloadProgress": {
+    "description": "How much of the machine has been downloaded, in megabytes with one decimal.",
+    "placeholders": {
+      "loaded": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      },
+      "total": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "tkinterScreen_startingTitle": "De machine wordt gestart",
+  "tkinterScreen_unpackTitle": "De machine wordt uitgepakt",
+  "tkinterScreen_stepDownload": "Downloaden",
+  "tkinterScreen_stepUnpack": "Uitpakken",
+  "tkinterScreen_stepStart": "Starten",
+  "tkinterScreen_rateMegabytes": "{rate} MB/s",
+  "@tkinterScreen_rateMegabytes": {
+    "description": "How fast the machine is downloading, at 1 MB/s or more.",
+    "placeholders": {
+      "rate": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "tkinterScreen_rateKilobytes": "{rate} kB/s",
+  "@tkinterScreen_rateKilobytes": {
+    "description": "How fast the machine is downloading, under 1 MB/s.",
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_remainingAlmost": "bijna klaar",
+  "tkinterScreen_remainingSeconds": "nog ongeveer {seconds} seconden",
+  "@tkinterScreen_remainingSeconds": {
+    "description": "Part of the progress line: the time left, rounded up to five seconds. Lower case, as the line reads on from the speed.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_remainingMinutes": "{minutes, plural, =1{nog ongeveer een minuut} other{nog ongeveer {minutes} minuten}}",
+  "@tkinterScreen_remainingMinutes": {
+    "description": "Part of the progress line: the time left, in whole minutes. Lower case, as the line reads on from the speed.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_downloadStalled": "De verbinding is traag of even weg. Het downloaden gaat vanzelf verder zodra die terug is.",
+  "tkinterScreen_downloadNotKept": "Deze browser kan de machine niet bewaren. Die werkt wel, maar wordt de volgende keer opnieuw gedownload.",
+  "tkinterScreen_downloadSlow": "Je verbinding lijkt traag, dus dit kan een paar minuten duren.",
+  "tkinterScreen_downloadResumed": "Het downloaden gaat verder waar het de vorige keer stopte.",
+  "tkinterScreen_programTitle": "Je programma",
+  "@tkinterScreen_programTitle": {
+    "description": "De titelbalk boven het venster van het programma zolang het programma er nog geen laat zien. Zodra er een venster is, staat de titel van dat venster er."
+  },
+  "tkinterScreen_noWindowBody": "Het venster van je programma verschijnt hier.",
+  "@tkinterScreen_noWindowBody": {
+    "description": "Staat op de plek van het venster zolang het programma er geen laat zien: voor de eerste keer uitvoeren, tot het venster verschijnt, en na een programma zonder venster."
+  },
+  "tkinterScreen_windowUntitled": "Venster zonder titel",
+  "tkinterScreen_close": "Venster sluiten",
+  "tkinterScreen_stopProgram": "Programma stoppen",
+  "@tkinterScreen_stopProgram": {
+    "description": "Het kruisje rechtsboven het venster van het programma. Het stopt het programma, dus het sluit niet één venster maar alles wat er draait."
+  },
+  "tkinterScreen_leaveHint": "Esc, dan Tab: verlaten",
+  "@tkinterScreen_leaveHint": {
+    "description": "Staat er zolang er een programma draait en zijn scherm het toetsenbord heeft. Tab en Esc horen dan allebei bij het programma, dus Esc en daarna Tab is de weg eruit. Zonder programma gaat Tab er vanzelf uit, en staat dit er niet. Houd het kort: het staat naast de titel in de balk boven een venster dat maar 320 pixels breed kan zijn."
+  },
+  "tkinterScreen_output": "Uitvoer",
+  "tkinterScreen_truncated": "Je programma printte zoveel dat niet alles hier staat.",
+  "tkinterScreen_noMainloop": "Je programma stopte zonder mainloop(), dus het venster ging meteen dicht of verscheen niet eens. Zet root.mainloop() op de laatste regel.",
+  "tkinterScreen_outOfMemory": "Je programma gebruikte meer geheugen dan deze computer heeft en is daarom gestopt.",
+  "tkinterScreen_crashed": "Je programma stopte met een foutmelding. Die staat hieronder bij de uitvoer.",
+  "tkinterScreen_noInput": "input() werkt hier niet: je programma heeft geen terminal om uit te lezen. Laat de gebruiker iets typen in een Entry in je venster.",
+  "tkinterScreen_harnessBroken": "Dit lag niet aan je programma: er ging iets mis in de machine. Voer het nog een keer uit.",
+  "tkinterScreen_harnessFetch": "Dit lag niet aan je programma: een deel van de machine kon niet worden gedownload. Controleer je internetverbinding en voer het nog een keer uit.",
+  "tkinterScreen_harnessUnresponsive": "Dit lag niet aan je programma: de machine reageerde niet meer. Voer het nog een keer uit.",
+  "tkinterScreen_downloadFailedTitle": "De machine kon niet worden gedownload",
+  "tkinterScreen_downloadFailedBody": "Controleer je internetverbinding en probeer het opnieuw.",
+  "tkinterScreen_incompatibleTitle": "De machine hoort bij een andere versie van de app",
+  "tkinterScreen_incompatibleBody": "Laad de pagina opnieuw, dan krijg je de versie die erbij hoort.",
+  "tkinterScreen_brokenTitle": "De machine startte niet",
+  "tkinterScreen_brokenBody": "Dat ligt niet aan jou. Probeer het nog eens, en laad de pagina opnieuw als dat niet helpt.",
+  "tkinterScreen_replacedTitle": "Een andere Tkinter-pagina heeft de machine overgenomen",
+  "tkinterScreen_replacedBody": "Er draait maar één machine tegelijk. Probeer het opnieuw om hem hier weer te starten.",
+  "tkinterScreen_failureDetails": "Technische details",
+  "@tkinterScreen_failureDetails": {
+    "description": "Klapt de foutmelding van de machine zelf uit, in het Engels, voor wie de leerling helpt. Staat standaard dicht."
+  },
+  "tkinterScreen_retry": "Opnieuw proberen",
+  "tkinterScreen_unavailableTitle": "Dit werkt niet in deze browser",
+  "tkinterScreen_unavailableBody": "Tkinter draait hier op een kleine computer die in de pagina wordt nagebootst, en daarvoor is WebAssembly nodig. Deze browser heeft dat niet. De lessen zelf werken gewoon.",
+  "tkinterScreen_notIncludedTitle": "Tkinter zit niet in deze versie van de app",
+  "tkinterScreen_notIncludedBody": "Tkinter-programma's draaien hier op een kleine computer die met de app wordt meegeleverd, en deze versie is zonder die computer gebouwd. Aan je browser of je internetverbinding ligt het niet. De lessen zelf werken gewoon.",
+  "@tkinterScreen_notIncludedBody": {
+    "description": "Staat op de Tkinter-pagina van een build zonder het image van de machine. Er valt niets te downloaden, dus het mag niet klinken als een verbindingsfout."
+  },
+  "tkinterScreen_tooLarge": "Je venster of canvas is te groot voor het scherm van {width} × {height}, en zo'n grote tekening past niet in het geheugen van deze kleine computer. Op een gewone computer zou het wel werken. Maak het niet groter dan {width} × {height}, dan werkt het hier ook.",
+  "@tkinterScreen_tooLarge": {
+    "description": "Na een X-fout BadAlloc: het programma vroeg een venster of canvas dat niet in het geheugen van de X-server past. Een grens van de machine, geen fout van de leerling.",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
   "codeEditorCard_leaveHint": "Esc, dan Tab: verlaten",
   "@codeEditorCard_leaveHint": {
     "description": "Staat in de bovenste strook van de code-editor zolang die het toetsenbord heeft. Tab laat daar code inspringen, dus Esc en daarna Tab (of Shift+Tab) brengt het toetsenbord naar het volgende onderdeel. Houd het kort: het deelt één regel met de bestandsnaam en de status."
@@ -326,6 +469,7 @@
   "aboutScreen_builtWithHeading": "Gebouwd met",
   "aboutScreen_compiledTo": "Draait als",
   "aboutScreen_pythonBrowser": "In de browser",
+  "aboutScreen_pythonTkinter": "Met Tkinter",
   "aboutScreen_pythonMicrobit": "Op de micro:bit",
   "aboutScreen_microbitFirmware": "MicroPython-firmware {version}",
   "@aboutScreen_microbitFirmware": {
@@ -357,5 +501,19 @@
   "licensesScreen_loading": "Licenties laden",
   "licensesScreen_failedTitle": "De licenties konden niet geladen worden",
   "licensesScreen_failedBody": "Er ging iets mis bij het ophalen van de licentieteksten. Probeer het opnieuw.",
-  "licensesScreen_retry": "Opnieuw proberen"
+  "licensesScreen_retry": "Opnieuw proberen",
+  "appHeader_editorSettings": "Code-editor",
+  "editorSettingsScreen_crumb": "Code-editor",
+  "editorSettingsScreen_title": "Instellingen voor de code-editor",
+  "editorSettingsScreen_subtitle": "Bewaard in deze browser, net als je voortgang.",
+  "editorSettingsScreen_advanced": "Geavanceerd",
+  "editorSettingsScreen_tkinterSetupTitle": "Code vóór elk Tkinter-programma",
+  "editorSettingsScreen_tkinterSetupBody": "Vensters met Tkinter draait dit vóór je eigen programma, in dezelfde Python. Standaard laat het turtle ongeveer zo snel tekenen als op een gewone computer en krijgt het venster genoeg ruimte. Gaat er iets mis in deze code, dan staat de fout in de uitvoer en draait je programma gewoon.",
+  "editorSettingsScreen_statusDefault": "Standaard",
+  "editorSettingsScreen_statusChanged": "Aangepast",
+  "editorSettingsScreen_back": "Terug",
+  "editorSettingsScreen_restore": "Standaard herstellen",
+  "editorSettingsScreen_restoreTitle": "Standaard herstellen?",
+  "editorSettingsScreen_restoreBody": "Je eigen code hier wordt vervangen door de standaard. Dit kun je niet ongedaan maken.",
+  "editorSettingsScreen_restoreConfirm": "Herstellen"
 }

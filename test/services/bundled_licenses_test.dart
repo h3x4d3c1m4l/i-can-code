@@ -130,8 +130,27 @@ void main() {
     expect(catalog.of(LicenseOrigin.rust).map((it) => it.name), containsAll(['nusb', 'Rust standard library']));
     expect(catalog.of(LicenseOrigin.fonts), hasLength(4));
 
-    for (final origin in LicenseOrigin.values) {
+    // The VM image is not an asset, and only a build that ships it has one.
+    for (final origin in LicenseOrigin.values.where((it) => it != LicenseOrigin.tkinter)) {
       expect(catalog.of(origin), isNotEmpty, reason: '$origin');
     }
+  });
+
+  group('the VM image', () {
+    test('is one component, under its own origin, with its notices whole', () async {
+      const notices = 'Notices for the Tkinter VM image\n\nv86\n===\n\n    Copyright (c) 2012';
+
+      final catalog = await LicenseCatalog.load(entries: vmLicenseEntries(loadNotices: () async => notices));
+
+      final component = catalog.of(LicenseOrigin.tkinter).single;
+      expect(component.name, kVmImageComponent);
+      expect(component.texts, [notices]);
+    });
+
+    test('notices that cannot be read fail the screen, not leave a gap in it', () async {
+      final entries = vmLicenseEntries(loadNotices: () => Future.error(StateError('404 fetching NOTICES.txt')));
+
+      await expectLater(LicenseCatalog.load(entries: entries), throwsStateError);
+    });
   });
 }

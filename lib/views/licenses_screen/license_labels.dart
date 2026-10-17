@@ -9,6 +9,7 @@ import 'package:i_can_code/services/licenses/license_catalog.dart';
 String originLabel(AppLocalizations localizations, LicenseOrigin origin) => switch (origin) {
   LicenseOrigin.app => localizations.licensesScreen_originApp,
   LicenseOrigin.python => 'Python',
+  LicenseOrigin.tkinter => 'Tkinter',
   LicenseOrigin.rust => 'Rust',
   LicenseOrigin.microbit => 'micro:bit',
   LicenseOrigin.fonts => localizations.licensesScreen_originFonts,

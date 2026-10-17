@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -92,6 +93,20 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
                 ),
             ],
           ),
+          // Its one setting is about the Tkinter page.
+          if (tkinterShown)
+            FItemGroup(
+              children: [
+                FItem(
+                  title: Text(context.localizations.appHeader_editorSettings),
+                  prefix: const Icon(FLucideIcons.squareCode),
+                  onPress: () {
+                    unawaited(_controller.hide());
+                    unawaited(_openEditorSettings());
+                  },
+                ),
+              ],
+            ),
           FItemGroup(
             children: [
               // Always there, so it can be found before it is needed. Greyed
@@ -159,6 +174,14 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     if (router.current.name == AboutRoute.name) return;
 
     await router.push(const AboutRoute());
+  }
+
+  /// Through GetIt, because the cog sits above the router and its context has
+  /// no router to find.
+  Future<void> _openEditorSettings() async {
+    final router = GetIt.I<AppRouter>();
+    if (router.stackData.any((route) => route.name == EditorSettingsRoute.name)) return;
+    await router.push(const EditorSettingsRoute());
   }
 
   /// Asks before forgetting. Irreversible.

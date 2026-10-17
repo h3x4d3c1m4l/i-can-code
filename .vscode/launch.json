@@ -22,6 +22,10 @@
     // Use "no isolation" when you need to rule the headers out as the cause of
     // a loading failure. Python still runs there; see web/python/wasi.js, which
     // spins rather than blocking when SharedArrayBuffer is unavailable.
+    //
+    // Every configuration also passes ICC_VM_IMAGE=true, which offers the Tkinter
+    // page. It needs the image `just build-vm-image` leaves in web/vm/image/;
+    // without one that page shows the download failure. See CLAUDE.md.
     "version": "0.2.0",
     "configurations": [
         {
@@ -31,7 +35,8 @@
             "args": [
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
@@ -42,7 +47,8 @@
             "args": [
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
@@ -53,7 +59,8 @@
             "args": [
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
@@ -64,7 +71,8 @@
                 "--web-hostname=0.0.0.0",
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
@@ -76,7 +84,8 @@
                 "--web-hostname=0.0.0.0",
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
@@ -88,14 +97,15 @@
                 "--web-hostname=0.0.0.0",
                 "--web-port=8080",
                 "--web-header=Cross-Origin-Opener-Policy=same-origin",
-                "--web-header=Cross-Origin-Embedder-Policy=require-corp"
+                "--web-header=Cross-Origin-Embedder-Policy=require-corp",
+                "--dart-define=ICC_VM_IMAGE=true"
             ]
         },
         {
             "name": "I Can Code (web, no isolation, debug)",
             "request": "launch",
             "type": "dart",
-            "args": ["--web-port=8080"]
+            "args": ["--web-port=8080", "--dart-define=ICC_VM_IMAGE=true"]
         }
     ]
 }

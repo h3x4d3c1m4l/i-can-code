@@ -6,6 +6,8 @@ import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/services/rustc_version/rustc_version.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
+import 'package:i_can_code/services/vm/vm_manifest.dart';
 import 'package:i_can_code/views/about_screen/about_screen_view_model.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +19,9 @@ class AboutScreenController extends ScreenControllerBase<AboutScreenViewModel> {
   AboutScreenController({required super.viewModel, required super.contextAccessor}) {
     unawaited(_loadRustc());
     unawaited(_loadPython());
+    // Read whether or not the toggle shows the row, so switching it on in the
+    // debug menu finds the answer waiting.
+    if (vmImageIncluded) unawaited(_loadTkinter());
   }
 
   Future<void> _loadRustc() async {
@@ -37,6 +42,14 @@ class AboutScreenController extends ScreenControllerBase<AboutScreenViewModel> {
       }
     }
     if (!_disposed) viewModel.setPython(runtime.version);
+  }
+
+  /// From the image's manifest, which names the interpreter the saved machine
+  /// reported. Unlike [_loadPython] it loads nothing: the machine is a download
+  /// of its own.
+  Future<void> _loadTkinter() async {
+    final manifest = await loadVmManifest();
+    if (!_disposed) viewModel.setTkinter(manifest?.interpreterLabel);
   }
 
   /// The app's source, in a new tab: the reader is not done with this one.

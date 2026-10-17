@@ -381,6 +381,11 @@ So a course may carry window lessons before the app can run them, and they cost
 a student nothing in the meantime. A `runtime` no version knows is still an
 author's mistake and a `FormatException`.
 
+**A `turtle` drawing of more than a few lines turns the animation off**, with
+`screen.tracer(0)` before it and `screen.update()` after it. In the VM a
+100-line drawing takes seconds otherwise, even at `speed(0)`. `docs/vm-build.md`,
+*Turtle*, has the numbers.
+
 ### `emoji:` — the step's own mark
 
 Every step carries one emoji, shown before its title and nowhere else. A

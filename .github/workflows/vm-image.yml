@@ -1,0 +1,158 @@
+name: VM image
+
+# Rebuilds the Tkinter VM's guest image from the packages Alpine publishes today, checks it, and
+# keeps it as a workflow artifact: the release asset, its pin, the package lock and diff, the
+# NOTICES.txt and the check reports. It changes nothing in the repository. Taking the result into
+# the app stays a manual step, vm/README.md, "Package and publish".
+#
+# ubuntu x86_64 runs the linux/386 image natively, so the build needs no QEMU here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      alpine:
+        description: "Alpine release to build, such as 3.24. Empty: the newest stable one on a schedule, the pinned one by hand."
+        type: string
+        default: ""
+      latest:
+        description: "Build the newest stable Alpine rather than the pinned one."
+        type: boolean
+        default: false
+      publish:
+        description: "Also create the GitHub release vm-image-<imageId> with the asset. vm/image.lock is still yours to commit."
+        type: boolean
+        default: false
+  schedule:
+    # Monthly, so a security fix in Alpine reaches a rebuild within a month even when nothing in
+    # this repository changes.
+    - cron: "17 4 1 * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    outputs:
+      image-id: ${{ steps.summary.outputs.image-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: vm/tools/package-lock.json
+
+      # copy-to-sha256.py compresses with compression.zstd, new in 3.14.
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      # The one install of the run: update-image.sh installs only when node_modules is absent.
+      # devDependencies included (puppeteer-core, which only check-app and the bench use), so
+      # that what is installed here is exactly what the lock says, and `just check-vm-app` would
+      # run if a step ever asked for it.
+      - name: Install the VM tools
+        run: npm ci --prefix vm/tools --no-audit --no-fund
+
+      # A scheduled run moves to the newest Alpine, since keeping up is what it is for. By hand it
+      # builds the pinned release unless told otherwise, which is a plain rebuild with fresh
+      # packages. Either way the pin is only written into this runner's checkout, and the diff of
+      # it is in the artifact.
+      - name: Build and check the image
+        env:
+          ALPINE: ${{ inputs.alpine }}
+          LATEST: ${{ github.event_name == 'schedule' || inputs.latest }}
+        run: |
+          flags=()
+          if [ -n "$ALPINE" ]; then
+            flags+=(--alpine "$ALPINE")
+          elif [ "$LATEST" != "true" ]; then
+            flags+=(--alpine "$(sed -n 's/^ARG ALPINE_VERSION=//p' vm/image/Dockerfile)")
+          fi
+          just update-vm-image "${flags[@]}"
+
+      # The same checks the Mac runs, packed only once they pass.
+      - name: Package the image
+        run: just package-vm-image
+
+      - name: Summarise
+        id: summary
+        if: always()
+        run: |
+          mkdir -p artifact
+          if [ -f web/vm/image/manifest.json ]; then
+            id=$(node -p 'require("./web/vm/image/manifest.json").imageId')
+            echo "image-id=$id" >> "$GITHUB_OUTPUT"
+            cp "web/vm/image/$id/NOTICES.txt" artifact/ 2>/dev/null || true
+            cp web/vm/image/manifest.json artifact/
+          fi
+          cp vm/build/vm-image-*.tar.zst vm/build/vm-image-*.tar.zst.sha256 vm/build/vm-image-*.lock artifact/ 2>/dev/null || true
+          cp vm/build/packages.lock vm/build/packages.diff vm/build/corpus-fetches.txt vm/build/*.json artifact/ 2>/dev/null || true
+          mkdir -p artifact/logs && cp vm/build/logs/* artifact/logs/ 2>/dev/null || true
+          # --intent-to-add, or a lock this repository has not committed yet is left out of the patch.
+          git add --intent-to-add -- vm/image
+          git diff -- vm/image > artifact/pin.patch
+          {
+            echo "## VM image ${id:-(not built)}"
+            echo
+            echo '```'
+            cat vm/build/packages.diff 2>/dev/null || echo "no package diff"
+            echo '```'
+            echo
+            echo "Taking it: apply \`pin.patch\` from the artifact, then vm/README.md, \"Package and publish\"."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vm-image-${{ steps.summary.outputs.image-id || github.run_id }}
+          path: artifact/
+          retention-days: 30
+          if-no-files-found: error
+
+  # Off unless asked for by hand. Creating the release does not change what the app ships:
+  # that is vm/image.lock, which a person commits after `just fetch-vm-image --force`.
+  publish:
+    name: Publish the release
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v8
+        with:
+          name: vm-image-${{ needs.build.outputs.image-id }}
+          path: artifact
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.build.outputs.image-id }}
+        run: |
+          cd artifact
+          shasum -a 256 -c "vm-image-$ID.tar.zst.sha256"
+          # Tagged at the commit the image was built from; without --target the tag lands on
+          # whatever the default branch holds by the time this runs.
+          gh release create "vm-image-$ID" "vm-image-$ID.tar.zst" NOTICES.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false --title "VM image $ID" \
+            --notes "Built by run $GITHUB_RUN_ID from $GITHUB_SHA with pin.patch applied. The pin is vm-image-$ID.lock in the run's artifact."

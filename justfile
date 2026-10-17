@@ -33,8 +33,19 @@ watch-code:
 # `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise points
 # at www.gstatic.com. The second step takes an unused font out of the build and
 # gives the page the sizes its progress ring measures against.
-build:
-  fvm flutter build web --no-web-resources-cdn
+# The Tkinter page is left out unless web/vm/image/ holds a bundle: `just build-vm-image` or
+# `just fetch-vm-image`. Flags go to `flutter build web`.
+# Builds the web app, with the Tkinter page when there is a VM image to ship.
+build *flags:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  define=""
+  if [ -f web/vm/image/manifest.json ]; then
+    define="--dart-define=ICC_VM_IMAGE=true"
+  else
+    echo "No web/vm/image/manifest.json: building without the Tkinter page."
+  fi
+  fvm flutter build web --no-web-resources-cdn $define {{flags}}
   fvm dart run tool/finish_web_build.dart build/web
 
 # Serves build/web on http://localhost:8080, with the two cross-origin isolation
@@ -213,3 +224,119 @@ check-rust-licenses: gen-rust-licenses
     git --no-pager diff --stat -- 'assets/licenses/rust-*' >&2
     exit 1
   fi
+
+##
+# VM
+##
+
+# The codec against vm/protocol/fixtures/, and the host, the run layer, the bundle loader and the
+# screen against a fake v86, agent and DOM. Needs no image; CI runs the same.
+# Tests everything in web/vm.
+test-vm:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node --test vm/tools/test/*.test.mjs
+
+# Rewrites vm/protocol/fixtures/ from the generator. See vm/protocol/README.md.
+gen-vm-fixtures:
+  python3 vm/protocol/gen_fixtures.py
+
+# The same as test-vm.
+test-vm-host: test-vm
+
+# Needs Docker, Node 22 or newer, and Python 3.14 or the zstandard module. See docs/vm-build.md.
+# Builds the guest image into vm/build/, then the bundle a page loads from it.
+build-vm-image: && build-vm-state
+  vm/tools/build-image.sh
+
+# Needs what build-vm-image needs, and network. About 17 min on an M1, half of it the build.
+# --alpine X.Y takes that release; --keep-pin builds it without writing it into the Dockerfile,
+# which with ICC_VM_BUILD_DIR=DIR is a trial that touches nothing else; --skip-corpus. See vm/README.md.
+# Moves the image to the newest stable Alpine and today's packages, checks it, and diffs the lock.
+update-vm-image *flags:
+  vm/tools/update-image.sh {{flags}}
+
+# Boots vm/build/ once, so `just build-vm-image` must have run. About 1 min. With
+# --debug-shell it writes a machine with a root shell to vm/build/debug-image/ instead.
+# Saves the warm machine and writes the bundle a page loads to web/vm/image/<imageId>/.
+build-vm-state *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/build-state.mjs {{flags}}
+
+# About 1 min.
+# Restores the bundle through web/vm/vm_host.js and checks the warm machine in it.
+check-vm-state *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/check-state.mjs {{flags}}
+
+# About 5 min; the debug bundle (`just build-vm-state --debug-shell`) is needed for one case.
+# The park cases take 15 min each and run only when named: --only park --only park-detectors.
+# Runs the corpus of student programs on the bundle, the way the page runs them.
+check-vm-corpus *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/corpus.mjs {{flags}}
+
+# Flags such as --vga-mib 8 go to vm/tools/check-image.mjs. Takes about 2 min.
+# Boots vm/build/ in v86 and checks X, input to Tk, and fetch-free imports.
+check-vm-image *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/check-image.mjs {{flags}}
+
+# Needs Google Chrome, and `just build` run after `just build-vm-image`. About 2 min. With --lesson
+# ADDRESS it also runs one lesson step; --root and --base check another build, such as a deploy's.
+# Drives the app from build/web/ in headless Chrome: the Tkinter page end to end.
+check-vm-app *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/check-app.mjs {{flags}}
+
+# On stable: the crate's `rust-version` (1.87) makes clippy flag anything newer. The second clippy
+# lints for the guest's own target, the only one that compiles the Linux-only modules.
+# Lints the guest agent and holds it to the protocol fixtures.
+test-vm-agent:
+  cd vm/agent && cargo +stable fmt --check
+  cd vm/agent && cargo +stable clippy --all-targets --locked -- -D warnings
+  rustup +stable target add i686-unknown-linux-musl
+  cd vm/agent && cargo +stable clippy --all-targets --locked --target i686-unknown-linux-musl -- -D warnings
+  cd vm/agent && cargo +stable test --locked
+
+# Needs Docker. About 3.5 min on Apple silicon, where the i386 build is emulated.
+# Builds icc-agent for the guest into vm/build/agent/, and tags it icc-vm-agent.
+build-vm-agent:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  alpine=$(sed -n 's/^ARG ALPINE_VERSION=//p' vm/image/Dockerfile)
+  docker build --platform linux/386 --build-arg ALPINE_VERSION="$alpine" --tag icc-vm-agent vm/agent
+  mkdir -p vm/build/agent
+  container=$(docker create --platform linux/386 icc-vm-agent /icc-agent)
+  trap 'docker rm "$container" >/dev/null' EXIT
+  docker cp "$container:/icc-agent" vm/build/agent/icc-agent
+  ls -l vm/build/agent/icc-agent
+
+# Needs Google Chrome and a bundle in web/vm/image/; the app section also needs a build in
+# build/web/. About 30 min; --only picks sections, such as --only matrix. Writes
+# vm/build/bench/bench.json. See docs/vm-build.md, "Measurements".
+# Measures the VM in headless Chrome, throttled to stand in for a school Chromebook.
+bench-vm *flags:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/bench/run-bench.mjs {{flags}}
+
+# Serves the bench page on port 8086 with the app's isolation headers, to open in a browser.
+serve-vm-bench:
+  npm install --prefix vm/tools --no-audit --no-fund --silent
+  node vm/tools/bench/serve.mjs
+
+# Writes vm/build/vm-image-<imageId>.tar.zst, its .sha256, and vm/build/vm-image-<imageId>.lock,
+# the pin to commit as vm/image.lock once the asset is uploaded. Uploads nothing. See
+# docs/vm-build.md, "Publishing the image".
+# Packs the bundle in web/vm/image/ into the release asset a deploy fetches.
+package-vm-image *flags:
+  node vm/tools/package-image.mjs {{flags}}
+
+# Keeps an image already in place that the pin names and whose every file checks out, and removes
+# whatever lies beside it; --force replaces one the pin does not name, such as a local build.
+# Downloads the image vm/image.lock pins into web/vm/image/, refusing one that does not match it.
+fetch-vm-image *flags:
+  node vm/tools/fetch-image.mjs {{flags}}
+
+# Whether the image vm/image.lock pins was built from the sources in this tree.
+check-vm-image-pin:
+  node vm/tools/check-image-pin.mjs

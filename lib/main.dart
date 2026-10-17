@@ -5,6 +5,7 @@ import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/licenses/bundled_licenses.dart';
@@ -66,6 +67,7 @@ void setupServices() {
     ..registerSingleton<FeatureToggles>(FeatureToggles())
     ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning())
     ..registerSingleton<StartupProgress>(StartupProgress())
+    ..registerSingleton<EditorSettings>(EditorSettings())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));
 }

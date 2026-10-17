@@ -4,20 +4,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
+import 'package:i_can_code/views/tkinter_screen/tkinter_screen.dart';
+import 'package:i_can_code/views/tkinter_screen/tkinter_screen_controller.dart';
+import 'package:i_can_code/views/tkinter_screen/tkinter_screen_view_model.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../support/fake_vm_runtime.dart';
 
 // Every test here runs as a desktop, and none of this file may build an editor
 // under the default Android. re_editor reads the platform into a top-level
@@ -116,6 +124,28 @@ class _IdleRuntime implements PythonRuntime {
 
   @override
   void dispose() {}
+
+}
+
+/// The Tkinter page on a machine the test drives, in a build that ships the image.
+class _TestTkinterScreen extends TkinterScreen {
+
+  final FakeVmRuntime runtime;
+
+  const _TestTkinterScreen(this.runtime) : super(subjectSlug: 'learn-python');
+
+  @override
+  TkinterScreenController createController({
+    required TkinterScreenViewModel viewModel,
+    required BuildContextAccessor contextAccessor,
+  }) => TkinterScreenController(
+    viewModel: viewModel,
+    contextAccessor: contextAccessor,
+    createRuntime: () => runtime,
+    imageIncluded: true,
+    drafts: CodeDraftStore(),
+    settings: EditorSettings(),
+  );
 
 }
 
@@ -304,4 +334,68 @@ void main() {
     });
   });
 
+  group('the Tkinter page', () {
+    late FakeVmRuntime runtime;
+
+    /// Opens the page, and leaves it at the end: its draft and output timers
+    /// would otherwise outlive the test.
+    Future<void> open(WidgetTester tester) async {
+      runtime = FakeVmRuntime();
+      tester.view
+        ..physicalSize = const Size(1400, 1000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_app(_TestTkinterScreen(runtime)));
+      await tester.pump();
+    }
+
+    Future<void> leave(WidgetTester tester) => tester.pumpWidget(const SizedBox());
+
+    Map<String, Finder> controls() => {
+      'editor': find.byType(CodeEditor),
+      'run': find.byType(RunButton),
+      'retry': find.widgetWithText(AppButton, 'Opnieuw proberen'),
+      'details': find.ancestor(
+        of: find.text('Technische details'),
+        matching: find.byWidgetPredicate((widget) => widget is FTappable),
+      ),
+    };
+
+    _testKeys('leaves the keyboard alone as it opens, and Tab goes into the editor and on to Run', (tester) async {
+      await open(tester);
+
+      expect(_inEditor(), isFalse, reason: 'Tab indents in the editor, so it is not where a keyboard user starts');
+      expect(find.text(_leaveHint), findsNothing);
+
+      await _press(tester, LogicalKeyboardKey.tab);
+      expect(_inEditor(), isTrue, reason: 'the first control on the page');
+      expect(find.text(_leaveHint), findsOneWidget);
+
+      final code = tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+      await _press(tester, LogicalKeyboardKey.tab);
+      expect(_inEditor(), isTrue);
+      expect(code.text, isNot(TkinterScreenViewModelBase.sample), reason: 'a Tab alone indents');
+
+      expect(await _walk(tester, controls(), steps: 2), ['run', 'editor']);
+
+      await leave(tester);
+    });
+
+    _testKeys('a failed machine\'s Retry and its details are reached past the editor', (tester) async {
+      // Where the review found the trap: the editor had the keyboard from the
+      // start and kept it, so neither was ever reached by Tab.
+      await open(tester);
+      runtime.emit(const VmFailed(VmFailure.network, 'HTTP 404 for state.bin.zst'));
+      await tester.pump();
+      await tester.pump();
+
+      await _press(tester, LogicalKeyboardKey.tab);
+      expect(_inEditor(), isTrue);
+
+      // Run takes no Tab stop while it is disabled, which it is on a failed machine.
+      expect(await _walk(tester, controls(), steps: 3), ['retry', 'details', 'editor']);
+
+      await leave(tester);
+    });
+  });
 }

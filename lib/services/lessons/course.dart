@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/lessons/subject_contents.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
 
 /// A heading in a subject's contents, over the lessons listed under it.
 class LessonGroup {
@@ -388,6 +389,15 @@ int subjectIndentSize(String subject) => switch (subject) {
   'python' => 4,
   _ => 2,
 };
+
+/// Whether this subject can draw windows on the Tkinter page, the third thing
+/// an "Extra" section offers.
+///
+/// True for Python because the VM image carries Python with Tk, and only in a
+/// build that ships the image. A fact about the image, not about the lessons,
+/// which never open a window. [imageIncluded] is for tests.
+bool subjectHasWindows(String subject, {bool imageIncluded = vmImageIncluded}) =>
+    imageIncluded && subject == 'python';
 
 /// The URL segment a subject's pages live under: `python` -> `learn-python`.
 /// MUST stay in step with [subjectFromSlug], which is its inverse.

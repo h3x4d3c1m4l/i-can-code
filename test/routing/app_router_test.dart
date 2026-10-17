@@ -21,10 +21,13 @@ void main() {
       '/initialization',
       '/licenses',
       '/about',
+      '/$editorSettingsPath',
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
       '/learn-python/$microbitLesson/dice',
+      '/learn-python/$microbitReplLesson',
+      '/learn-python/$tkinterLesson',
       '/learn-python/hello',
       '/learn-python/hello/print-yourself',
     ]) {
@@ -62,6 +65,13 @@ void main() {
     expect(matched!.single.name, 'AboutRoute');
   });
 
+  test('the editor settings have their own address, ahead of the subject addresses', () {
+    final matched = AppRouter().matcher.match('/$editorSettingsPath');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'EditorSettingsRoute');
+  });
+
   test('the console has its own address, ahead of the lesson addresses', () {
     // Declared above the lesson routes, so it must win the two-segment match
     // rather than being read as a lesson called "repl".
@@ -86,6 +96,25 @@ void main() {
     expect(repl, hasLength(1));
     expect(repl!.single.name, 'MicrobitReplRoute');
     expect(repl.single.params.getString('subjectSlug'), 'learn-python');
+  });
+
+  test('the Tkinter page has its own address, ahead of the lesson addresses', () {
+    // Declared before the lesson routes like the console, so it wins the
+    // two-segment match instead of being read as a lesson called "tkinter".
+    final matched = AppRouter().matcher.match('/learn-python/$tkinterLesson');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'TkinterRoute');
+    expect(matched.single.params.getString('subjectSlug'), 'learn-python');
+  });
+
+  test('every page address is a reserved lesson id', () {
+    // A lesson with one of these ids would be unreachable: its address is taken.
+    // `test/content/lessons_test.dart` holds the course to the same list.
+    for (final reserved in [replLesson, microbitLesson, microbitReplLesson, tkinterLesson]) {
+      final matched = AppRouter().matcher.match('/learn-python/$reserved');
+      expect(matched!.single.name, isNot('LessonRoute'), reason: reserved);
+    }
   });
 
   test('a lesson without a section resolves to the resume marker', () {

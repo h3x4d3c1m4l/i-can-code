@@ -197,14 +197,16 @@ void _holdsTheRules(Lesson lesson) {
   expect(lesson.id, isNotEmpty);
   expect(lesson.title, isNotEmpty);
   expect(lesson.emoji, isNotNull, reason: 'every lesson that ships carries an `emoji` for its card');
-  expect(lesson.sections, isNotEmpty);
+  // A lesson for a runtime this version cannot run parses to no steps, and
+  // `Course.load` leaves it out of the catalog.
+  if (lesson.runtime.isReady) expect(lesson.sections, isNotEmpty);
 
   expect(
     lesson.sections.map((s) => s.id),
     isNot(contains(resumeSection)),
     reason: '"$resumeSection" is the address that means "wherever I left off"',
   );
-  for (final reserved in [replLesson, microbitLesson, microbitReplLesson]) {
+  for (final reserved in [replLesson, microbitLesson, microbitReplLesson, tkinterLesson]) {
     expect(lesson.id, isNot(reserved), reason: '"$reserved" is an address of its own, where a lesson id goes');
   }
   expect(

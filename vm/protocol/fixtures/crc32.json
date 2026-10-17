@@ -1,0 +1,35 @@
+{
+  "description": "CRC-32/ISO-HDLC: reflected polynomial 0xEDB88320, init 0xFFFFFFFF, final xor 0xFFFFFFFF. 'crc' is the value as a number; 'crc_le_hex' is how it sits in a frame.",
+  "vectors": [
+    {
+      "name": "empty",
+      "input_hex": "",
+      "crc": "00000000",
+      "crc_le_hex": "00000000"
+    },
+    {
+      "name": "check string '123456789'",
+      "input_hex": "313233343536373839",
+      "crc": "cbf43926",
+      "crc_le_hex": "2639f4cb"
+    },
+    {
+      "name": "one zero byte",
+      "input_hex": "00",
+      "crc": "d202ef8d",
+      "crc_le_hex": "8def02d2"
+    },
+    {
+      "name": "four 0xff bytes",
+      "input_hex": "ffffffff",
+      "crc": "ffffffff",
+      "crc_le_hex": "ffffffff"
+    },
+    {
+      "name": "PING header, id 3",
+      "input_hex": "0105030000007b7d",
+      "crc": "9f5b2f42",
+      "crc_le_hex": "422f5b9f"
+    }
+  ]
+}

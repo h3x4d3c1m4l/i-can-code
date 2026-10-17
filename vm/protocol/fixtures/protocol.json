@@ -1,0 +1,156 @@
+{
+  "description": "The constants of protocol version 1. Both codecs assert their tables against this file.",
+  "version": 1,
+  "header_bytes": 6,
+  "crc_bytes": 4,
+  "max_payload_to_agent": 4096,
+  "max_payload_to_host": 16384,
+  "max_encoded_to_agent": 4123,
+  "max_encoded_to_host": 16459,
+  "credit_window": 16384,
+  "credit_step": 4096,
+  "output_cap": 262144,
+  "output_flush_bytes": 4096,
+  "output_flush_ms": 16,
+  "max_files": 64,
+  "max_files_bytes": 8388608,
+  "max_windows": 32,
+  "file_name_pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$",
+  "in_dir": "/icc/in",
+  "in_file": "/icc/in/r{id}-{name}",
+  "types": [
+    {
+      "name": "HELLO",
+      "code": 1,
+      "from": "host",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "RUN",
+      "code": 2,
+      "from": "host",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "STDIN",
+      "code": 3,
+      "from": "host",
+      "payload": "data",
+      "status": "later"
+    },
+    {
+      "name": "STOP",
+      "code": 4,
+      "from": "host",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "PING",
+      "code": 5,
+      "from": "host",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "CLOSE",
+      "code": 6,
+      "from": "host",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "PREPARE",
+      "code": 16,
+      "from": "host",
+      "payload": "json",
+      "status": "build"
+    },
+    {
+      "name": "READY",
+      "code": 129,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "STARTED",
+      "code": 130,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "STDOUT",
+      "code": 131,
+      "from": "agent",
+      "payload": "data",
+      "status": "v1"
+    },
+    {
+      "name": "STDERR",
+      "code": 132,
+      "from": "agent",
+      "payload": "data",
+      "status": "v1"
+    },
+    {
+      "name": "EXIT",
+      "code": 133,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "WINDOW",
+      "code": 134,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "ERROR",
+      "code": 135,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "PONG",
+      "code": 136,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "CREDIT",
+      "code": 137,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "HINT",
+      "code": 138,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "LOG",
+      "code": 143,
+      "from": "agent",
+      "payload": "json",
+      "status": "v1"
+    },
+    {
+      "name": "PARKED",
+      "code": 144,
+      "from": "agent",
+      "payload": "json",
+      "status": "build"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/locale_controller.dart';
@@ -53,6 +54,7 @@ void main() {
       ..registerSingleton<ThemeModeController>(ThemeModeController())
       ..registerSingleton<ColorVisionController>(ColorVisionController())
       ..registerSingleton<FeatureToggles>(FeatureToggles())
+      ..registerSingleton<EditorSettings>(EditorSettings())
       ..registerSingleton<ProgressStore>(ProgressStore())
       ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<TourStore>(TourStore())

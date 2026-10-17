@@ -3,7 +3,7 @@
 The app is under the Mozilla Public License 2.0, the `LICENSE` at the repository
 root. It ships a good deal that is not its own: Dart packages and the Flutter
 engine, a CPython build, the Rust core's crates, four fonts, a firmware image
-and one vendored script. The licence screen (`/licenses`, under *Licenties* in
+and one vendored script, and in a build with the Tkinter page a Linux image. The licence screen (`/licenses`, under *Licenties* in
 the cog) shows the licence of the app and of every one of those.
 
 This document says where each text comes from, what rewrites it, and what was
@@ -27,6 +27,11 @@ Material. Two things feed it:
   `registerBundledLicenses()` hands them to the registry from `setupServices()`.
   It registers a callback and reads nothing, so the files are only fetched when
   the screen is opened.
+- **The VM image's `NOTICES.txt`**, in a build that ships the image. It is not
+  an asset: `web/vm/image/` is served beside the build, so
+  `registerBundledLicenses()` adds it as a fetch of the file the image's
+  `manifest.json` names, held to the size the manifest gives. See *The Tkinter
+  VM* below.
 
 `LicenseCatalog` then turns "a text and the packages it covers", which is what
 the registry holds, into "a package and the texts that cover it", which is what
@@ -50,6 +55,7 @@ build time; see *Rust* below.
 | micro:bit | `assets/microbit/licenses/` | the parts of the MicroPython firmware | by hand, see below |
 | Fonts | `assets/fonts/OFL-*.txt` | each family's own OFL text | by hand, with the font |
 | Other | `assets/licenses/coi-serviceworker.txt` | the `LICENSE` of gzuidhof/coi-serviceworker | by hand |
+| Tkinter | `web/vm/image/<imageId>/NOTICES.txt` | the VM image's own notices, with every licence text it needs | `build-state.mjs`, or `vm/tools/write-notices.mjs` |
 | Dart & Flutter | none | Flutter's NOTICES | every build |
 
 Two tests in `test/services/bundled_licenses_test.dart` hold the list to the
@@ -150,12 +156,28 @@ walking that chain again.**
 One part has no licence to show. The firmware's speech synthesiser, `lib/sam`,
 is a reverse-engineered copy of a 1982 program and its upstream states none.
 
+## The Tkinter VM
+
+The image behind the Tkinter page is a saved v86 machine running Alpine Linux:
+the emulator, SeaBIOS, a Linux kernel, a hundred Alpine packages and the
+project's own agent. Its notices are written with the image rather than kept
+here, because they are about one build of it: every package with its version,
+its SPDX licence and the aports commit it was built at, then the text of every
+licence any of them declares. `docs/vm-build.md`, *Licences*, says how they are
+written and what checks them.
+
+The screen lists the whole file as one component, `v86 & Alpine Linux`, under
+*Tkinter*. It is shown in every build that ships the image, whether or not the
+`tkinter` feature toggle shows the page: the image is distributed with the
+build either way.
+
 ## Do the licences go together
 
 Checked on 2026-10-11, against MPL 2.0 for the app. This is a developer's
 reading and not legal advice.
 
-**Nothing the app ships is copyleft.** The Dart packages are BSD-3-Clause, MIT
+**Nothing the app itself ships is copyleft.** The VM image is the exception,
+below. The Dart packages are BSD-3-Clause, MIT
 and Apache-2.0. The engine's own notices name no GPL, LGPL or MPL component.
 The crates are MIT, Apache-2.0, Zlib, Unlicense and Unicode-3.0. CPython is
 PSF-2.0, wasi-libc is Apache-2.0 with the LLVM exception, MIT and BSD-2-Clause.
@@ -182,10 +204,13 @@ What MPL 2.0 asks of whoever distributes the app:
 Two things would change the answer:
 
 - **GPL-2.0-only for the app** would not go with the Apache-2.0 dependencies.
-- **The Tkinter VM** on its own branch ships a Linux image. Its kernel and
-  much of its userland are GPL. A separate image the app downloads is not part
-  of the app, but those notices, and an offer of the GPL source, have to exist
-  before that image is published.
+- **The Tkinter VM image.** Its kernel and much of its userland are GPL or
+  LGPL. It is a separate program the page downloads and runs in an emulator,
+  not code the app is linked with, so its terms do not reach the app's own. The
+  GPL still asks for its notices and its source: `NOTICES.txt` carries the
+  first and the licence screen shows it, and the source archive has to go on
+  the same release as the image (`docs/vm-build.md`, *Licences*). No image is
+  published yet.
 
 Only the crates are held to this by a tool. The Dart side was checked by
 reading, and a new pub package under a licence that is not on the list above

@@ -1,0 +1,107 @@
+# Every apk package in the guest image. Written by vm/tools/build-image.sh from the image's
+# own apk database; a rebuild rewrites it, so a change here is a change in the image.
+# Alpine 3.24.2 x86
+# Linux 6.18.52, built from https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.18.52.tar.xz with the config of linux-virt 6.18.52-r0
+# name	version	license	origin	commit
+alpine-baselayout	3.7.2-r1	GPL-2.0-only	alpine-baselayout	60a7585bbab2fa0f762504eb617dbca90216e31f
+alpine-baselayout-data	3.7.2-r1	GPL-2.0-only	alpine-baselayout	60a7585bbab2fa0f762504eb617dbca90216e31f
+alpine-conf	3.22.0-r0	MIT	alpine-conf	ffe51358504147f053bc39711afeb04ad89deb95
+alpine-keys	2.6-r0	MIT	alpine-keys	b9f23becced4d7b3ccc0fa0f28530243ccd314a0
+alpine-release	3.24.2-r0	MIT	alpine-base	d9d560d5de74ff9a7a73f3c903d6f126a0bf3142
+apk-tools	3.0.8-r0	GPL-2.0-only	apk-tools	4588b452722bd4800efdc6cce4f6e980e02a997f
+bridge	1.5-r5	GPL-2.0-or-later	bridge	8bac74716d06c84627ab02d101fd9d2bafd0a34c
+brotli-libs	1.2.0-r1	MIT	brotli	1ee249c9da168084b1c6c9f7488bdffa2ac33c84
+busybox	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
+busybox-binsh	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
+busybox-mdev-openrc	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
+busybox-openrc	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
+ca-certificates-bundle	20260909-r0	MPL-2.0 AND MIT	ca-certificates	eb7078df3a16d666e8f7723f94bb92e00d4b9236
+encodings	1.1.0-r0	Public Domain	encodings	c690d2215724c06db60faa7a7de4b8f0d2720682
+eudev-libs	3.2.14-r6	GPL-2.0-or-later	eudev	4133df77f8cc98f92679b79de07736589fa48bff
+font-alias	1.0.6-r0	custom	font-alias	fb03d82ca5c516e6d8b6a59e2888a47dfaacd6fa
+font-cursor-misc	1.0.4-r1	Public Domain	font-cursor-misc	b24a4cdf2a2e4b41de4d78979aa9aae0d1383ebc
+font-dejavu	2.37-r6	Bitstream-Vera	font-dejavu	59420f440b2e664f7be1a6e135a3175aab56cd51
+font-misc-misc	1.1.3-r1	Public Domain	font-misc-misc	b24a4cdf2a2e4b41de4d78979aa9aae0d1383ebc
+fontconfig	2.17.1-r1	MIT	fontconfig	07061cb5a28861b108b09adc09ebd4fd962e549f
+freetype	2.14.3-r0	FTL OR GPL-2.0-or-later	freetype	ad16b0afc1a315c4095a75ff72ebbe3cfa29b671
+gdbm	1.26-r0	GPL-3.0-or-later	gdbm	1ea03990396db618edfcc8a9a0bc6b72662bac8f
+gmp	6.3.0-r4	LGPL-3.0-or-later OR GPL-2.0-or-later	gmp	206e7b39f7884d62a174aba4d33a42454518c1c2
+hwdata-pci	0.408-r0	GPL-2.0-or-later OR XFree86-1.1	hwdata	6f27b0b36ae7a3874f59cedf8c361b4016ee30ac
+ifupdown-ng	0.13.0-r0	ISC	ifupdown-ng	2c26ffc5e83fc3bc626f2516235b465e67606bf9
+libapk	3.0.8-r0	GPL-2.0-only	apk-tools	4588b452722bd4800efdc6cce4f6e980e02a997f
+libbsd	0.12.2-r0	BSD-3-Clause	libbsd	02365e78d654a7beb23fd35d7d69f4a649009ede
+libbz2	1.0.8-r6	bzip2-1.0.6	bzip2	33283848034c9885d984c8e8697c645c57324938
+libcap2	2.78-r0	BSD-3-Clause OR GPL-2.0-only	libcap	0c35848136c4c16a1b1672cb812efa88fffef1c2
+libcrypto3	3.5.8-r0	Apache-2.0	openssl	013edf8b29199933e8ea34dde460b5584b979042
+libdrm	2.4.134-r0	MIT	libdrm	2015800769b781bef45917b668d10bffe2ac538f
+libelf	0.195-r0	GPL-3.0-or-later AND ( GPL-2.0-or-later OR LGPL-3.0-or-later )	elfutils	8f13294206888f3dd44ed74a8eb3dd9934499e81
+libepoxy	1.5.10-r1	MIT	libepoxy	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
+libevdev	1.13.6-r0	MIT	libevdev	2af4dd0082956420a61fe680bb3da04034e67e34
+libexpat	2.8.5-r0	MIT	expat	41a9605db84bb52cd65c6349e5e087c2c7fe9efb
+libffi	3.5.2-r1	MIT	libffi	2c2a7bb4a8b16066834e90402567b2c19403a790
+libfontenc	1.1.9-r0	MIT	libfontenc	9667f1121e207bb3819d91ab6734375f7698e5a7
+libgcc	15.2.0-r5	GPL-2.0-or-later AND LGPL-2.1-or-later	gcc	423a8ad043d07f2c7546c8ec3e2b0384cda360ae
+libmd	1.2.0-r0	BSD-3-Clause AND BSD-2-Clause AND ISC AND Beerware AND Public Domain	libmd	87b78bc6890645c317d3167bdbb0187502d0cda9
+libncursesw	6.6_p20260516-r0	X11	ncurses	2cee8a7328d061418336ad327b512d96bcd7bc5e
+libpanelw	6.6_p20260516-r0	X11	ncurses	2cee8a7328d061418336ad327b512d96bcd7bc5e
+libpciaccess	0.19-r0	X11	libpciaccess	d5de88aad8098d25c1b9e53d4ca5e6ff6c90e234
+libpng	1.6.59-r0	Libpng	libpng	8f222b50cd6e31c83f7dd69ab7c00e7471e11d4b
+libssl3	3.5.8-r0	Apache-2.0	openssl	013edf8b29199933e8ea34dde460b5584b979042
+libstdc++	15.2.0-r5	GPL-2.0-or-later AND LGPL-2.1-or-later	gcc	423a8ad043d07f2c7546c8ec3e2b0384cda360ae
+libx11	1.8.13-r0	X11	libx11	f993bc30142d46271ede4a746c1abefaa1a78eee
+libxau	1.0.12-r0	MIT	libxau	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
+libxcb	1.17.0-r2	MIT	libxcb	5e1b822309fb17cc2ebd46d6fbacb1763acbcdd1
+libxcvt	0.1.3-r0	custom	libxcvt	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
+libxdmcp	1.1.5-r1	MIT	libxdmcp	614e9166706cec427fc3d907b8d981390a42e088
+libxext	1.3.7-r0	MIT	libxext	4ec252fa3e6e8edf16d0d6da3fe6dd39e2263942
+libxfont2	2.0.8-r0	MIT	libxfont2	1ad07911a02441114c991576c13fa0f4746e685b
+libxft	2.3.9-r0	MIT	libxft	9a4062b0f278b43370faa58195206c5ef94e7899
+libxkbfile	1.2.0-r0	MIT	libxkbfile	4caf66685895cb1db7bfdfc9f63c1dbf726712fd
+libxml2	2.13.9-r2	MIT	libxml2	f1bd5b6767a0e7fdda380c95138a1c938eb6e102
+libxrender	0.9.12-r0	MIT	libxrender	74030d4140b68e8d4d36a357751f156ab31840c2
+libxshmfence	1.3.3-r0	MIT	libxshmfence	8bac74716d06c84627ab02d101fd9d2bafd0a34c
+libxxf86vm	1.1.7-r0	MIT	libxxf86vm	ac89fbb35d37756385378e461847c2b0a61613dd
+llvm22-libs	22.1.3-r0	Apache-2.0	llvm22	4067b1fd9a40691da357b0ae07a700c6a458b1bd
+mdev-conf	4.10-r0	MIT	mdev-conf	203310a84fe34bc9b8dad2c97cba2f5189303415
+mesa	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
+mesa-egl	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
+mesa-gbm	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
+mesa-gl	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
+mesa-gles	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
+mkfontscale	1.2.4-r0	MIT	mkfontscale	e4301c788920ece9e1cd96dfa9d0ea6e7875e755
+mpdecimal	4.0.1-r0	BSD-2-Clause	mpdecimal	c0519b85456e9b838e3142e1d233aab0b433b476
+mtdev	1.1.7-r0	MIT	mtdev	6867e384dbfbd0b8efadbca989e9778190e89496
+musl	1.2.6-r2	MIT	musl	f5640d3a10f664c9119720c60515265d3d6f6d01
+musl-utils	1.2.6-r2	MIT AND BSD-2-Clause AND GPL-2.0-or-later	musl	f5640d3a10f664c9119720c60515265d3d6f6d01
+ncurses-terminfo-base	6.6_p20260516-r0	X11	ncurses	2cee8a7328d061418336ad327b512d96bcd7bc5e
+nettle	3.10.2-r0	GPL-2.0-or-later OR LGPL-3.0-or-later	nettle	bf898e6d067c1c0ecc0f5ff39c79fc893399acd8
+openrc	0.63.2-r0	BSD-2-Clause	openrc	30c61338b7a04d3c94509eabba5210b7bf81151a
+openrc-user	0.63.2-r0	BSD-2-Clause	openrc	30c61338b7a04d3c94509eabba5210b7bf81151a
+pixman	0.46.4-r0	MIT	pixman	9337ac809a431f004386ea3e279e3d55f770e7d3
+pkgconf	2.5.1-r0	ISC	pkgconf	c6f80aa8e59c70d19e2d556c526f151656058536
+pyc	3.14.8-r0	PSF-2.0	python3	bc27f38b89f034547fd7da4dba62eeb6a0daeb3b
+python3	3.14.8-r0	PSF-2.0	python3	bc27f38b89f034547fd7da4dba62eeb6a0daeb3b
+python3-pyc	3.14.8-r0	PSF-2.0	python3	bc27f38b89f034547fd7da4dba62eeb6a0daeb3b
+python3-pycache-pyc0	3.14.8-r0	PSF-2.0	python3	bc27f38b89f034547fd7da4dba62eeb6a0daeb3b
+python3-tkinter	3.14.8-r0	PSF-2.0	python3-tkinter	cb851926e9801dfd37ecd5247156bcc1ef750a58
+python3-tkinter-pyc	3.14.8-r0	PSF-2.0	python3-tkinter	cb851926e9801dfd37ecd5247156bcc1ef750a58
+readline	8.3.3-r1	GPL-3.0-or-later	readline	a854c03acdac188901fb012f7acbee70a36e8041
+scanelf	1.3.9-r1	GPL-2.0-only	pax-utils	c61801eeacb3ffcd9c2025b09e402153bb93fb39
+spirv-tools	1.4.341.0-r0	Apache-2.0	spirv-tools	5115d4d26db3422769415dddaf4c909f8aca0017
+sqlite-libs	3.53.4-r0	blessing	sqlite	a9c3ba8b9129ec0f294d0a9bf538c2f1632bb016
+ssl_client	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
+tcl	8.6.17-r1	TCL	tcl	a9e2a2dc46f377eb25884f7fea9834492de7f518
+tk	8.6.17-r1	TCL	tk	a9e2a2dc46f377eb25884f7fea9834492de7f518
+tzdata	2026d-r0	Public-Domain	tzdata	a19caf9fe771707618d4d9e4fa2dd9db8155b461
+util-macros	1.20.2-r0	MIT	util-macros	ff5bcaba738490af891f11024ced8940d8f9eeb4
+wayland-libs-client	1.25.0-r0	MIT	wayland	5960a969742897aba03257e84f0aa40f3c1e84d6
+xf86-input-evdev	2.11.0-r0	MIT	xf86-input-evdev	cb9217e8247ec4cf3a967258f6f95ca93616aca2
+xf86-video-fbdev	0.5.0-r6	MIT	xf86-video-fbdev	614e9166706cec427fc3d907b8d981390a42e088
+xkbcomp	1.5.0-r0	MIT	xkbcomp	aa8ee026b4c1ab3a33ac7feeba3bbdd2ee151ea6
+xkeyboard-config	2.47-r0	MIT	xkeyboard-config	ec89b244a8f186e061fdc6433d384e93c4155ff7
+xorg-server	21.1.24-r0	MIT	xorg-server	84eefe18e0addbebda9b4dc42960b58fb159382b
+xorg-server-common	21.1.24-r0	MIT	xorg-server	84eefe18e0addbebda9b4dc42960b58fb159382b
+xwininfo	1.1.6-r0	MIT	xwininfo	55a9d95d44c8c4830342df61685d7f3f97a5b4e6
+xz-libs	5.8.4-r0	GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later	xz	0c088d609f9fe69eedd6b4c7f4b99cdad847c20a
+zlib	1.3.2-r0	Zlib	zlib	f248b33b5943c7dc69bf691031d7612ab2e8ed93
+zstd-libs	1.5.7-r2	BSD-3-Clause OR GPL-2.0-or-later	zstd	3c6e2ee2b16f403d53eab39c4426eb61f003c322

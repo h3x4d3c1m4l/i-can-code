@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:i_can_code/services/python/python_assets_web.dart';
+import 'package:i_can_code/services/python/python_build_web.dart';
 import 'package:i_can_code/services/python/python_repl.dart';
 import 'package:i_can_code/services/web/absolute_url_web.dart';
 import 'package:web/web.dart' as web;
@@ -27,12 +27,6 @@ extension type _StdinChannelModule(JSObject _) implements JSObject {
   external void close(JSObject channel);
 
   external bool isWaiting(JSObject channel);
-
-}
-
-extension type _InitMessage._(JSObject _) implements JSObject {
-
-  external factory _InitMessage({String type, String wasmUrl, String stdlibUrl});
 
 }
 
@@ -117,18 +111,23 @@ class WebPythonRepl implements PythonRepl {
       ..onmessage = ((web.MessageEvent event) => _onMessage(event.data! as _WorkerMessage)).toJS
       ..onerror = ((web.ErrorEvent event) {
         _emit(ReplFailed('Python worker failed to start: ${event.message}'));
-      }).toJS
-      ..postMessage(_InitMessage(
-        type: 'init',
-        wasmUrl: absoluteUrl(pythonWasmPath),
-        stdlibUrl: absoluteUrl(pythonStdlibPath),
-      ));
+      }).toJS;
+
+    final PythonBuild build;
+    try {
+      build = await loadPythonBuild();
+    } on Object catch (error) {
+      _emit(ReplFailed('$error'));
+      return;
+    }
+    // Null once disposed, and a terminated worker would drop it anyway.
+    _worker?.postMessage(build.initMessage);
   }
 
   void _onMessage(_WorkerMessage message) {
     switch (message.type) {
       case 'ready':
-        // The compile is done; hand over the channel and let it block. Nothing
+        // The worker holds the interpreter; hand over the channel and let it block. Nothing
         // may be posted to the worker after this.
         _worker?.postMessage(_StartMessage(type: 'start', channel: _channel!));
       case 'started':

@@ -6,8 +6,8 @@
 // cooperate, because nothing here can be trusted to.
 //
 // Each run instantiates a fresh module. CPython calls proc_exit when its main()
-// finishes, which unwinds the instance, so instances are single-use by nature —
-// but the compile is cached, which is the expensive half.
+// finishes, which unwinds the instance, so instances are single-use by nature.
+// The compile is the expensive half, and the page does it once for every worker.
 
 import { Wasi, WasiExit } from './wasi.js';
 import { STDLIB_DIRECTORIES, STDLIB_ZIP } from './stdlib_layout.js';
@@ -68,47 +68,11 @@ class Collector {
   }
 }
 
-async function init({ wasmUrl, stdlibUrl }) {
-  // Deliberately not compileStreaming. That refuses anything not served as
-  // `application/wasm`, and Flutter's dev server sends a generic type for
-  // assets — so streaming works in a production build and fails with
-  // "Incorrect response MIME type" the moment anyone runs the app from the IDE.
-  // Compiling from the buffer costs one extra copy of a 7 MB file, once, and
-  // works on any server.
-  const [wasmBytes, zip] = await Promise.all([
-    fetchStrict(wasmUrl),
-    fetchStrict(stdlibUrl),
-  ]);
-  assertWasm(wasmBytes, wasmUrl);
-  compiled = await WebAssembly.compile(wasmBytes);
+/** Takes the module the page compiled (`python_build_web.dart`), so a worker
+ *  started after a Stop costs an instantiate rather than a compile. */
+function init({ module, stdlib: zip }) {
+  compiled = module;
   stdlib = new Uint8Array(zip);
-}
-
-async function fetchStrict(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`${response.status} fetching ${url}`);
-  }
-  return response.arrayBuffer();
-}
-
-/** Turns the least helpful error in this pipeline into the most helpful one.
- *
- *  A single-page server answers a missing asset with index.html and a 200, so a
- *  wrong URL arrives as HTML and surfaces from the compiler as "expected magic
- *  word 00 61 73 6d, found 3c 21 44 4f" — which is `<!DO`, and says nothing
- *  about the actual mistake. Checking the four magic bytes here names it. */
-function assertWasm(buffer, url) {
-  const header = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
-  const isWasm = header[0] === 0x00 && header[1] === 0x61 && header[2] === 0x73 && header[3] === 0x6d;
-  if (isWasm) return;
-
-  const looksLikeHtml = header[0] === 0x3c; // '<'
-  throw new Error(
-    looksLikeHtml
-      ? `${url} returned HTML, not WebAssembly — the asset URL is wrong and the `
-        + 'server answered with index.html.'
-      : `${url} is not a WebAssembly module.`);
 }
 
 /** Instantiates a fresh interpreter and runs it to completion.
@@ -209,7 +173,7 @@ self.onmessage = async (event) => {
   const message = event.data;
   try {
     if (message.type === 'init') {
-      await init(message);
+      init(message);
       self.postMessage({ type: 'ready', version: await probeVersion() });
     } else if (message.type === 'run') {
       const result = await run(message);

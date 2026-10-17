@@ -1,0 +1,4 @@
+# The console level OpenRC's dmesg service sets at boot: messages more urgent than warnings reach
+# ttyS0, whose tail the host keeps for failure reports. Alpine's default, 1, let through only
+# emergencies, so an OOM kill, an RCU stall or a hung task left the console empty.
+dmesg_level="4"

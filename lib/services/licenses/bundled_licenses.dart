@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
+import 'package:i_can_code/services/vm/vm_manifest.dart';
 
 /// Where something the app ships comes from, which is how the licence screen
 /// groups what it lists. Declared in the order the screen shows them.
@@ -10,6 +12,10 @@ enum LicenseOrigin {
 
   /// The interpreter a student's code runs on, and what it is linked against.
   python,
+
+  /// The machine behind the Tkinter page: an emulator and the Linux it runs.
+  /// Only a build that ships the VM image has it.
+  tkinter,
 
   /// The Rust core's crates, and the standard library compiled in with them.
   rust,
@@ -148,11 +154,27 @@ Stream<LicenseEntry> bundledLicenseEntries(
   }
 }
 
+/// The name the licence screen lists the VM image under: what it is made of.
+const String kVmImageComponent = 'v86 & Alpine Linux';
+
+/// The VM image's notices, as one entry under [LicenseOrigin.tkinter].
+///
+/// [loadNotices] is [loadVmNotices] unless a test hands over its own. Its
+/// failure is an error on the stream, as an asset's is.
+Stream<LicenseEntry> vmLicenseEntries({Future<String> Function() loadNotices = loadVmNotices}) async* {
+  yield BundledLicenseEntry(LicenseOrigin.tkinter, const [kVmImageComponent], await loadNotices());
+}
+
 /// Adds [kBundledLicenses] to Flutter's [LicenseRegistry], beside the NOTICES
-/// the framework registers itself.
+/// the framework registers itself, and the VM image's notices in a build that
+/// ships the image.
 ///
 /// Does no I/O: the registry calls back the first time something listens to
-/// [LicenseRegistry.licenses], and the assets are read then.
+/// [LicenseRegistry.licenses], and the files are read then.
 void registerBundledLicenses() {
   LicenseRegistry.addLicense(() => bundledLicenseEntries(rootBundle));
+  // Not an asset: the image is served beside the build, and its notices with
+  // it. Whether the Tkinter toggle is on does not matter, since the build
+  // ships the image either way.
+  if (vmImageIncluded) LicenseRegistry.addLicense(vmLicenseEntries);
 }

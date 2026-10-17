@@ -70,7 +70,9 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: rust -> target
+          workspaces: |
+            rust -> target
+            vm/agent -> target
 
       - name: Install just
         uses: extractions/setup-just@v4
@@ -131,6 +133,45 @@ jobs:
       - name: Check the Rust licence texts
         run: just check-rust-licenses
 
+      # The Tkinter VM's guest agent, on stable like the crate above: its
+      # `rust-version` (1.87) is the floor clippy holds it to, under whatever Rust
+      # the pinned Alpine builds it with inside the image. The image build itself
+      # stays local.
+      - name: VM agent format
+        run: cd vm/agent && cargo +stable fmt --check
+
+      - name: VM agent clippy
+        run: cd vm/agent && cargo +stable clippy --all-targets --locked -- -D warnings
+
+      # The guest is i386 musl, whose libc deprecates what the runner's does not
+      # (`time_t`), so the agent is linted for it as well.
+      - name: VM agent clippy for the guest
+        run: |
+          rustup +stable target add i686-unknown-linux-musl
+          cd vm/agent && cargo +stable clippy --all-targets --locked --target i686-unknown-linux-musl -- -D warnings
+
+      - name: VM agent test
+        run: cd vm/agent && cargo +stable test --locked
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: vm/tools/package-lock.json
+
+      # `ci` rather than the recipes' `install`: a lockfile out of step with
+      # package.json fails here instead of being rewritten. Only v86 is needed,
+      # for its wasm; the bench's puppeteer is a dev dependency.
+      - name: Install the VM tools
+        run: npm ci --prefix vm/tools --omit=dev --no-audit --no-fund
+
+      # The JS codec against the fixtures the agent is held to above, and the
+      # host, its run layer, the bundle loader and the screen against a fake v86,
+      # agent and DOM. Everything under vm/tools/test; no image needed.
+      - name: VM host test
+        run: node --test vm/tools/test/*.test.mjs
+
       - name: Run code generation
         run: dart run build_runner build
 
@@ -148,6 +189,28 @@ jobs:
       - name: Flutter test
         run: flutter test
 
+      # web/vm/image/ is not committed: the image is a release asset, which
+      # vm/image.lock pins by URL and sha256 (docs/vm-build.md, "Publishing the
+      # image"). The fetch refuses an asset that does not match the pin. Without
+      # a pin the build leaves the Tkinter page out, rather than shipping a page
+      # whose every load fails.
+      - name: Fetch the VM image
+        id: vm-image
+        run: |
+          if [ -f vm/image.lock ]; then
+            just fetch-vm-image
+            echo "define=--dart-define=ICC_VM_IMAGE=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=No VM image pinned::vm/image.lock does not exist, so this build leaves the Tkinter page out."
+          fi
+
+      # A stale image still loads, since the fetch refused one whose protocol
+      # differs, but it is not what this commit's sources build.
+      - name: Check the VM image pin
+        if: hashFiles('vm/image.lock') != ''
+        run: |
+          just check-vm-image-pin || echo "::warning title=Stale VM image::vm/image.lock was built from other sources than this commit. Rebuild and publish it (docs/vm-build.md, \"Publishing the image\")."
+
       # The site is served from https://<owner>.github.io/i-can-code/, so every
       # asset URL has to be rooted there rather than at `/`.
       #
@@ -158,7 +221,7 @@ jobs:
       # `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise
       # points at www.gstatic.com.
       - name: Build web
-        run: flutter build web --release --no-web-resources-cdn --base-href '/i-can-code/'
+        run: flutter build web --release --no-web-resources-cdn --base-href '/i-can-code/' ${{ steps.vm-image.outputs.define }}
 
       # Takes the font forui bundles and nothing draws with out of the build,
       # and writes the sizes the page's progress ring measures against into

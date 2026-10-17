@@ -1,0 +1,3 @@
+# The repo formats Dart at 120 columns (analysis_options.yaml `page_width`), so
+# Rust does too, and the two halves of the codebase wrap the same way.
+max_width = 120

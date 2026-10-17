@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
@@ -66,6 +67,8 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
   /// on it, and this is not part of that path. Nothing here is checked and
   /// nothing is recorded.
   Widget _buildExtra(BuildContext context) {
+    final windows = _offersWindows;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -83,7 +86,20 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
             meta: context.localizations.catalogScreen_extraFreePlay,
             onTap: controller.openRepl,
           ),
-        if (subjectHasRepl(viewModel.subject) && subjectHasMicrobit(viewModel.subject))
+        if (windows) ...[
+          if (subjectHasRepl(viewModel.subject)) const SizedBox(height: CatalogCard.spacing),
+          CatalogCard(
+            // A window, for the one page here whose programs open them. Still in
+            // the browser, which is why it sits beside the console rather than
+            // with the board.
+            label: '🪟',
+            title: context.localizations.tkinterScreen_title,
+            subtitle: context.localizations.tkinterScreen_subtitle,
+            meta: context.localizations.catalogScreen_extraFreePlay,
+            onTap: controller.openTkinter,
+          ),
+        ],
+        if ((subjectHasRepl(viewModel.subject) || windows) && subjectHasMicrobit(viewModel.subject))
           const SizedBox(height: CatalogCard.spacing),
         if (subjectHasMicrobit(viewModel.subject)) ...[
           CatalogCard(
@@ -108,6 +124,10 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
       ],
     );
   }
+
+  /// Read in the content's [Observer], so a switch of the toggle redraws the
+  /// section at once.
+  bool get _offersWindows => tkinterShown && subjectHasWindows(viewModel.subject);
 
   /// One row of the course, for whichever run it belongs to. [group] is the
   /// heading it stands under on this page, which it lights up along with.
@@ -282,7 +302,9 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                   ),
                   for (final (index, run) in runs.indexed) ..._buildRun(run.items, locale, first: index == 0),
                   if (optional.isNotEmpty) SliverToBoxAdapter(child: _buildDeepDive(context, optional, locale)),
-                  if (subjectHasRepl(viewModel.subject) || subjectHasMicrobit(viewModel.subject))
+                  if (subjectHasRepl(viewModel.subject) ||
+                      _offersWindows ||
+                      subjectHasMicrobit(viewModel.subject))
                     SliverToBoxAdapter(child: _buildExtra(context)),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],

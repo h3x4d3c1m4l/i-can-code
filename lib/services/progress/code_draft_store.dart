@@ -9,8 +9,9 @@ part 'code_draft_store.g.dart';
 
 class CodeDraftStore = CodeDraftStoreBase with _$CodeDraftStore;
 
-/// What a student last typed into each exercise, so a reload or a later visit
-/// finds their code where they left it.
+/// What a student last typed into each exercise, and on each page with an
+/// editor of its own, so a reload or a later visit finds their code where they
+/// left it.
 ///
 /// Keyed on [LessonSection.id] for the reason [ProgressStore] is. **Per
 /// browser**, and a convenience rather than a record: every read and write
@@ -47,6 +48,11 @@ abstract class CodeDraftStoreBase with Store {
   static const String _codePrefix = 'code.';
   static const String _workPrefix = 'work.';
   static const String _snapshotPrefix = 'snapshot.';
+  static const String _pagePrefix = 'draft.';
+
+  /// One key per page that is not a lesson. [page] MUST name the page and what
+  /// it is about, such as `tkinter.python`, so two pages never share a draft.
+  static String pageKeyFor(String page) => '$_pagePrefix$page';
 
   final SharedPreferencesAsync _preferences;
 
@@ -69,8 +75,8 @@ abstract class CodeDraftStoreBase with Store {
   CodeDraftStoreBase({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
 
-  /// Reads the drafts of every section [course] has. Called once, by the
-  /// initialization screen.
+  /// Reads the drafts of every section [course] has, and of every page. Called
+  /// once, by the initialization screen.
   ///
   /// A failure is swallowed: a browser that refuses storage MUST NOT keep the
   /// app from starting.
@@ -85,12 +91,14 @@ abstract class CodeDraftStoreBase with Store {
     };
 
     try {
-      final stored = await _preferences.getAll(allowList: keys);
-      final unlisted = (await _storedKeys()).difference(keys);
+      final storedKeys = await _storedKeys();
+      // No course names a page, so a page's draft is read because it is there.
+      final listed = {...keys, ...storedKeys.where((key) => key.startsWith(_pagePrefix))};
+      final stored = await _preferences.getAll(allowList: listed);
       _reset({
         for (final MapEntry(:key, :value) in stored.entries)
           if (value is String) key: value,
-      }, hasUnlisted: unlisted.isNotEmpty);
+      }, hasUnlisted: storedKeys.difference(listed).isNotEmpty);
     } on Object {
       // Treated as "nothing saved".
     }
@@ -136,6 +144,17 @@ abstract class CodeDraftStoreBase with Store {
   /// worked.
   void keepSnapshot(CourseLesson lesson, String sectionId, String code) =>
       _put(_snapshotKeyIn(lesson, sectionId), code);
+
+  /// What the student last typed on [page], a page that is not a lesson, or
+  /// null when they never changed what it opened with.
+  String? pageCodeFor(String page) => _drafts[pageKeyFor(page)];
+
+  /// Keeps [code] as [page]'s draft. Returns at once when nothing changed, as
+  /// [keep] does.
+  void keepPage(String page, String code) => _put(pageKeyFor(page), code);
+
+  /// Drops [page]'s draft, so it opens on what it started with again.
+  void forgetPage(String page) => _drop(pageKeyFor(page));
 
   void _put(String key, String code) {
     if (_drafts[key] == code) return;
@@ -216,7 +235,11 @@ abstract class CodeDraftStoreBase with Store {
     try {
       return {
         ...(await _preferences.getKeys()).where(
-          (key) => key.startsWith(_codePrefix) || key.startsWith(_workPrefix) || key.startsWith(_snapshotPrefix),
+          (key) =>
+              key.startsWith(_codePrefix) ||
+              key.startsWith(_workPrefix) ||
+              key.startsWith(_snapshotPrefix) ||
+              key.startsWith(_pagePrefix),
         ),
       };
     } on Object {

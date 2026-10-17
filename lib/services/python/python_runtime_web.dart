@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:i_can_code/services/python/python_assets_web.dart';
+import 'package:i_can_code/services/python/python_build_web.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/services/web/absolute_url_web.dart';
 import 'package:web/web.dart' as web;
@@ -71,12 +71,16 @@ class WebPythonRuntime implements PythonRuntime {
         final error = StateError('Python worker failed to start: ${event.message}');
         if (!completer.isCompleted) completer.completeError(error);
         _complete(PythonResult.failure(error.message));
-      }.toJS
-      ..postMessage({
-        'type': 'init',
-        'wasmUrl': absoluteUrl(pythonWasmPath),
-        'stdlibUrl': absoluteUrl(pythonStdlibPath),
-      }.jsify());
+      }.toJS;
+
+    // A worker terminated meanwhile drops the message, so a cancel or dispose
+    // during the first compile needs no check here.
+    loadPythonBuild().then(
+      (build) => worker.postMessage(build.initMessage),
+      onError: (Object error) {
+        if (!completer.isCompleted) completer.completeError(StateError('$error'));
+      },
+    ).ignore();
 
     return completer.future;
   }

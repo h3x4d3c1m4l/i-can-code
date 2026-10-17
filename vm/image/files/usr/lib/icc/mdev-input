@@ -1,0 +1,18 @@
+#!/bin/sh
+# mdev hook: gives v86's input devices the fixed names 10-v86.conf opens. Event numbers follow
+# probe order, and without udev Xorg cannot find the devices by itself.
+dev=${MDEV##*/}
+sys=/sys/class/input/$dev/device
+read -r name < "$sys/name" || exit 0
+case $name in
+	"AT Translated Set 2 keyboard")
+		link=icc-keyboard ;;
+	*VMMouse*)
+		# The kernel's vmmouse driver reports absolute motion and buttons on one device and
+		# the wheel on a second, relative one, under the same name.
+		read -r abs < "$sys/capabilities/abs"
+		if [ "$abs" = 0 ]; then link=icc-wheel; else link=icc-pointer; fi ;;
+	*)
+		exit 0 ;;
+esac
+ln -sfn "$dev" "/dev/input/$link"

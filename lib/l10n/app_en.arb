@@ -495,6 +495,173 @@
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Your program starts as soon as it is on the board. What it prints appears below, and what you type goes to it",
   "@microbitProgramScreen_hint": {},
+  "tkinterScreen_crumb": "Windows with Tkinter",
+  "tkinterScreen_title": "Windows with Tkinter",
+  "@tkinterScreen_title": {
+    "description": "The page where a student writes a Python program with Tk windows and runs it in a small emulated Linux computer. Also the title of its card under Extra."
+  },
+  "tkinterScreen_subtitle": "Write a program with windows and buttons and try it straight away. Nothing here is checked.",
+  "tkinterScreen_run": "Run",
+  "tkinterScreen_stop": "Stop",
+  "tkinterScreen_statusLoading": "Loading the machine…",
+  "tkinterScreen_statusStarting": "Starting the machine…",
+  "tkinterScreen_statusWaiting": "Waiting for the machine…",
+  "tkinterScreen_statusRunning": "Running…",
+  "tkinterScreen_downloadTitle": "Downloading the machine",
+  "tkinterScreen_downloadBody": "Your program runs on a small Linux computer inside this page. It is downloaded once and starts straight away after that. You can work on your program in the meantime.",
+  "tkinterScreen_downloadProgress": "{loaded} of {total} MB",
+  "@tkinterScreen_downloadProgress": {
+    "description": "How much of the machine has been downloaded, in megabytes with one decimal.",
+    "placeholders": {
+      "loaded": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      },
+      "total": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "tkinterScreen_startingTitle": "Starting the machine",
+  "tkinterScreen_unpackTitle": "Unpacking the machine",
+  "tkinterScreen_stepDownload": "Download",
+  "@tkinterScreen_stepDownload": {
+    "description": "The first of the three steps the loading panel lists: the machine is downloaded."
+  },
+  "tkinterScreen_stepUnpack": "Unpack",
+  "@tkinterScreen_stepUnpack": {
+    "description": "The second step: the saved machine is decompressed."
+  },
+  "tkinterScreen_stepStart": "Start",
+  "@tkinterScreen_stepStart": {
+    "description": "The third step: the machine starts and answers."
+  },
+  "tkinterScreen_rateMegabytes": "{rate} MB/s",
+  "@tkinterScreen_rateMegabytes": {
+    "description": "How fast the machine is downloading, at 1 MB/s or more.",
+    "placeholders": {
+      "rate": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "tkinterScreen_rateKilobytes": "{rate} kB/s",
+  "@tkinterScreen_rateKilobytes": {
+    "description": "How fast the machine is downloading, under 1 MB/s.",
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_remainingAlmost": "almost done",
+  "@tkinterScreen_remainingAlmost": {
+    "description": "Part of the progress line, after the speed: under five seconds of the download left. Lower case, as the line reads on from the speed."
+  },
+  "tkinterScreen_remainingSeconds": "about {seconds} seconds left",
+  "@tkinterScreen_remainingSeconds": {
+    "description": "Part of the progress line: the time left, rounded up to five seconds. Lower case, as the line reads on from the speed.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_remainingMinutes": "{minutes, plural, =1{about a minute left} other{about {minutes} minutes left}}",
+  "@tkinterScreen_remainingMinutes": {
+    "description": "Part of the progress line: the time left, in whole minutes. Lower case, as the line reads on from the speed.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "tkinterScreen_downloadStalled": "The connection is slow or has dropped. The download carries on by itself once it is back.",
+  "@tkinterScreen_downloadStalled": {
+    "description": "Shown while nothing has arrived for a few seconds."
+  },
+  "tkinterScreen_downloadNotKept": "This browser can't keep the machine. It works all the same, but is downloaded again next time.",
+  "@tkinterScreen_downloadNotKept": {
+    "description": "Shown when the browser has no room, or no storage, to keep the machine."
+  },
+  "tkinterScreen_downloadSlow": "Your connection looks slow, so this may take a few minutes.",
+  "@tkinterScreen_downloadSlow": {
+    "description": "Shown when the browser guesses the connection is slow, until the speed has been measured."
+  },
+  "tkinterScreen_downloadResumed": "Carrying on where the last download stopped.",
+  "@tkinterScreen_downloadResumed": {
+    "description": "Shown when part of the machine was kept from an earlier download that did not finish."
+  },
+  "tkinterScreen_programTitle": "Your program",
+  "@tkinterScreen_programTitle": {
+    "description": "The title bar over the program's window while the program shows none yet. Once there is a window, its own title is shown instead."
+  },
+  "tkinterScreen_noWindowBody": "Your program's window appears here.",
+  "@tkinterScreen_noWindowBody": {
+    "description": "Stands where the window will be while the program shows none: before the first run, until the window appears, and after a program without one."
+  },
+  "tkinterScreen_windowUntitled": "Untitled window",
+  "tkinterScreen_close": "Close window",
+  "tkinterScreen_stopProgram": "Stop the program",
+  "@tkinterScreen_stopProgram": {
+    "description": "The cross at the top right of the program's window. It ends the program, so it closes everything the program has open rather than one window."
+  },
+  "tkinterScreen_leaveHint": "Esc, then Tab to leave",
+  "@tkinterScreen_leaveHint": {
+    "description": "Shown while a program runs and its screen has the keyboard. Tab and Esc both belong to the program then, so pressing Esc and then Tab is the way out. With no program running Tab leaves by itself, and this is not shown. Keep it short: it shares the bar over a window that may be only 320 pixels wide with the window's title."
+  },
+  "tkinterScreen_output": "Output",
+  "tkinterScreen_truncated": "Your program printed so much that not all of it is shown here.",
+  "tkinterScreen_noMainloop": "Your program ended without mainloop(), so its window closed at once or never appeared. Put root.mainloop() on the last line.",
+  "tkinterScreen_outOfMemory": "Your program used more memory than this computer has, so it was stopped.",
+  "tkinterScreen_crashed": "Your program stopped with an error. The message is in the output below.",
+  "tkinterScreen_noInput": "input() does not work here: your program has no terminal to read from. Let the user type into an Entry in your window.",
+  "tkinterScreen_harnessBroken": "That was not your program: something went wrong in the machine. Run it again.",
+  "tkinterScreen_harnessFetch": "That was not your program: part of the machine could not be downloaded. Check your internet connection and run it again.",
+  "tkinterScreen_harnessUnresponsive": "That was not your program: the machine stopped responding. Run it again.",
+  "tkinterScreen_downloadFailedTitle": "The machine could not be downloaded",
+  "tkinterScreen_downloadFailedBody": "Check your internet connection and try again.",
+  "tkinterScreen_incompatibleTitle": "The machine belongs to another version of the app",
+  "tkinterScreen_incompatibleBody": "Reload the page to get the version that goes with it.",
+  "tkinterScreen_brokenTitle": "The machine did not start",
+  "tkinterScreen_brokenBody": "That is not your doing. Try again, and reload the page if that does not help.",
+  "tkinterScreen_replacedTitle": "Another Tkinter page took over the machine",
+  "tkinterScreen_replacedBody": "Only one machine runs at a time. Try again to start it here.",
+  "tkinterScreen_failureDetails": "Technical details",
+  "@tkinterScreen_failureDetails": {
+    "description": "Folds out the machine's own error message, in English, for whoever helps the student. Folded by default."
+  },
+  "tkinterScreen_retry": "Try again",
+  "tkinterScreen_unavailableTitle": "This does not work in this browser",
+  "tkinterScreen_unavailableBody": "Tkinter runs here on a small computer emulated inside the page, which needs WebAssembly. This browser does not have it. The lessons themselves work fine.",
+  "tkinterScreen_notIncludedTitle": "Tkinter is not part of this version of the app",
+  "tkinterScreen_notIncludedBody": "Tkinter programs run here on a small computer that ships with the app, and this version was built without it. It is not your browser or your internet connection. The lessons themselves work fine.",
+  "@tkinterScreen_notIncludedBody": {
+    "description": "Shown on the Tkinter page of a build without the machine's image. There is nothing to download, so it must not read as a connection problem."
+  },
+  "tkinterScreen_tooLarge": "Your window or canvas is too large for the {width} × {height} screen, and a drawing that size does not fit in this small computer's memory. On an ordinary computer it would work. Keep it within {width} × {height} and it will work here too.",
+  "@tkinterScreen_tooLarge": {
+    "description": "After an X BadAlloc error: the program asked for a window or canvas the X server has no memory for. A limit of the machine, not the student's mistake. The spaces around × are non-breaking, so a size never splits over two lines.",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
   "codeEditorCard_leaveHint": "Esc, then Tab to leave",
   "@codeEditorCard_leaveHint": {
     "description": "Shown in the code editor's top strip while it has the keyboard. Tab indents code there, so pressing Esc and then Tab (or Shift+Tab) is how the keyboard moves on to the next control. Keep it short: it shares one line with the file name and the status."
@@ -597,6 +764,10 @@
   "@aboutScreen_pythonBrowser": {
     "description": "Beside the version of the Python interpreter that runs in the page."
   },
+  "aboutScreen_pythonTkinter": "With Tkinter",
+  "@aboutScreen_pythonTkinter": {
+    "description": "Beside the versions of Python and Tk on the machine behind the Tkinter page."
+  },
   "aboutScreen_pythonMicrobit": "On the micro:bit",
   "@aboutScreen_pythonMicrobit": {},
   "aboutScreen_microbitFirmware": "MicroPython firmware {version}",
@@ -654,5 +825,31 @@
   "licensesScreen_failedBody": "Something went wrong while reading the license texts. Try again.",
   "@licensesScreen_failedBody": {},
   "licensesScreen_retry": "Try again",
-  "@licensesScreen_retry": {}
+  "@licensesScreen_retry": {},
+  "appHeader_editorSettings": "Code editor",
+  "@appHeader_editorSettings": {
+    "description": "The cog menu's item that opens the code editor settings."
+  },
+  "editorSettingsScreen_crumb": "Code editor",
+  "editorSettingsScreen_title": "Code editor settings",
+  "editorSettingsScreen_subtitle": "Kept in this browser, like your progress.",
+  "editorSettingsScreen_advanced": "Advanced",
+  "@editorSettingsScreen_advanced": {
+    "description": "A small heading over settings most people never need to touch."
+  },
+  "editorSettingsScreen_tkinterSetupTitle": "Code before every Tkinter program",
+  "editorSettingsScreen_tkinterSetupBody": "Windows with Tkinter runs this before your own program, in the same Python. By default it makes turtle draw about as fast as on an ordinary computer and gives its window enough room. If something goes wrong in this code, its error shows in the output and your program still runs.",
+  "editorSettingsScreen_statusDefault": "Default",
+  "@editorSettingsScreen_statusDefault": {
+    "description": "Top right of the editor: the code is the app's default."
+  },
+  "editorSettingsScreen_statusChanged": "Changed",
+  "@editorSettingsScreen_statusChanged": {
+    "description": "Top right of the editor: the code differs from the app's default."
+  },
+  "editorSettingsScreen_back": "Back",
+  "editorSettingsScreen_restore": "Restore default",
+  "editorSettingsScreen_restoreTitle": "Restore the default?",
+  "editorSettingsScreen_restoreBody": "Your own code here is replaced by the default. This cannot be undone.",
+  "editorSettingsScreen_restoreConfirm": "Restore"
 }
