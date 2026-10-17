@@ -569,9 +569,52 @@
   "projectScreen_output": "Output",
   "projectScreen_notConnected": "No micro:bit connected",
   "projectScreen_read": "Read",
-  "appHeader_licenses": "Licenses",
-  "@appHeader_licenses": {
-    "description": "The settings menu item that opens the licence screen."
+  "appHeader_about": "About this app",
+  "@appHeader_about": {
+    "description": "The settings menu item that opens the about screen."
+  },
+  "aboutScreen_title": "About this app",
+  "@aboutScreen_title": {},
+  "aboutScreen_appHeading": "This app",
+  "@aboutScreen_appHeading": {},
+  "aboutScreen_version": "Version",
+  "@aboutScreen_version": {},
+  "aboutScreen_source": "Source code on GitHub",
+  "@aboutScreen_source": {},
+  "aboutScreen_licenses": "Licenses",
+  "@aboutScreen_licenses": {
+    "description": "The link from the about screen to the licence screen."
+  },
+  "aboutScreen_builtWithHeading": "Built with",
+  "@aboutScreen_builtWithHeading": {
+    "description": "The heading over the toolchains the build was made with: Flutter, Rust, and whether it runs as JavaScript or WebAssembly."
+  },
+  "aboutScreen_compiledTo": "Runs as",
+  "@aboutScreen_compiledTo": {
+    "description": "Beside 'JavaScript' or 'WebAssembly', which are not translated."
+  },
+  "aboutScreen_pythonBrowser": "In the browser",
+  "@aboutScreen_pythonBrowser": {
+    "description": "Beside the version of the Python interpreter that runs in the page."
+  },
+  "aboutScreen_pythonMicrobit": "On the micro:bit",
+  "@aboutScreen_pythonMicrobit": {},
+  "aboutScreen_microbitFirmware": "MicroPython firmware {version}",
+  "@aboutScreen_microbitFirmware": {
+    "description": "The MicroPython build the app writes to a micro:bit, with its release number.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutScreen_loading": "Loading…",
+  "@aboutScreen_loading": {
+    "description": "In place of a version that is still being asked for."
+  },
+  "aboutScreen_unknown": "Unknown",
+  "@aboutScreen_unknown": {
+    "description": "In place of a version this build cannot report."
   },
   "licensesScreen_title": "Licenses",
   "@licensesScreen_title": {},

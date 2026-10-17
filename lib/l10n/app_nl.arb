@@ -317,7 +317,26 @@
   "projectScreen_output": "Uitvoer",
   "projectScreen_notConnected": "Geen micro:bit verbonden",
   "projectScreen_read": "Gelezen",
-  "appHeader_licenses": "Licenties",
+  "appHeader_about": "Over deze app",
+  "aboutScreen_title": "Over deze app",
+  "aboutScreen_appHeading": "Deze app",
+  "aboutScreen_version": "Versie",
+  "aboutScreen_source": "Broncode op GitHub",
+  "aboutScreen_licenses": "Licenties",
+  "aboutScreen_builtWithHeading": "Gebouwd met",
+  "aboutScreen_compiledTo": "Draait als",
+  "aboutScreen_pythonBrowser": "In de browser",
+  "aboutScreen_pythonMicrobit": "Op de micro:bit",
+  "aboutScreen_microbitFirmware": "MicroPython-firmware {version}",
+  "@aboutScreen_microbitFirmware": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutScreen_loading": "Laden…",
+  "aboutScreen_unknown": "Onbekend",
   "licensesScreen_title": "Licenties",
   "licensesScreen_intro": "I Can Code is open source. Hier staan de licentie van de app zelf en de licenties van alles wat erin zit.",
   "licensesScreen_source": "Broncode bekijken",

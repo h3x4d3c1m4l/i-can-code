@@ -44,6 +44,13 @@ class LicensesScreenController extends ScreenControllerBase<LicensesScreenViewMo
   /// The app's source, in a new tab: the reader is not done with this one.
   Future<void> openSource() => launchUrl(Uri.parse(kSourceUrl));
 
+  /// Back to the about screen, which is where the licences are reached from.
+  /// Pops to it when it is under this one, and opens it otherwise.
+  Future<void> openAbout() async {
+    if (_disposed || !contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.navigate(const AboutRoute());
+  }
+
   /// Back to the subject picker, which is the app's home.
   Future<void> goHome() async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;

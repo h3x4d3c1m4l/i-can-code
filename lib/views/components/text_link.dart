@@ -2,13 +2,13 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 
-/// The link from the licence screen to the app's source.
+/// A link set in running text: to the app's source, or to another screen.
 ///
 /// Underlined as well as coloured, like a link in a lesson's prose: the link
 /// colour of a preset is not always far enough from its text colour to say
 /// "link" by itself. A tappable and not a span with a recogniser, which is what
 /// puts it in the tab order.
-class SourceLink extends StatelessWidget {
+class TextLink extends StatelessWidget {
 
   static const double _fontSize = 17;
 
@@ -16,7 +16,11 @@ class SourceLink extends StatelessWidget {
 
   final VoidCallback onPress;
 
-  const SourceLink({required this.label, required this.onPress, super.key});
+  /// Whether the press opens another tab, which the link then says before the
+  /// press. Otherwise it points on to a screen of the app.
+  final bool opensTab;
+
+  const TextLink({required this.label, required this.onPress, this.opensTab = false, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +45,7 @@ class SourceLink extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            // It opens another tab, and says so before the press.
-            Icon(FLucideIcons.externalLink, size: _fontSize, color: color),
+            Icon(opensTab ? FLucideIcons.externalLink : FLucideIcons.chevronRight, size: _fontSize, color: color),
           ],
         ),
       ),

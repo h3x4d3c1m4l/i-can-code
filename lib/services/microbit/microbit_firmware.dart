@@ -1,10 +1,12 @@
 import 'package:flutter/services.dart';
 
-/// The MicroPython build a flashed program is embedded in.
-///
+/// The release of micropython-microbit-v2 a flashed program is embedded in.
+/// MUST match `version` in `just fetch-microbit-firmware`.
+const String kMicrobitFirmwareVersion = '2.1.1';
+
 /// Fetched by `just fetch-microbit-firmware` rather than committed, so a clone
 /// that has not run it gets a [FlutterError] here and the screen says so.
-const String _firmwareAsset = 'assets/microbit/micropython-microbit-v2.1.1.hex';
+const String _firmwareAsset = 'assets/microbit/micropython-microbit-v$kMicrobitFirmwareVersion.hex';
 
 String? _cached;
 

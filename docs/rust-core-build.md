@@ -61,6 +61,7 @@ just build-rust-core
 3. `flutter_rust_bridge_codegen build-web --release` — runs `wasm-pack` on the
    pinned nightly with `-Z build-std=std,panic_abort`, writing `web/pkg/`.
 4. Deletes the `.gitignore` and `package.json` wasm-pack leaves behind.
+5. Writes `web/pkg/rustc-version.txt`, the pinned toolchain's `rustc -V`, which the about screen shows.
 
 Output, neither committed:
 

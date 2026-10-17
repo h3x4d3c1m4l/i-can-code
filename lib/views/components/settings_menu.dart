@@ -117,11 +117,11 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
           FItemGroup(
             children: [
               FItem(
-                title: Text(context.localizations.appHeader_licenses),
-                prefix: const Icon(FLucideIcons.scale),
+                title: Text(context.localizations.appHeader_about),
+                prefix: const Icon(FLucideIcons.info),
                 onPress: () {
                   unawaited(_controller.hide());
-                  unawaited(_openLicenses());
+                  unawaited(_openAbout());
                 },
               ),
             ],
@@ -149,16 +149,16 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     );
   }
 
-  /// Opens the licence screen on top of whatever the reader was on, so the
+  /// Opens the about screen on top of whatever the reader was on, so the
   /// browser's Back button returns them to it.
   ///
   /// Through the router in GetIt and not `context.router`: the bar sits above
   /// the router, so there is none to find from here.
-  Future<void> _openLicenses() async {
+  Future<void> _openAbout() async {
     final router = GetIt.I<AppRouter>();
-    if (router.current.name == LicensesRoute.name) return;
+    if (router.current.name == AboutRoute.name) return;
 
-    await router.push(const LicensesRoute());
+    await router.push(const AboutRoute());
   }
 
   /// Asks before forgetting. Irreversible.

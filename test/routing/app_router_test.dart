@@ -20,6 +20,7 @@ void main() {
       '/',
       '/initialization',
       '/licenses',
+      '/about',
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
@@ -50,6 +51,15 @@ void main() {
 
     expect(matched, hasLength(1));
     expect(matched!.single.name, 'LicensesRoute');
+  });
+
+  test('About has its own address, ahead of the subject addresses', () {
+    // One segment, like the licences, so it must be declared above the
+    // subject route rather than be read as a subject called "about".
+    final matched = AppRouter().matcher.match('/about');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'AboutRoute');
   });
 
   test('the console has its own address, ahead of the lesson addresses', () {

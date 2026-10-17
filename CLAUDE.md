@@ -316,6 +316,7 @@ No service worker means no console — private browsing, storage disabled, no ht
 ```text
 /                                              the subject picker
 /licenses                                      the licences of the app and of what it ships
+/about                                         which build this is, and what it is made of
 /learn-python                                  that subject's lessons
 /learn-python?group=week-1                     ... scrolled to that group, which lights up
 /learn-python?lesson=uitvoer                   ... scrolled to that lesson's card
@@ -339,7 +340,7 @@ The step is a **`LessonSection.id`, never a position** — the same reason progr
 
 `test/routing/app_router_test.dart` builds the router, which is the only place that validation happens. Add to it when you touch the table — a green analyze and a green build prove nothing here.
 
-`/:subjectSlug` is a catch-all, so `/initialization` and `/licenses` must stay declared above it.
+`/:subjectSlug` is a catch-all, so `/initialization`, `/licenses` and `/about` must stay declared above it.
 
 ### Anchors
 
@@ -692,7 +693,7 @@ The Dart side is `lib/services/microbit/`, shaped like `lib/services/python/`: a
 
 ### Licences
 
-The app is under MPL 2.0, the `LICENSE` at the repository root. `LicensesScreen` (`/licenses`, *Licenties* in the cog) shows that licence and the licence of everything the app ships. `docs/licenses.md` says where each text comes from and what was checked about them going together. **Read it before adding something the app ships that is not a pub package or a crate.**
+The app is under MPL 2.0, the `LICENSE` at the repository root. `LicensesScreen` (`/licenses`, reached from *Over deze app*) shows that licence and the licence of everything the app ships. `docs/licenses.md` says where each text comes from and what was checked about them going together. **Read it before adding something the app ships that is not a pub package or a crate.**
 
 It is the app's `LicensePage`, which is Material. Everything still goes through Flutter's `LicenseRegistry`, which is not:
 
@@ -707,6 +708,16 @@ Things that are easy to get wrong:
 - **`LicenseCatalog.load` does not `await for` the registry.** That cancels on the first error, in the middle of the registry's `addStream`, and under a widget test's fake clock the cancel never completes.
 - **The test binding registers no licences.** `LicenseRegistry.licenses` is empty in a test until the test adds to it, so a test of the real texts reads `NOTICES.Z` out of the bundle.
 - **The screen links to the source**, `kSourceUrl`. MPL 2.0 has every build say where its source is.
+
+### About
+
+`AboutScreen` (`/about`, *Over deze app* in the cog) says which build this is: the app's version, the source, the licences, the toolchains and the runtimes. The licences are reached from here and no longer from the cog, and their trail leads back through it. Each value comes from the build itself, never from a constant someone has to remember to bump:
+
+- **Flutter and Dart** are `FlutterVersion`, from defines the flutter tool passes to every build.
+- **Rust** is `web/pkg/rustc-version.txt`, the `rustc -V` that `just build-rust-core` writes beside the wasm. It is fetched like `version.json`, so showing it does not load the core, which only `WebMicrobitLink` may do. A `web/pkg/` built before the recipe wrote it says "Onbekend" until the core is rebuilt. The dev server answers a missing file with `index.html`, which is why the fetch only accepts text that starts with `rustc `.
+- **Python in the browser** is `PythonRuntime.version`, and the screen **loads the interpreter** to ask, the way a step that runs code does on arrival.
+- **MicroPython** is `kMicrobitFirmwareVersion`, which names the asset as well and MUST match `just fetch-microbit-firmware`.
+- **Runs as** is `kIsWasm`. No build passes `--wasm` yet (see the workflows), so it says JavaScript.
 
 ### Localization
 

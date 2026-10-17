@@ -10,9 +10,9 @@ import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/loading_overlay.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
+import 'package:i_can_code/views/components/text_link.dart';
 import 'package:i_can_code/views/licenses_screen/components/license_detail.dart';
 import 'package:i_can_code/views/licenses_screen/components/license_list.dart';
-import 'package:i_can_code/views/licenses_screen/components/source_link.dart';
 import 'package:i_can_code/views/licenses_screen/license_labels.dart';
 import 'package:i_can_code/views/licenses_screen/licenses_screen_controller.dart';
 import 'package:i_can_code/views/licenses_screen/licenses_screen_view_model.dart';
@@ -46,6 +46,7 @@ class LicensesScreenView extends ScreenViewBase<LicensesScreenViewModel, License
     return AppHeaderConfig(
       onTapHome: controller.goHome,
       crumbs: [
+        AppCrumb(context.localizations.aboutScreen_title, onTap: controller.openAbout),
         // One at a time, so the open component is a level below the list and
         // the list's own crumb leads back to it.
         if (_stacked(context) && picked != null) ...[
@@ -91,9 +92,10 @@ class LicensesScreenView extends ScreenViewBase<LicensesScreenViewModel, License
                   const SizedBox(height: 4),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: SourceLink(
+                    child: TextLink(
                       label: context.localizations.licensesScreen_source,
                       onPress: controller.openSource,
+                      opensTab: true,
                     ),
                   ),
                   const SizedBox(height: 28),

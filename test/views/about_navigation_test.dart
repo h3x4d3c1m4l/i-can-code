@@ -15,10 +15,12 @@ import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/about_screen/about_screen.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
 import 'package:i_can_code/views/licenses_screen/licenses_screen.dart';
@@ -53,45 +55,71 @@ void main() {
       ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<TourStore>(TourStore())
       ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning(applies: false))
-      ..registerSingleton<StartupProgress>(StartupProgress());
+      ..registerSingleton<StartupProgress>(StartupProgress())
+      // About asks the interpreter its version, which the stub cannot give.
+      ..registerSingleton<PythonRuntime>(createPythonRuntime());
   });
 
   tearDown(GetIt.I.reset);
 
-  testWidgets('the cog opens the licences on top of the screen it was pressed on', (tester) async {
-    tester.view
-      ..physicalSize = const Size(1400, 900)
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(_shell());
-    await tester.pumpAndSettle();
+  testWidgets('the cog opens About on top of the screen it was pressed on', (tester) async {
+    await _pumpShell(tester);
     expect(find.byType(SubjectsScreen), findsOneWidget);
 
-    await tester.tap(find.byType(SettingsMenu));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FItem, 'Licenties'));
-    await tester.pumpAndSettle();
+    await _openAboutFromCog(tester);
 
-    expect(find.byType(LicensesScreen), findsOneWidget);
-    expect(GetIt.I<AppRouter>().currentPath, '/licenses');
+    expect(find.byType(AboutScreen), findsOneWidget);
+    expect(GetIt.I<AppRouter>().currentPath, '/about');
     // Pushed, not replaced: Back has the screen under it to return to.
     expect(GetIt.I<AppRouter>().stack, hasLength(2));
 
-    // A second press from the licences themselves must not stack another copy.
-    await tester.tap(find.byType(SettingsMenu));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FItem, 'Licenties'));
-    await tester.pumpAndSettle();
+    // A second press from About itself must not stack another copy.
+    await _openAboutFromCog(tester);
 
     expect(GetIt.I<AppRouter>().stack, hasLength(2));
 
     GetIt.I<AppRouter>().back();
     await tester.pumpAndSettle();
 
-    expect(find.byType(LicensesScreen), findsNothing);
+    expect(find.byType(AboutScreen), findsNothing);
     expect(find.byType(SubjectsScreen), findsOneWidget);
   });
+
+  testWidgets('About opens the licences, and their crumb leads back to it', (tester) async {
+    await _pumpShell(tester);
+    await _openAboutFromCog(tester);
+
+    await tester.tap(find.text('Licenties'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LicensesScreen), findsOneWidget);
+    expect(GetIt.I<AppRouter>().currentPath, '/licenses');
+    expect(GetIt.I<AppRouter>().stack, hasLength(3));
+
+    // Popped back to, not pushed again: Back from About still reaches home.
+    await tester.tap(find.text('Over deze app'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AboutScreen), findsOneWidget);
+    expect(GetIt.I<AppRouter>().stack, hasLength(2));
+  });
+}
+
+Future<void> _pumpShell(WidgetTester tester) async {
+  tester.view
+    ..physicalSize = const Size(1400, 900)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  await tester.pumpWidget(_shell());
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openAboutFromCog(WidgetTester tester) async {
+  await tester.tap(find.byType(SettingsMenu));
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(FItem, 'Over deze app'));
+  await tester.pumpAndSettle();
 }
 
 /// The router under the bar's host, the way `ICanCodeApp` builds them: the cog

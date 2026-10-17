@@ -120,6 +120,10 @@ build-rust-core: gen-rust
   # the deployed site, so neither file may stay.
   rm -f web/pkg/.gitignore web/pkg/package.json
 
+  # The about screen reads this. Written here rather than baked into the wasm,
+  # so showing it does not load the core.
+  rustc +"$toolchain" -V > web/pkg/rustc-version.txt
+
 # Downloads the MicroPython firmware the flasher builds on.
 #
 # Not committed: it is an upstream release artifact, and the checksum is what
