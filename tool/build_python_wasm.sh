@@ -8,10 +8,10 @@
 set -euo pipefail
 
 # Pinned deliberately. WASI is a Tier-2 CPython platform, and each CPython release
-# is tested against one specific WASI SDK — Tools/wasm warns loudly on any other.
+# is tested against one specific WASI SDK — Platforms/WASI warns loudly on any other.
 # Bump these together, and only after checking what upstream tests against.
-PYTHON_VERSION="${PYTHON_VERSION:-3.14.8}"
-WASI_SDK_VERSION="${WASI_SDK_VERSION:-24}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.15.0}"
+WASI_SDK_VERSION="${WASI_SDK_VERSION:-33}"
 
 WORK_DIR="${WORK_DIR:-.python-wasm-build}"
 OUT_DIR="${1:-assets/python}"
@@ -19,11 +19,11 @@ OUT_DIR="${1:-assets/python}"
 # ---------------------------------------------------------------- host python
 #
 # This only runs the build script; CPython cross-compiles by first building a
-# *host* interpreter from the same source. But Tools/wasm uses contextlib.chdir,
-# which is 3.11+, and macOS still ships 3.9 — so a modern python must be found
-# rather than assumed.
+# *host* interpreter from the same source. But Platforms/WASI uses tomllib and
+# contextlib.chdir, which are 3.11+, and macOS still ships 3.9 — so a modern
+# python must be found rather than assumed.
 find_host_python() {
-  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+  for candidate in python3.15 python3.14 python3.13 python3.12 python3.11 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
       if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
         echo "$candidate"
@@ -32,7 +32,7 @@ find_host_python() {
     fi
   done
   echo "ERROR: need Python 3.11+ to run CPython's WASI build script." >&2
-  echo "       macOS ships 3.9, which lacks contextlib.chdir. Try: brew install python@3.14" >&2
+  echo "       macOS ships 3.9, which lacks tomllib. Try: brew install python@3.15" >&2
   return 1
 }
 
@@ -75,8 +75,10 @@ fi
 
 # --------------------------------------------------------------------- build
 # Builds a host interpreter first, then cross-compiles for WASI with it.
+# Platforms/WASI since 3.15. Tools/wasm/wasi still forwards to it, with a warning,
+# until 3.20.
 echo "==> building (two CPython compiles, several minutes)"
-( cd "$SRC_DIR" && "$HOST_PYTHON" Tools/wasm/wasi build )
+( cd "$SRC_DIR" && "$HOST_PYTHON" Platforms/WASI build )
 
 # -------------------------------------------------------------------- collect
 HOST_BUILD="$(find "$SRC_DIR/cross-build" -maxdepth 1 -type d -name 'wasm32-wasi*' | head -1)"
@@ -88,7 +90,7 @@ fi
 mkdir -p "$OUT_DIR"
 
 # Strip first. CPython's WASI build compiles with -g, and the debug info is ~75%
-# of the binary: 29 MB before, 7.3 MB after. Nothing at runtime needs it.
+# of the binary: 32 MB before, 7.8 MB after. Nothing at runtime needs it.
 echo "==> stripping debug info"
 "$WASI_SDK_PATH/bin/llvm-strip" "$HOST_BUILD/python.wasm" -o "$OUT_DIR/python.wasm"
 
@@ -163,11 +165,12 @@ find "$STAGE_DIR" -name '__pycache__' -type d -prune -exec rm -rf {} +
 # a deflated entry and fails with "can't decompress data; zlib not available".
 # Stored entries need no zlib, and cost almost nothing over the wire because the
 # transport gzips them anyway.
-# python314.zip, not python3.14.zip: the name CPython looks for on sys.path, and
+# python315.zip, not python3.15.zip: the name CPython looks for on sys.path, and
 # the one pubspec.yaml and both workers expect.
 MAJOR_MINOR="${PYTHON_VERSION%.*}"
 STDLIB_ZIP_ABS="$(cd "$OUT_DIR" && pwd)/python${MAJOR_MINOR/./}.zip"
-rm -f "$STDLIB_ZIP_ABS"
+# Every version's zip, so a bump does not leave the last one behind.
+rm -f "$OUT_DIR"/python3*.zip
 echo "==> packing stdlib (bytecode, stored)"
 ( cd "$STAGE_DIR" && zip -q -r -X -0 "$STDLIB_ZIP_ABS" . )
 
@@ -192,10 +195,12 @@ cat <<EOF
 
 Verify:
   wasmtime run --wasm max-wasm-stack=16777216 \\
-    --dir ${OUT_DIR}::/py \\
-    --env PYTHONPATH=/py/$(basename "$STDLIB_ZIP_ABS") --env PYTHONHOME=/py \\
-    ${OUT_DIR}/python.wasm -c "print(1+1)"
+    --dir ${OUT_DIR}::/lib --dir "\$(mktemp -d)::/lib/python${MAJOR_MINOR}/lib-dynload" \\
+    --env PYTHONHOME=/ \\
+    ${OUT_DIR}/python.wasm -c "import json; print(json.__file__)"
 
 Note: max-wasm-stack=16777216 is required: CPython overflows wasmtime's default
 stack during interpreter startup. A browser has no such setting and needs none.
+The empty lib-dynload is what keeps CPython from warning on stderr that it cannot
+find the standard library; see docs/python-wasm-build.md.
 EOF

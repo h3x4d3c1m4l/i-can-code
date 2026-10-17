@@ -21,6 +21,7 @@
 
 import { Wasi, WasiExit } from './wasi.js';
 import { BlockingStdin } from './stdin_channel.js';
+import { STDLIB_DIRECTORIES, STDLIB_ZIP } from './stdlib_layout.js';
 
 /** How long output may sit in the worker before it is posted. One frame. */
 const FLUSH_INTERVAL_MS = 16;
@@ -77,7 +78,6 @@ async function start({ channel }) {
     args: ['python', '-i', '-u'],
     env: {
       PYTHONHOME: '/',
-      PYTHONPATH: '/python314.zip',
       // No .pyc files beside the modules a session imports: they would
       // outlive nothing and show up in the next os.listdir at the prompt.
       PYTHONDONTWRITEBYTECODE: '1',
@@ -95,10 +95,11 @@ async function start({ channel }) {
       TERM: 'xterm-256color',
     },
     // No /main.py: there is no program, only the prompt.
-    files: new Map([['/python314.zip', stdlib]]),
+    files: new Map([[STDLIB_ZIP, stdlib]]),
     // Writable from the prompt, except the zip every import reads from. This
     // filesystem lives as long as the session, not as long as one run.
-    readOnlyPaths: ['/python314.zip'],
+    readOnlyPaths: [STDLIB_ZIP],
+    directories: STDLIB_DIRECTORIES,
     stdinReader: {
       // Flushing here is what keeps the prompt from arriving late: CPython
       // writes `>>> ` and then asks for a line, and this worker is about to

@@ -52,7 +52,7 @@ abstract class PythonRuntime {
   /// False where no host is available. The UI stays usable but cannot run.
   bool get isSupported;
 
-  /// What the interpreter calls itself — "Python 3.14.0" — asked of the build
+  /// What the interpreter calls itself — "Python 3.15.0" — asked of the build
   /// that is actually loaded rather than written down anywhere in the app, so a
   /// screen naming it cannot drift from what runs the student's code.
   ///

@@ -60,9 +60,9 @@ flutter:
   generate: true
 
   assets:
-    # CPython 3.14 built for wasm32-wasi plus its stdlib; see docs/python-wasm-build.md.
+    # CPython 3.15 built for wasm32-wasi plus its stdlib; see docs/python-wasm-build.md.
     - assets/python/python.wasm
-    - assets/python/python314.zip
+    - assets/python/python315.zip
     # Every lesson under assets/lessons/, in one file, so a cold start fetches
     # the course in one request. The committed file is a placeholder: the
     # transformer (bin/bundle_lessons.dart) writes the real one during the build.

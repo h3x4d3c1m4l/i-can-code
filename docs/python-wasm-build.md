@@ -39,8 +39,8 @@ minutes of compute.
 
 | | |
 |---|---|
-| **wasi-sdk 24** | Downloaded automatically by the script. **Not the latest.** Each CPython release is tested against one specific SDK; 3.14.8 wants 24, and `Tools/wasm` prints `⚠️ Found WASI SDK 33, but WASI SDK 24 is the supported version` for anything else. |
-| **Python 3.11+** on the host | Only to *run* the build script — CPython cross-compiles by first building a host interpreter from the same source. But `Tools/wasm` uses `contextlib.chdir`, which is 3.11+, and **macOS still ships 3.9**. `brew install python@3.14`. |
+| **wasi-sdk 33** | Downloaded automatically by the script. Each CPython release is tested against one specific SDK, which need not be the latest; 3.15.0 wants 33, and `Platforms/WASI` prints `⚠️ Found WASI SDK <n>, but WASI SDK 33 is the supported version` for anything else. |
+| **Python 3.11+** on the host | Only to *run* the build script — CPython cross-compiles by first building a host interpreter from the same source. But `Platforms/WASI` uses `tomllib` and `contextlib.chdir`, which are 3.11+, and **macOS still ships 3.9**. `brew install python@3.15`. |
 | **pkg-config**, Xcode CLT / build-essential | `brew install pkg-config` |
 | **wasmtime** (optional) | For verifying the result locally. `brew install wasmtime` |
 
@@ -50,8 +50,8 @@ minutes of compute.
 ./tool/build_python_wasm.sh            # writes into assets/python/
 ```
 
-1. Downloads wasi-sdk 24 and the CPython source into `.python-wasm-build/`.
-2. Runs `python3.14 Tools/wasm/wasi build`, which compiles CPython **twice** —
+1. Downloads wasi-sdk 33 and the CPython source into `.python-wasm-build/`.
+2. Runs `python3 Platforms/WASI build`, which compiles CPython **twice** —
    once for the host (needed to cross-compile) and once for `wasm32-wasip1`.
 3. Strips the result, compiles a copy of the standard library to bytecode, and
    packs it. The copy is what keeps the source tree whole, so the script can be
@@ -63,13 +63,13 @@ Output, both committed as Flutter assets:
 
 | file | size | gzipped |
 |---|---|---|
-| `assets/python/python.wasm` | 7.3 MB | 2.2 MB |
-| `assets/python/python314.zip` | 13 MB | 5.9 MB |
+| `assets/python/python.wasm` | 7.8 MB | 2.3 MB |
+| `assets/python/python315.zip` | 15 MB | 6.7 MB |
 
-## The four things that are easy to get wrong
+## The five things that are easy to get wrong
 
 **Strip the binary.** CPython's WASI build compiles with `-g` and the debug info
-is roughly three quarters of the output — **29 MB before stripping, 7.3 MB
+is roughly three quarters of the output — **32 MB before stripping, 7.8 MB
 after**. Nothing at runtime reads it.
 
 **The stdlib zip must be *stored*, not deflated.** This build has no zlib; it is
@@ -118,21 +118,34 @@ so a traceback still quotes the offending line. What is lost is source for
 
 **wasmtime needs `max-wasm-stack` raised to 16 MB.** CPython overflows
 wasmtime's default stack during interpreter startup. The wrapper CPython
-generates (`cross-build/wasm32-wasip1/python.sh`) sets
-`--wasm max-wasm-stack=16777216`, and so does the line under *Running it*.
+generates (`cross-build/wasm32-wasip1/python.sh`) passes
+`Platforms/WASI/wasmtime.toml`, which sets 32 MB so a debug build fits too; the
+line under *Running it* sets 16 MB, which is enough for this release build.
 Symptom if missed: a stack-exhaustion trap before any Python code runs. A browser
 has no such setting and needs none; the workers instantiate the module as it is.
+
+**The stdlib goes where CPython looks for it unasked.** With `PYTHONHOME=/` that
+is `/lib/python315.zip`, and an empty directory `/lib/python3.15/lib-dynload`
+beside it. Since 3.15, CPython checks both on every start and writes
+`WARN: Could not find the standard library directory!` to stderr when they are
+missing. On the lesson screen that lands in every run. A `PYTHONPATH` that
+finds the zip somewhere else does not count: the check only stands down for a
+path set through the C API or a `._pth` file, and a `._pth` file also switches
+on isolated mode, which ignores the `PYTHON*` variables both workers depend on.
+`web/python/stdlib_layout.js` names the two paths for both workers, and the
+`directories` option of `Wasi` creates the empty one.
 
 ## Running it
 
 ```bash
 wasmtime run --wasm max-wasm-stack=16777216 \
-  --dir assets/python::/py \
-  --env PYTHONPATH=/py/python314.zip --env PYTHONHOME=/py \
+  --dir assets/python::/lib --dir "$(mktemp -d)::/lib/python3.15/lib-dynload" \
+  --env PYTHONHOME=/ \
   assets/python/python.wasm -c "print(1 + 1)"
 ```
 
-Note there is **no `--` before the Python arguments**; wasmtime passes everything
+The second `--dir` is the empty `lib-dynload` the section above asks for. Note
+there is **no `--` before the Python arguments**; wasmtime passes everything
 after the module straight through, and `--` makes Python read `-c` as a filename.
 
 ## What this Python can and cannot do
@@ -165,7 +178,7 @@ Nothing it writes outlives the wasm instance.
 
 Two properties that hold that up, and which a change to the shim must keep:
 
-- **The stdlib is sealed.** Both workers pass `readOnlyPaths: ['/python314.zip']`.
+- **The stdlib is sealed.** Both workers pass `readOnlyPaths: [STDLIB_ZIP]`.
   A program that truncates the archive it is importing from breaks every later
   import with an `EOFError` naming nothing the student did.
 - **Growth is capped.** `FS_QUOTA_BYTES` bounds what a program may add, measured
@@ -176,12 +189,14 @@ Two properties that hold that up, and which a change to the shim must keep:
 
 Bump `PYTHON_VERSION` in `tool/build_python_wasm.sh` — and check which wasi-sdk
 that release tests against, bumping `WASI_SDK_VERSION` with it. The two are a
-matched pair; the release states its own in `Tools/wasm/wasi/__main__.py`. Then
+matched pair; the release states its own in `Platforms/WASI/config.toml`. Then
 rebuild and run the two checks below.
 
-A new minor version also renames the stdlib zip, `python314.zip` to
-`python315.zip`. That name is written in `pubspec.yaml`,
-`lib/services/python/python_assets_web.dart` and both workers in `web/python/`.
+A new minor version also renames the stdlib zip, `python315.zip` to
+`python316.zip`, and the `python3.15` directory beside it. The zip's name is
+written in `pubspec.yaml` and `lib/services/python/python_assets_web.dart`, and
+both paths in `web/python/stdlib_layout.js`. The wasmtime line under *Running it*
+names the directory too.
 
 The script compiles the stdlib to bytecode itself, so an upgrade gets that
 treatment automatically — and with the interpreter the build just produced, so

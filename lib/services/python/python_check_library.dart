@@ -7,7 +7,7 @@
 /// drive the real thing without a `rootBundle`.
 ///
 /// It leans on nothing outside the standard library. `ast` ships in
-/// `assets/python/python314.zip`, and `_ast` is built into CPython itself, so
+/// `assets/python/python315.zip`, and `_ast` is built into CPython itself, so
 /// there is no asset to declare and no worker change behind this.
 ///
 /// The names in its `__all__` are the contract with lesson authors, and
@@ -87,7 +87,7 @@ def _types(*names):
     """AST classes by name, skipping any this CPython does not have.
 
     `ast.TryStar` arrived in 3.11 and `ast.TypeAlias` in 3.12. The app ships
-    3.14, but `tool/try_lesson.dart` runs on whatever `python3` the machine has.
+    3.15, but `tool/try_lesson.dart` runs on whatever `python3` the machine has.
     """
     return tuple(getattr(ast, name) for name in names if hasattr(ast, name))
 

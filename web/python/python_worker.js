@@ -10,6 +10,7 @@
 // but the compile is cached, which is the expensive half.
 
 import { Wasi, WasiExit } from './wasi.js';
+import { STDLIB_DIRECTORIES, STDLIB_ZIP } from './stdlib_layout.js';
 
 /** Per-stream output cap. A run's output is held here until it ends and then
  *  posted to the page in one message, so a runaway `while True: print(x)` would
@@ -17,16 +18,10 @@ import { Wasi, WasiExit } from './wasi.js';
  *  MUST match it. */
 const MAX_OUTPUT_BYTES = 256 * 1024;
 
-/** Where the stdlib is mounted inside the interpreter's own filesystem. Named
- *  once because three things MUST agree on it: the file map, PYTHONPATH, and
- *  the version probe below. */
-const STDLIB_PATH = '/python314.zip';
-
 /** The environment every interpreter is started with — a student's program and
  *  the version probe alike. */
 const PYTHON_ENV = {
   PYTHONHOME: '/',
-  PYTHONPATH: STDLIB_PATH,
   // Without this CPython caches a .pyc beside every module a program
   // imports, so a lesson about listing files would find a __pycache__ nobody
   // wrote sitting in the middle of its output.
@@ -128,7 +123,7 @@ async function start(wasi) {
   instance.exports._start();
 }
 
-/** What the interpreter says it is — "Python 3.14.8" — asked of the build that
+/** What the interpreter says it is — "Python 3.15.0" — asked of the build that
  *  is actually loaded rather than written down anywhere in the app.
  *
  *  `-V` because the answer then carries the name as well as the number, and
@@ -142,8 +137,9 @@ async function probeVersion() {
   const wasi = new Wasi({
     args: ['python', '-V'],
     env: PYTHON_ENV,
-    files: new Map([[STDLIB_PATH, stdlib]]),
-    readOnlyPaths: [STDLIB_PATH],
+    files: new Map([[STDLIB_ZIP, stdlib]]),
+    readOnlyPaths: [STDLIB_ZIP],
+    directories: STDLIB_DIRECTORIES,
     stdin: new Uint8Array(0),
     onOutput: (kind, bytes) => { if (kind === 'stdout') out.add(bytes); },
   });
@@ -165,7 +161,7 @@ async function run({ code, stdin }) {
   // traceback names main.py and quotes the offending line instead of saying
   // "<string>". That difference matters a lot when a class is reading the error.
   const files = new Map([
-    [STDLIB_PATH, stdlib],
+    [STDLIB_ZIP, stdlib],
     ['/main.py', new TextEncoder().encode(code)],
   ]);
 
@@ -176,7 +172,8 @@ async function run({ code, stdin }) {
     // The zip is the only thing here a program must not be able to break:
     // zipimport re-opens it on every import, so emptying it ends the run with
     // an EOFError that names nothing the student did.
-    readOnlyPaths: [STDLIB_PATH],
+    readOnlyPaths: [STDLIB_ZIP],
+    directories: STDLIB_DIRECTORIES,
     stdin: new TextEncoder().encode(stdin ?? ''),
     onOutput: (kind, bytes) => (kind === 'stdout' ? stdout : stderr).add(bytes),
   });

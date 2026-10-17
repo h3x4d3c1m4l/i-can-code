@@ -1214,7 +1214,7 @@ if not program.assigns("naam").to(a_call("input")):
 #### It is the standard library and nothing more
 
 `program` is built on Python's own `ast`, which ships inside
-`assets/python/python314.zip`. There is no third-party package behind it and
+`assets/python/python315.zip`. There is no third-party package behind it and
 nothing to add to `pubspec.yaml`. The source is `kCheckLibrary` in
 `lib/services/python/python_check_library.dart`; the names it binds are the ones
 in its `__all__`, and `ast` itself is **not** among them.

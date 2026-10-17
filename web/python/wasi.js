@@ -202,6 +202,9 @@ export class Wasi {
    *        rename or delete. The standard library zip belongs here: zipimport
    *        re-opens it on every import, so a program that empties it breaks in
    *        a way that names nothing useful.
+   * @param {Iterable<string>} options.directories
+   *        Empty directories the filesystem starts out holding, parents
+   *        included. The program may change them like anything else.
    * @param {Uint8Array} options.stdin     pre-filled standard input
    * @param {{read: (max: number) => Uint8Array}} options.stdinReader
    *        Standard input as a stream instead of a buffer. Its `read` MAY block
@@ -217,7 +220,7 @@ export class Wasi {
    *        something that can render them.
    * @param {(kind: 'stdout'|'stderr', bytes: Uint8Array) => void} options.onOutput
    */
-  constructor({ args, env, files, readOnlyPaths, stdin, stdinReader, stdioIsTerminal, onOutput }) {
+  constructor({ args, env, files, readOnlyPaths, directories, stdin, stdinReader, stdioIsTerminal, onOutput }) {
     this.args = args;
     this.env = env;
     this.stdinReader = stdinReader ?? null;
@@ -247,6 +250,11 @@ export class Wasi {
       if (!installed.has(path)) throw new Error(`readOnlyPaths names ${path}, which is not among the files`);
     }
     this.limit = this.usedBytes + FS_QUOTA_BYTES;
+
+    for (const path of directories ?? []) {
+      const parts = this.normalise(path).split('/').filter((part) => part !== '');
+      for (let depth = 1; depth <= parts.length; depth++) this.makeDirectory(`/${parts.slice(0, depth).join('/')}`);
+    }
 
     // tempfile probes /tmp, /var/tmp and /usr/tmp before falling back to the
     // working directory, and only the first is worth having: without it every
