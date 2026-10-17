@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -144,7 +145,7 @@ abstract class LessonScreenViewModelBase extends ScreenViewModelBase with Store 
 
   /// The lesson after this one in its subject, which the end page names and
   /// "Volgende les" opens. Null on the subject's last lesson.
-  CourseLesson? get nextLesson => GetIt.I<Course>().lessonAfter(lesson);
+  CourseLesson? get nextLesson => visibleLessonAfter(lesson);
 
   /// The pairs already matched on the step being shown.
   Set<int> get matched => _matchedPairs[_step] ?? const {};

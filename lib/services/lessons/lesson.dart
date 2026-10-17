@@ -328,6 +328,10 @@ class Lesson {
   /// How the lesson is walked through.
   final LessonLayout layout;
 
+  /// The feature toggle that has to be on for the lesson to be listed, or null
+  /// for a lesson that is always listed. See `FeatureToggles`.
+  final String? feature;
+
   /// The steps the app can show. A step for a runtime that is not ready is not
   /// among them: see [LessonRuntime.isReady]. So this may be empty, which is a
   /// whole lesson written for a runtime this version cannot run, and
@@ -342,6 +346,7 @@ class Lesson {
     this.optional = false,
     this.runtime = LessonRuntime.python,
     this.layout = LessonLayout.steps,
+    this.feature,
     required this.sections,
   });
 
@@ -366,6 +371,7 @@ class Lesson {
     var optional = false;
     var runtime = LessonRuntime.python;
     var layout = LessonLayout.steps;
+    String? feature;
     final sections = <LessonSection>[];
     // Steps left out for a runtime that is not ready, so that a lesson made
     // only of those is empty rather than malformed.
@@ -594,7 +600,15 @@ class Lesson {
               }
               runtime = _readRuntime(meta, 'The lesson') ?? runtime;
               layout = _readLayout(meta) ?? layout;
+              feature = _readFeature(meta) ?? feature;
             } else {
+              // Read by nothing, it would leave the step showing while its
+              // author thinks it is hidden.
+              if (meta.containsKey('feature')) {
+                throw FormatException(
+                  'Section "$sectionTitle" declares a `feature`. Only a lesson or the group it is listed under can.',
+                );
+              }
               // Before the type, which a step for another runtime may name in
               // words this version does not know yet.
               sectionRuntime = _readRuntime(meta, 'Section "$sectionTitle"') ?? runtime;
@@ -717,6 +731,7 @@ class Lesson {
       optional: optional,
       runtime: runtime,
       layout: layout,
+      feature: feature,
       sections: sections,
     );
   }
@@ -830,6 +845,20 @@ class Lesson {
   }
 
   /// The `layout` [meta] declares, or null where it declares none.
+  /// The `feature` toggle [meta] names, or null where it names none. Spelled
+  /// like a group id, which is what a group's toggle is held to as well.
+  static String? _readFeature(YamlMap meta) {
+    final feature = meta['feature'];
+    if (feature == null) return null;
+    if (feature is! String || !RegExp(r'^[a-z0-9-]+$').hasMatch(feature)) {
+      throw const FormatException(
+        'The lesson declares a `feature` that is not a name of lower-case letters, digits and dashes.',
+      );
+    }
+
+    return feature;
+  }
+
   static LessonLayout? _readLayout(YamlMap meta) {
     final layout = meta['layout'];
     if (layout == null) return null;

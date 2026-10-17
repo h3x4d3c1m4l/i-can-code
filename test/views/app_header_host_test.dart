@@ -8,6 +8,7 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
@@ -779,6 +780,46 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Colour vision'), findsOneWidget);
+    });
+
+    testWidgets('lists every feature toggle the course names, and switches it', (tester) async {
+      GetIt.I
+        ..registerSingleton<Course>(
+          const Course(
+            lessons: [
+              CourseLesson(
+                entry: LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
+                translations: {'nl': Lesson(id: 'files', title: 'Files', feature: 'files', sections: [])},
+              ),
+            ],
+          ),
+        )
+        ..registerSingleton<FeatureToggles>(FeatureToggles());
+      final toggles = GetIt.I<FeatureToggles>();
+      await pumpHost(tester);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Off · 1 lesson'), findsOneWidget);
+
+      // Below the fold of a 600px window: the panel scrolls.
+      await tester.ensureVisible(find.text('Turn on'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Turn on'));
+      await tester.pumpAndSettle();
+
+      expect(toggles.isOn('files'), isTrue);
+      expect(find.text('On · 1 lesson'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('All off'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('All off'));
+      await tester.pumpAndSettle();
+
+      expect(toggles.anyOn, isFalse);
     });
 
     testWidgets('picks a simulation and stays open', (tester) async {

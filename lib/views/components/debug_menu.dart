@@ -6,6 +6,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
@@ -100,8 +102,12 @@ class _DebugPanel extends StatelessWidget {
     final seen = tours?.seen ?? const <String>{};
     final mobileWarning = GetIt.I.isRegistered<MobileBrowserWarning>() ? GetIt.I<MobileBrowserWarning>() : null;
     final colorVision = GetIt.I.isRegistered<ColorVisionController>() ? GetIt.I<ColorVisionController>() : null;
+    // Missing on the initialization screen, before the course is read.
+    final course = GetIt.I.isRegistered<Course>() ? GetIt.I<Course>() : null;
+    final toggles = GetIt.I.isRegistered<FeatureToggles>() ? GetIt.I<FeatureToggles>() : null;
 
-    return Padding(
+    // Scrolls once the toggles outgrow a short window.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,6 +153,10 @@ class _DebugPanel extends StatelessWidget {
               child: const Text('Ask again'),
             ),
           ),
+          if (toggles != null) ...[
+            const SizedBox(height: 20),
+            _FeatureToggleRows(course: course, toggles: toggles),
+          ],
           const SizedBox(height: 28),
           Align(
             alignment: Alignment.centerRight,
@@ -156,6 +166,67 @@ class _DebugPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+}
+
+/// Every feature toggle, static or named by the course, each with what it
+/// covers and a way to switch it.
+class _FeatureToggleRows extends StatelessWidget {
+
+  /// Null before the course is read, when only the static toggles are known.
+  final Course? course;
+  final FeatureToggles toggles;
+
+  const _FeatureToggleRows({required this.course, required this.toggles});
+
+  @override
+  Widget build(BuildContext context) {
+    final names = featureToggleNames(course: course);
+
+    return Observer(
+      builder: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 20,
+        children: [
+          _DebugRow(
+            title: 'Feature toggles',
+            status: names.isEmpty
+                ? 'None declared, and the course names none.'
+                : '${names.where(toggles.isOn).length} of ${names.length} on.',
+            control: AppButton(
+              tone: AppButtonTone.neutral,
+              icon: FLucideIcons.eyeOff,
+              // Any toggle that is on, a name nothing uses any more included.
+              onPress: toggles.anyOn ? () => unawaited(toggles.clear()) : null,
+              child: const Text('All off'),
+            ),
+          ),
+          for (final name in names) _buildRow(name),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(String name) {
+    final on = toggles.isOn(name);
+    final declared = kStaticFeatureToggles.where((toggle) => toggle.name == name).firstOrNull;
+    final covered = course?.lessons.where((lesson) => lesson.features.contains(name)).length ?? 0;
+
+    return _DebugRow(
+      title: name,
+      status: [
+        if (on) 'On' else 'Off',
+        ?declared?.description,
+        if (covered > 0) '$covered ${covered == 1 ? 'lesson' : 'lessons'}',
+      ].join(' · '),
+      control: AppButton(
+        tone: on ? AppButtonTone.outline : AppButtonTone.neutral,
+        icon: on ? FLucideIcons.eyeOff : FLucideIcons.eye,
+        onPress: () => unawaited(toggles.set(name, on: !on)),
+        child: Text(on ? 'Turn off' : 'Turn on'),
       ),
     );
   }

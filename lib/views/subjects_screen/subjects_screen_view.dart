@@ -28,7 +28,11 @@ class SubjectsScreenView extends ScreenViewBase<SubjectsScreenViewModel, Subject
   }
 
   Widget _buildContent() {
-    return Builder(
+    // An Observer, because a subject whose every lesson is hidden by a feature
+    // toggle leaves the list.
+    return Observer(
+      // A course that names no toggle reads none, which is normal here.
+      warnWhenNoObservables: false,
       builder: (context) {
         final subjects = viewModel.course.subjects;
 

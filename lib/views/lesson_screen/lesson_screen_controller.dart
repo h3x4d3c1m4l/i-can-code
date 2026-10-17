@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
@@ -280,7 +281,7 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
   /// Lands where opening it from the catalog would: its first unfinished step,
   /// or a project's own screen. The catalog is left under it, so Back still goes there.
   Future<void> openNextLesson() async {
-    final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
+    final next = visibleLessonAfter(viewModel.lesson);
     if (next == null) {
       await openSubject(viewModel.lesson.entry.subject);
       return;

@@ -86,6 +86,9 @@ The catalog sets a small heading over the lessons of a group.
   widest name is cut to an ellipsis first when the window is narrow.
 - A lesson that is `optional: true` is listed under *Verdieping* whatever
   heading the contents file puts it under.
+- **A group may be hidden behind a feature toggle**, named beside its id:
+  `# Week 5 · Bestanden {#week-5 feature=bestanden}`. See
+  [`feature:`](#feature--hidden-until-it-is-switched-on).
 
 ### One contents file per locale
 
@@ -94,7 +97,8 @@ same group ids in the same places, and in each place the same lesson, by its
 `id`. Translations are paired by where they are listed, so `Course.load` refuses
 a subject whose files disagree.
 
-- The headings and the link texts are translated. The ids are not.
+- The headings and the link texts are translated. The ids are not, and
+  neither is a group's `feature`: every contents file names the same one.
 - **A lesson with no translation is linked to in the language it has.**
   `contents.en.md` lists `week-1/00-uitvoer.nl.md`, and an English reader gets
   the Dutch lesson.
@@ -213,7 +217,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime` and `layout`. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime`, `layout` and `feature`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -314,6 +318,43 @@ optional: true
 Its place in the contents file still decides where it sits, now among the other
 *Verdieping* lessons, and which lesson "Volgende les" leads to from the one
 before it.
+
+### `feature:` — hidden until it is switched on
+
+A lesson that names a feature toggle in its document-level `metadata` is not
+listed until that toggle is on. It is how a lesson is written, merged and
+shipped before students see it.
+
+```metadata
+id: bestanden-lezen
+emoji: "📂"
+feature: bestanden
+```
+
+A group can name one too, beside its id in the contents file, and then hides
+itself and every lesson under it:
+
+```markdown
+# Week 5 · Bestanden {#week-5 feature=bestanden}
+```
+
+- **The toggles are switched in the debug menu** (Alt+B, Option+B on a Mac),
+  which lists every name the course uses. There is no list to add a name to: a
+  name is a toggle as soon as a file uses it. A typo is a second toggle, so
+  check the menu after adding one.
+- **A lesson in a hidden group needs both** its group's toggle and its own.
+- **The app has toggles of its own**, for parts of it that are not ready yet,
+  and they share these names. A lesson about such a part names the app's toggle
+  and is hidden with it: `feature: tkinter` goes with the Tkinter environment.
+- **Hidden means not listed, and nothing more.** The catalog, the count on the
+  subject's card and "Volgende les" pass it by. Its address still opens it, and
+  the file is in the build like any other, so this keeps nothing secret.
+- **Spelled like a group id**: lower case, digits and dashes. Anything else is a
+  `FormatException`.
+- **Every translation names the same one**, for a lesson as for a group. A lesson
+  listed in one language and not in the other is refused at load.
+- **Only a lesson or a group.** A `feature` on a step is a `FormatException`
+  rather than a line nothing reads.
 
 ### `runtime:` — what the step's code runs on
 

@@ -74,6 +74,20 @@ void main() {
       );
     });
 
+    test('translations of one lesson that name different feature toggles are refused', () async {
+      expect(
+        () => Course.load(
+          bundle: _CourseBundle({
+            '$_root/contents.en.md': '- [a](a.en.md)\n',
+            '$_root/contents.nl.md': '- [a](a.nl.md)\n',
+            '$_root/a.en.md': _lessonCalled('a').replaceFirst('id: a\n', 'id: a\nfeature: files\n'),
+            '$_root/a.nl.md': _lessonCalled('a'),
+          }),
+        ),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('names the feature'))),
+      );
+    });
+
     test('two locales that list a different lesson in the same place are refused', () async {
       // Translations are paired by position, so a contents file out of step
       // would show one lesson's Dutch under another's English.
@@ -139,6 +153,27 @@ void main() {
       expect(entries[1].group!.titleFor('nl'), 'Week 1 · De basis');
       expect(entries[1].group!.titleFor('en'), 'Week 1 · The basics');
       expect(entries[1].group!.titleFor('de'), 'Week 1 · The basics', reason: 'English, as a lesson falls back');
+    });
+
+    test('a group carries the feature toggle its heading names', () {
+      final entries = Course.entriesFrom({
+        '$_root/contents.nl.md': '# Week 5 {#week-5 feature=files}\n- [A](a.md)\n',
+        '$_root/a.md': '',
+      });
+
+      expect(entries.single.group?.feature, 'files');
+    });
+
+    test('contents files that give one group different feature toggles are refused', () {
+      expect(
+        () => Course.entriesFrom({
+          '$_root/contents.en.md': '# Week 5 {#week-5 feature=files}\n- [A](a.en.md)\n',
+          '$_root/contents.nl.md': '# Week 5 {#week-5}\n- [A](a.nl.md)\n',
+          '$_root/a.en.md': '',
+          '$_root/a.nl.md': '',
+        }),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('different feature'))),
+      );
     });
 
     test('contents files of one subject that differ in shape are refused', () {
@@ -229,6 +264,48 @@ void main() {
     expect(course.subjects, ['javascript', 'python']);
     expect(course.lessonsFor('python').map(idOf), ['lesson-1', 'lesson-2']);
     expect(course.lessonsFor('ruby'), isEmpty);
+  });
+
+  group('feature toggles', () {
+    const files = LessonGroup(id: 'week-5', titles: {'nl': 'Week 5'}, feature: 'files');
+
+    CourseLesson lesson(String id, {LessonGroup? group, String? feature}) => CourseLesson(
+      entry: LessonEntry(subject: 'python', order: 1, group: group, paths: const {'nl': 'x'}),
+      translations: {'nl': Lesson(id: id, title: id, feature: feature, sections: const [])},
+    );
+
+    final course = Course(
+      lessons: [
+        lesson('always'),
+        lesson('own', feature: 'csv'),
+        lesson('grouped', group: files),
+        lesson('both', group: files, feature: 'csv'),
+        lesson('last'),
+      ],
+    );
+
+    List<String> shown(bool Function(String feature) isOn) => course.visibleWith(isOn).lessons.map(idOf).toList();
+
+    test('are every name the course uses, on a lesson or a group, once each and sorted', () {
+      expect(course.features, ['csv', 'files']);
+      expect(courseOf(2).features, isEmpty);
+    });
+
+    test('hide a lesson until its own toggle and its group\'s are both on', () {
+      expect(shown((_) => false), ['always', 'last']);
+      expect(shown((feature) => feature == 'csv'), ['always', 'own', 'last']);
+      expect(shown((feature) => feature == 'files'), ['always', 'grouped', 'last']);
+      expect(shown((_) => true), ['always', 'own', 'grouped', 'both', 'last']);
+    });
+
+    test('are skipped by lessonAfter, which leads on from a hidden lesson too', () {
+      bool none(String _) => false;
+
+      expect(idOf(course.lessonAfter(course.lessons.first, isOn: none)!), 'last');
+      // Opened by its address, a hidden lesson still has a way on.
+      expect(idOf(course.lessonAfter(course.lessons[2], isOn: none)!), 'last');
+      expect(idOf(course.lessonAfter(course.lessons.first)!), 'own', reason: 'without isOn nothing is skipped');
+    });
   });
 
   group('lessonAfter', () {

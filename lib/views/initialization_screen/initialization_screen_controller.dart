@@ -4,6 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/pending_navigation_service.dart';
@@ -53,6 +54,9 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       await GetIt.I<TourStore>().load();
       // And this one: a warning shown twice costs the reader one press.
       await GetIt.I<MobileBrowserWarning>().load();
+      // Before the first catalog, which lists what the toggles let through. A
+      // read that fails leaves every toggle off.
+      await GetIt.I<FeatureToggles>().load();
       if (_disposed) return;
     } on Object catch (error) {
       if (!_disposed) viewModel.setError('$error');

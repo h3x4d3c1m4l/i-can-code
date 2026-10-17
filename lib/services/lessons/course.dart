@@ -15,7 +15,12 @@ class LessonGroup {
   /// The heading by locale code. Never empty.
   final Map<String, String> titles;
 
-  const LessonGroup({required this.id, required this.titles});
+  /// The feature toggle that has to be on for the group and every lesson under
+  /// it to be shown, or null for a group that is always shown. The same in
+  /// every locale.
+  final String? feature;
+
+  const LessonGroup({required this.id, required this.titles, this.feature});
 
   /// The heading in [locale], falling back the way [CourseLesson.forLocale]
   /// does.
@@ -78,6 +83,10 @@ class CourseLesson {
   /// translation exists.
   Lesson forLocale(String locale) =>
       translations[locale] ?? translations['en'] ?? translations.values.first;
+
+  /// Every feature toggle that has to be on for this lesson to be shown: its
+  /// group's and its own. Empty for a lesson that is always shown.
+  Set<String> get features => {?entry.group?.feature, ?translations.values.first.feature};
 
 }
 
@@ -155,6 +164,14 @@ class Course {
             'Every contents file of a subject lists the same lessons in the same order.',
           );
         }
+        // One translation shown and another hidden would put a lesson in the
+        // catalog in one language and not in the other.
+        if (lesson.feature != first.feature) {
+          throw FormatException(
+            '${entry.paths[locale]} names the feature ${lesson.feature ?? 'none'} '
+            'where ${entry.paths.values.first} names ${first.feature ?? 'none'}.',
+          );
+        }
       }
 
       // A lesson whose steps all need a runtime this version cannot run parses
@@ -185,17 +202,29 @@ class Course {
   List<CourseLesson> lessonsFor(String subject) =>
       lessons.where((lesson) => lesson.entry.subject == subject).toList();
 
-  /// The lesson after [lesson] in its own subject, or null when it is the last
-  /// one. Course order is the contents file's, so this follows a reorder there.
+  /// Every feature toggle the course names, on a lesson or on a group, sorted.
+  List<String> get features => (lessons.expand((lesson) => lesson.features).toSet().toList()..sort());
+
+  /// The part of this course [isOn] lets through: the lessons whose every
+  /// feature toggle is on, which includes every lesson that names none.
+  Course visibleWith(bool Function(String feature) isOn) =>
+      Course(lessons: [for (final lesson in lessons) if (lesson.features.every(isOn)) lesson]);
+
+  /// The lesson after [lesson] in its own subject that [isOn] lets through, or
+  /// null when there is none. Course order is the contents file's, so this
+  /// follows a reorder there.
   ///
-  /// Matched on [Lesson.id] rather than on identity, so it still answers for a
-  /// lesson that came from a second parse of the same course.
-  CourseLesson? lessonAfter(CourseLesson lesson) {
+  /// [lesson] itself need not be let through: a hidden lesson opened by its
+  /// address still leads on to the next one that is shown. Matched on
+  /// [Lesson.id] rather than on identity, so it still answers for a lesson that
+  /// came from a second parse of the same course.
+  CourseLesson? lessonAfter(CourseLesson lesson, {bool Function(String feature)? isOn}) {
     final siblings = lessonsFor(lesson.entry.subject);
     final id = lesson.translations.values.first.id;
     final index = siblings.indexWhere((sibling) => sibling.translations.values.first.id == id);
+    if (index == -1) return null;
 
-    return index == -1 || index + 1 == siblings.length ? null : siblings[index + 1];
+    return siblings.skip(index + 1).where((sibling) => isOn == null || sibling.features.every(isOn)).firstOrNull;
   }
 
   /// The lessons [files] hold, as their subjects' contents files list them.
@@ -265,6 +294,12 @@ class Course {
             'than ${contentsPath(firstLocale)} lists "${first.items[index].title}".',
           );
         }
+        if (item.group?.feature != first.items[index].group?.feature) {
+          throw FormatException(
+            '${contentsPath(locale)} gives the group of "${item.title}" a different feature '
+            'than ${contentsPath(firstLocale)} gives it.',
+          );
+        }
       }
     }
 
@@ -288,6 +323,7 @@ class Course {
             null => null,
             final group => groups[group.id] ??= LessonGroup(
               id: group.id,
+              feature: group.feature,
               titles: {
                 for (final MapEntry(key: locale, value: translated) in byLocale.entries)
                   locale: translated.items[index].group!.title,

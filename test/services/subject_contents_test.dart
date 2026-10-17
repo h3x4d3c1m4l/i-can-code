@@ -46,7 +46,21 @@ void main() {
     test('an id may be written with room around it, as mdBook allows', () {
       final contents = SubjectContents.parse('# Week 1 { #week-1 }\n- [A](a.md)\n');
 
-      expect(contents.items.single.group, (id: 'week-1', title: 'Week 1'));
+      expect(contents.items.single.group, (id: 'week-1', title: 'Week 1', feature: null));
+    });
+
+    test('a group may name a feature toggle beside its id', () {
+      final contents = SubjectContents.parse('# Week 5 {#week-5 feature=files}\n- [A](a.md)\n# Week 6 {#week-6}\n- [B](b.md)\n');
+
+      expect(contents.items.map((item) => item.group?.feature), ['files', null]);
+      expect(contents.items.first.group?.id, 'week-5');
+    });
+
+    test('a feature spelled unlike a group id is refused', () {
+      expect(
+        () => SubjectContents.parse('# Week 5 {#week-5 feature=Files}\n- [A](a.md)\n'),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('Line 1'))),
+      );
     });
 
     test('a title may hold brackets of its own', () {

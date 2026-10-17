@@ -651,6 +651,41 @@ void main() {
       );
     });
 
+    test('reads a `feature` toggle off the lesson\'s own metadata', () {
+      final hidden = Lesson.parse(
+        '# T\n\n```metadata\nid: x\nfeature: files\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+      final ordinary = Lesson.parse(
+        '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+      );
+
+      expect(hidden.feature, 'files');
+      expect(ordinary.feature, isNull, reason: 'a lesson is shown unless it names a toggle');
+    });
+
+    test('rejects a `feature` that is not spelled like a group id', () {
+      for (final feature in ['Files', 'two words', '42', '[files]']) {
+        expect(
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\nfeature: $feature\n```\n\n'
+            '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+          ),
+          throwsA(isA<FormatException>()),
+          reason: feature,
+        );
+      }
+    });
+
+    test('rejects a `feature` on a step, which nothing would read', () {
+      expect(
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n'
+          '## S\n\n```metadata\ntype: info\nid: s\nfeature: files\n```\n\nprose\n',
+        ),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('Only a lesson or the group'))),
+      );
+    });
+
     test('rejects a lesson `optional` that is not a boolean', () {
       expect(
         () => Lesson.parse(

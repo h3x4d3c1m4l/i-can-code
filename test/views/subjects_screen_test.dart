@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -36,6 +37,7 @@ void main() {
           ],
         ),
       )
+      ..registerSingleton<FeatureToggles>(FeatureToggles())
       ..registerSingleton<ProgressStore>(ProgressStore());
   });
 
@@ -65,5 +67,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('0 / 2'), findsOneWidget, reason: 'a reset has to reach the card');
+  });
+
+  testWidgets('a lesson behind a feature toggle counts once the toggle is on', (tester) async {
+    final course = GetIt.I<Course>();
+    await GetIt.I.unregister<Course>();
+    GetIt.I.registerSingleton<Course>(
+      Course(
+        lessons: [
+          course.lessons.first,
+          CourseLesson(
+            entry: course.lessons.last.entry,
+            translations: {
+              'nl': const Lesson(
+                id: 'again',
+                title: 'again',
+                feature: 'files',
+                sections: [LessonSection(id: 'a', title: 'A', kind: SectionKind.info, prose: '')],
+              ),
+            },
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      FTheme(
+        data: buildAppTheme(),
+        child: Localizations(
+          locale: const Locale('nl'),
+          delegates: AppLocalizations.localizationsDelegates,
+          child: const Directionality(
+            textDirection: TextDirection.ltr,
+            child: MediaQuery(data: MediaQueryData(size: Size(1200, 900)), child: SubjectsScreen()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0 / 1'), findsOneWidget);
+
+    await GetIt.I<FeatureToggles>().set('files', on: true);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('0 / 2'), findsOneWidget);
   });
 }

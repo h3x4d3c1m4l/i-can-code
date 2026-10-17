@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
@@ -105,7 +106,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   }
 
   /// The lesson after this one in its subject, or null on the last one.
-  CourseLesson? get nextLesson => GetIt.I<Course>().lessonAfter(lesson);
+  CourseLesson? get nextLesson => visibleLessonAfter(lesson);
 
   @action
   void noteFlashed() => _flashedHere = true;

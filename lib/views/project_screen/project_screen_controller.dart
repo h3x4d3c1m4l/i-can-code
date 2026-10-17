@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
@@ -120,7 +121,7 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
 
   /// Opens the lesson after this one, the way [LessonScreenController] does.
   Future<void> openNextLesson() async {
-    final next = GetIt.I<Course>().lessonAfter(viewModel.lesson);
+    final next = visibleLessonAfter(viewModel.lesson);
     if (next == null) return openSubject();
     if (_disposed || !contextAccessor.buildContext.mounted) return;
 

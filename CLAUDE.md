@@ -167,15 +167,35 @@ Rules it keeps:
 
 **Alt+B** (Option+B on a Mac) opens `DebugMenu`, **in release builds too**, so a simulation can be shown on the deployed site. The app is open source, so the key hides nothing. In a debug build the cog offers it as well, through `DebugMenu.opener`. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". **Alt and no other modifier**: ⌘⌥B is Chrome's bookmark manager on a Mac, and Alt+Shift+B moves to the bookmarks bar in Chrome and Edge. Firefox on Windows and Linux uses Alt+B as a menu access key (Bookmarks in English, *Bestand* in Dutch), and skips it because the page has already handled it.
 
-It offers three things:
+It offers four things:
 
 - "Colour vision" draws the whole window as protanopia, deuteranopia, tritanopia or achromatopsia (see below).
 - "Show tips again" clears `TourStore`. The current screen then offers its introduction again right away.
 - "Ask again" clears `MobileBrowserWarning`, which shows at the next start and only in a mobile browser.
+- "Feature toggles" switches each toggle the course names, and all of them off at once (see *Feature toggles*).
 
-Put new developer tools here too, each as a `_DebugRow` of one line, so the dialog still fits a short window. Its text is not localized: a student only meets it by knowing the key.
+Put new developer tools here too, each as a `_DebugRow` of one line. The panel scrolls, because the toggles are as many as the course names. Its text is not localized: a student only meets it by knowing the key.
 
 **The colour vision simulation is `ColorVisionFilter`** (`lib/views/components/`), around `AppHeaderHost` in the shell, so the bar, the dialogs and the introduction are drawn with it too. The three dichromacies are Machado et al.'s matrices at full severity. They work on linear RGB, so they sit between `ColorFilter.srgbToLinearGamma` and `linearToSrgbGamma`. Achromatopsia is Rec. 709 luminance. `ColorVisionController` holds the choice and does not persist it, so a reload draws the real colours. The filter is a render object that pushes its layers only while a simulation is on, **not a `ColorFiltered` put in and taken out**: changing the shape of the tree rebuilds everything under it, the router's pages and the debug dialog the simulation was picked in included. Off, it composites nothing, which is what a release build gets.
+
+### Feature toggles
+
+**There are two kinds, and they share one set of names.**
+
+- **Dynamic** toggles are named by the course: `feature:` in a lesson's document-level metadata, `{#week-5 feature=bestanden}` on a group's heading in the contents file. `docs/lesson-format.md` is the author-facing spec. There is no list of them in the app; `Course.features` is whatever the files use.
+- **Static** toggles are declared in code, for a part of the app that is not ready to be shown: a `StaticFeatureToggle` in `kStaticFeatureToggles` (`lib/services/feature_toggles.dart`), and a `FeatureGate` (`lib/views/components/`) around what it hides. The list is empty until a feature needs one. The Tkinter environment is the first one planned.
+
+One set of names means one switch: a static `tkinter` and a lesson that says `feature: tkinter` are hidden and shown together. The debug menu offers both kinds in one list, `featureToggleNames`. Every toggle is off until it is switched on, in debug builds too.
+
+`FeatureToggles` (`lib/services/`) holds which are on. It is persisted per browser under `features.enabled`, swallows its failures like `TourStore`, and is loaded by the initialization screen, before the first catalog. Clearing progress does not clear it.
+
+Things that are easy to get wrong:
+
+- **`Course` keeps every lesson.** A toggle changes while the app runs, so nothing is dropped at parse time the way a step for an unready `runtime` is. What is shown is derived: `visibleCourse` for the subject picker and the catalog, `visibleLessonAfter` for "Volgende les". Both read the toggles, so an `Observer` that calls them follows a switch in the debug menu. That is why the outer builders of both screens are `Observer`s, with `warnWhenNoObservables: false`: a course that names no toggle reads none.
+- **A `FeatureGate` does not build what it hides**, and nothing guards a route yet. A screen behind a static toggle is still reached by its address, as a hidden lesson is.
+- **Hidden is not listed, and nothing more.** An address still opens a hidden lesson, and from there "Volgende les" leads to the next lesson that is shown. Progress and drafts load from the whole course, so a lesson that comes back brings its ticks.
+- **Both translations must agree**, a lesson's `feature` as much as its `id`, and every contents file must give a group the same one. `Course.fromFiles` refuses a mismatch, because one language would list a lesson the other hides.
+- **A `feature` on a step is refused**, like `group` on a lesson, so it cannot sit in a file doing nothing.
 
 ### Motion
 

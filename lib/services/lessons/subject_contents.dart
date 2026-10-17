@@ -1,8 +1,9 @@
 // Imports nothing from Flutter, for the reason `includes.dart` gives.
 
-/// A group as one contents file states it: the id every locale shares, and the
-/// heading in that file's own language.
-typedef ContentsGroup = ({String id, String title});
+/// A group as one contents file states it: the id every locale shares, the
+/// heading in that file's own language, and the feature toggle that has to be
+/// on for the group to be shown, if any.
+typedef ContentsGroup = ({String id, String title, String? feature});
 
 /// One lesson a contents file lists.
 class ContentsItem {
@@ -34,9 +35,12 @@ class SubjectContents {
 
   static final RegExp _heading = RegExp(r'^(#+)\s+(.*)$');
 
-  /// A heading's text and the `{#id}` it ends in. mdBook's heading attribute:
-  /// https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes
-  static final RegExp _groupId = RegExp(r'^(.*?)\s*\{\s*#([a-z0-9-]+)\s*\}$');
+  /// A heading's text and the `{#id}` it ends in, which MAY name a feature
+  /// toggle beside the id: `{#week-5 feature=files}`. mdBook's heading
+  /// attributes: https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes
+  static final RegExp _groupId = RegExp(
+    r'^(.*?)\s*\{\s*#([a-z0-9-]+)(?:\s+feature=([a-z0-9-]+))?\s*\}$',
+  );
 
   static final RegExp _separator = RegExp(r'^-{3,}$');
   static final RegExp _item = RegExp(r'^[-*]\s+\[(.+)\]\(([^()\s]*)\)$');
@@ -80,12 +84,12 @@ class SubjectContents {
 
         final named = _groupId.firstMatch(heading.group(2)!);
         if (named == null || named.group(1)!.isEmpty) {
-          fail('a group needs a title and an id: `# Week 1 {#week-1}`.');
+          fail('a group needs a title and an id, and may name a feature: `# Week 1 {#week-1 feature=files}`.');
         }
         final id = named.group(2)!;
         if (!groups.add(id)) fail('the group id "$id" is used twice.');
 
-        group = (id: id, title: named.group(1)!);
+        group = (id: id, title: named.group(1)!, feature: named.group(3));
         continue;
       }
 

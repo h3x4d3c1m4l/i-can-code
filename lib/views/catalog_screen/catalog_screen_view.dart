@@ -235,7 +235,11 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
   }
 
   Widget _buildContent() {
-    return Builder(
+    // An Observer, so a feature toggle switched in the debug menu adds or takes
+    // away lessons under it.
+    return Observer(
+      // A course that names no toggle reads none, which is normal here.
+      warnWhenNoObservables: false,
       builder: (context) {
         final locale = Localizations.localeOf(context).languageCode;
         // Read off the locale on screen, the way every other field of a lesson

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -117,6 +118,7 @@ void main() {
           ],
         ),
       )
+      ..registerSingleton<FeatureToggles>(FeatureToggles())
       ..registerSingleton<ProgressStore>(ProgressStore());
   });
 
@@ -136,6 +138,43 @@ void main() {
     // The rows are built during layout, where the screen's own build is no
     // longer listening.
     expect(find.textContaining('1 / 2'), findsNothing, reason: 'a reset has to reach the card');
+  });
+
+  testWidgets('a lesson or a week behind a feature toggle is listed once the toggle is on', (tester) async {
+    CourseLesson lesson(int order, LessonGroup group, {String? feature}) => CourseLesson(
+      entry: LessonEntry(subject: 'python', group: group, order: order, paths: const {'nl': 'x'}),
+      translations: {
+        'nl': Lesson(
+          id: 'lesson-$order',
+          title: 'lesson-$order',
+          feature: feature,
+          sections: const [LessonSection(id: 'a', title: 'A', kind: SectionKind.info, prose: '')],
+        ),
+      },
+    );
+    const week1 = LessonGroup(id: 'week-1', titles: {'nl': 'Week 1'});
+    const week2 = LessonGroup(id: 'week-2', titles: {'nl': 'Week 2'}, feature: 'files');
+    await GetIt.I.unregister<Course>();
+    GetIt.I.registerSingleton<Course>(
+      Course(lessons: [lesson(1, week1), lesson(2, week1, feature: 'csv'), lesson(3, week2)]),
+    );
+    final toggles = GetIt.I<FeatureToggles>();
+
+    await tester.pumpWidget(_catalog());
+    await tester.pumpAndSettle();
+
+    expect(find.text('lesson-1', skipOffstage: false), findsOneWidget);
+    expect(find.text('lesson-2', skipOffstage: false), findsNothing);
+    expect(_heading('WEEK 2'), findsNothing, reason: 'a week whose toggle is off goes with its lessons');
+
+    // Switched while the catalog is open, as the debug menu over it does.
+    await toggles.set('csv', on: true);
+    await toggles.set('files', on: true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('lesson-2', skipOffstage: false), findsOneWidget);
+    expect(_heading('WEEK 2'), findsOneWidget);
+    expect(find.text('lesson-3', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('a week\'s heading sticks under the bar while its lessons pass, then gives way', (tester) async {
