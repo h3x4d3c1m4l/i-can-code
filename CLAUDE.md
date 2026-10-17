@@ -167,11 +167,12 @@ Rules it keeps:
 
 **Alt+B** (Option+B on a Mac) opens `DebugMenu`, **in release builds too**, so a simulation can be shown on the deployed site. The app is open source, so the key hides nothing. In a debug build the cog offers it as well, through `DebugMenu.opener`. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". **Alt and no other modifier**: ⌘⌥B is Chrome's bookmark manager on a Mac, and Alt+Shift+B moves to the bookmarks bar in Chrome and Edge. Firefox on Windows and Linux uses Alt+B as a menu access key (Bookmarks in English, *Bestand* in Dutch), and skips it because the page has already handled it.
 
-It offers four things:
+It offers five things:
 
 - "Colour vision" draws the whole window as protanopia, deuteranopia, tritanopia or achromatopsia (see below).
 - "Show tips again" clears `TourStore`. The current screen then offers its introduction again right away.
 - "Ask again" clears `MobileBrowserWarning`, which shows at the next start and only in a mobile browser.
+- "Throw test error" throws an error nothing catches, only in a build that reports errors (see *Error reporting*).
 - "Feature toggles" switches each toggle the course names, and all of them off at once (see *Feature toggles*).
 
 Put new developer tools here too, each as a `_DebugRow` of one line. The panel scrolls, because the toggles are as many as the course names. Its text is not localized: a student only meets it by knowing the key.
@@ -460,7 +461,7 @@ They cover three different windows and are not interchangeable:
 
 ### What a cold start downloads
 
-A cold start is about twenty requests, all to the app's own origin: the entrypoint, CanvasKit, eight fonts and the course. Four things keep it there, and each undoes something Flutter does by default.
+A cold start is about twenty requests, all to the app's own origin: the entrypoint, CanvasKit, eight fonts and the course. Four things keep it there, and each undoes something Flutter does by default. A build that reports errors makes one more, to Sentry's CDN (see *Error reporting*).
 
 - **The course is one file.** `assets/course.json` holds every lesson file's text by path, with every `{{#include}}` already resolved. It is written during the build by `bin/bundle_lessons.dart`, an asset transformer declared on that asset in `pubspec.yaml`; the committed file is a placeholder holding `{}`. A transformer takes one asset and gives one back, so this one ignores its input and reads `assets/lessons/` instead. It writes a depfile beside its output naming every file it read, the included ones too, which is what makes Flutter run it again when one of them changes. That depfile is read by `asset_transformer.dart` in flutter_tools and is in no documentation. It runs under `flutter build`, `flutter run` and `flutter test` alike.
 - **forui's Inter is taken out of the build.** forui bundles it, `buildAppTheme()` replaces both of forui's typefaces, and the engine downloads every font in the manifest whether anything draws with it or not. Flutter has no switch for a package's font, so `tool/finish_web_build.dart` removes it from `FontManifest.json` after the build. `flutter run` still loads it.
@@ -481,6 +482,27 @@ A cold start is about twenty requests, all to the app's own origin: the entrypoi
 `StartupProgress` (`lib/services/startup_progress/`) is the app's view of that count, a stub where no page is counting. `LoadingOverlay.progress` hands it to `ProgressRing`, which is the same ring drawn by Flutter: forui has a spinner and a determinate bar, and no ring that carries a value. Almost all of the download happens before the app exists, since the engine loads the fonts before `main()` runs, so the initialization screen only ever shows the last few percent.
 
 To see it, `just build`, `just serve-build`, and throttle the network in the browser. `serve-build` is `tool/serve_web_build.dart`, which sends the two isolation headers itself, as the `flutter run` configurations do. A plain static server leaves isolation to the service worker, and a hard reload skips a service worker, as does DevTools' "Disable cache" some of the time, so the console would come up saying it cannot run.
+
+### Error reporting
+
+**Sentry, and only in a build that was given a DSN.** `--dart-define=SENTRY_DSN=...` turns it on, and only the course repository's deploy passes one, from its `SENTRY_DSN` secret. `flutter run`, the tests and the GitHub Pages copy have none, so they never load the SDK and send nothing. `kReportsErrors` (`lib/services/error_reporting.dart`) is the switch, and everything Sentry adds goes through that file: the zone around `main()`, the `SentryWidget` around the app and the router's navigator observer.
+
+**On the web, `sentry_flutter` is a front for Sentry's JavaScript SDK.** Every event is handed to it (`JavascriptTransport`), and the package injects it as a `<script>` from `browser.sentry-cdn.com` at every start. That is the one request a cold start makes outside the app's own origin, and it was accepted knowingly:
+
+- **It cannot be bundled.** The URL is a constant in the package. Turning the injection off (`autoInitializeNativeSdk = false`) leaves the transport in place with no SDK under it, and events are then dropped without a word.
+- **It loads under `require-corp`**, because the loader asks with `crossorigin="anonymous"` and the CDN answers with `Access-Control-Allow-Origin: *`. SRI pins its contents.
+- **The first frame waits for it for at most three seconds** (`_sdkWaitLimit`). The loader has no timeout, so a network that drops the request would otherwise hold the app on its splash screen. An app that started without it reports nothing until it arrives, and tracks no session for that visit: the navigator observer is built before the session integration has started.
+- **Ad blockers block it**, and the ingest too, so Sentry's counts are a floor.
+
+**The binding is created inside Sentry's zone**, which is why `main()` hands its whole body to `runReportingErrors`. Created before it, in the root zone, Flutter reports a zone mismatch on the web.
+
+**It collects errors and sessions, and nothing else.** No tracing: a transaction per screen would send every student's route through the course. `sendDefaultPii` stays off, so the SDK attaches no user and no IP address; whether Sentry stores the address a request came from is a project setting. Breadcrumbs do carry route arguments (lesson and step ids) and the text of what was tapped, which on a lesson can be the lesson's own words. Session Replay does not exist for Flutter web.
+
+**Readable stack traces need the source maps.** The course repository's deploy builds with `--source-maps` and runs `sentry_dart_plugin`, configured by the `sentry:` block in `pubspec.yaml`, **before** `tool/finish_web_build.dart`: the plugin writes a debug ID into `main.dart.js`, which changes its size, and the finish step measures the files. The maps are deleted from the build after the upload. The plugin needs that repository's `SENTRY_AUTH_TOKEN` secret and its `SENTRY_ORG` and `SENTRY_PROJECT` variables. Without them the deploy goes on with a warning, and it goes on when the upload fails too, because a lesson fix should not wait on Sentry.
+
+**A panic in the Rust core arrives as two events.** The wasm is built with `panic_abort`, so a panic never reaches Dart as the `PanicException` flutter_rust_bridge documents: the instance traps, the call it was in never answers, and the JavaScript SDK reports the trap as `RuntimeError: unreachable` with nothing but wasm offsets. `rust/src/panic_report.rs` wraps the panic hook and sends the message and its location on the `core_panics` stream, from whichever thread panicked. `WebMicrobitLink` listens from the moment it loads the core, and `reportCorePanic` makes a `RustPanic` event of it, one issue per panic site, with the app's breadcrumbs. The trap event stays, because a trap that is not a panic leaves nothing else.
+
+**The release is `i_can_code@<version>+<build>` on both sides, and nothing states it.** The SDK reads it from `version.json` and the plugin from `pubspec.yaml`. Two deploys of one version share a release; the debug ID is what ties an error to the map of the build that threw it.
 
 ### Mobile browsers
 

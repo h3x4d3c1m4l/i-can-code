@@ -41,6 +41,7 @@ dependencies:
   xterm: 4.0.0
   flutter_rust_bridge: 2.13.0
   url_launcher: 6.3.3
+  sentry_flutter: 10.1.0
 
 dev_dependencies:
   shared_preferences_platform_interface: 2.4.2
@@ -113,3 +114,27 @@ flutter:
           weight: 400
         - asset: assets/fonts/JetBrainsMonoNL-500.ttf
           weight: 500
+
+# Read by sentry_dart_plugin, which the course repository's deploy runs after
+# `flutter build web --source-maps`. The token, org and project come from that
+# workflow's environment; see "Error reporting" in CLAUDE.md.
+sentry:
+  upload_source_maps: true
+  # A web build has no native debug files. Left on, the plugin scans the whole
+  # checkout for them, Rust's target directory included.
+  upload_debug_symbols: false
+  # `auto` fails the upload unless the Sentry organisation is linked to this
+  # repository.
+  commits: false
+  # Only main.dart.js has a source map. Everything else would be uploaded for
+  # nothing and have a debug ID written into it, the vendored service worker
+  # included. No `*/**`: the plugin also matches each pattern against the
+  # file's path from the checkout, build/web/main.dart.js, which that matches.
+  ignore_web_source_paths:
+    - canvaskit/**
+    - pkg/**
+    - python/**
+    - flutter.js
+    - flutter_bootstrap.js
+    - flutter_service_worker.js
+    - coi-serviceworker.js

@@ -6,6 +6,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
@@ -151,6 +152,18 @@ class _DebugPanel extends StatelessWidget {
                       Navigator.of(context).pop();
                     },
               child: const Text('Ask again'),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _DebugRow(
+            title: 'Error reporting',
+            status: kReportsErrors ? 'On: errors go to Sentry.' : 'Off: this build was given no Sentry DSN.',
+            control: AppButton(
+              tone: AppButtonTone.neutral,
+              icon: FLucideIcons.bug,
+              // Uncaught on purpose, so it takes the path a real error takes.
+              onPress: kReportsErrors ? () => throw StateError('Test error from the debug menu.') : null,
+              child: const Text('Throw test error'),
             ),
           ),
           if (toggles != null) ...[

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/microbit/microbit_firmware.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/services/microbit/microbit_usb_web.dart';
+import 'package:i_can_code/src/rust/api/diagnostics.dart' as core_diagnostics;
 import 'package:i_can_code/src/rust/api/microbit.dart' as core;
 import 'package:i_can_code/src/rust/api/types.dart' as core_types;
 import 'package:i_can_code/src/rust/frb_generated.dart';
@@ -251,7 +253,7 @@ class WebMicrobitLink implements MicrobitLink {
   /// shared. A failed one is dropped: flutter_rust_bridge only marks itself
   /// initialized once the wasm has loaded, so a retry is allowed.
   Future<void> _ensureStarted() async {
-    final starting = _starting ??= RustLib.init();
+    final starting = _starting ??= _start();
 
     try {
       await starting;
@@ -259,6 +261,14 @@ class WebMicrobitLink implements MicrobitLink {
       _starting = null;
       rethrow;
     }
+  }
+
+  static Future<void> _start() async {
+    await RustLib.init();
+
+    // Never cancelled: the core lives as long as the page. A panic traps the
+    // wasm instead of throwing into Dart, so this is the only way its text gets out.
+    core_diagnostics.corePanics().listen((panic) => reportCorePanic(panic.message, location: panic.location));
   }
 
   @override

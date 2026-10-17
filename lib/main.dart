@@ -5,6 +5,7 @@ import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/color_vision_controller.dart';
+import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/licenses/bundled_licenses.dart';
 import 'package:i_can_code/services/locale_controller.dart';
@@ -18,7 +19,7 @@ import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/services/tour_store.dart';
 
-Future<void> main() async {
+Future<void> main() => runReportingErrors(() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServices();
 
@@ -35,8 +36,8 @@ Future<void> main() async {
     loadPackageInfo(),
   ]);
 
-  runApp(const ICanCodeApp());
-}
+  runApp(withErrorReporting(const ICanCodeApp()));
+});
 
 /// Registers the app-wide singletons before the widget tree is built.
 ///

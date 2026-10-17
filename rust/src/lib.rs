@@ -6,6 +6,7 @@ pub mod device;
 pub mod flash;
 mod frb_generated;
 pub mod hex;
+pub mod panic_report;
 pub mod platform;
 pub mod session;
 pub mod transport;

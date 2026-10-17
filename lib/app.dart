@@ -5,6 +5,7 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
@@ -37,7 +38,7 @@ class _ICanCodeAppState extends State<ICanCodeApp> {
         title: 'I Can Code',
         color: buildAppTheme().colors.primary,
         locale: GetIt.I<LocaleController>().locale,
-        routerConfig: _router.config(),
+        routerConfig: _router.config(navigatorObservers: errorReportingObservers),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

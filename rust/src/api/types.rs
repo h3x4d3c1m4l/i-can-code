@@ -146,3 +146,12 @@ pub enum MicrobitEvent {
         message: String,
     },
 }
+
+/// A panic anywhere in the core, as the panic hook saw it.
+pub struct CorePanic {
+    /// What was passed to `panic!`, or a placeholder when that was not text.
+    pub message: String,
+    /// `file:line:column` of the panic, as the compiler recorded it: relative for
+    /// this crate, absolute for a dependency.
+    pub location: Option<String>,
+}
