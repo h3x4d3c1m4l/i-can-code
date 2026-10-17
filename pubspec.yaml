@@ -2,7 +2,7 @@ name: i_can_code
 description: "I Can Code - learn to code, in the browser."
 publish_to: 'none'
 
-version: 0.9.0+1
+version: 0.10.0+1
 
 environment:
   # The package's *language version*, which is what the compiler allows generated
@@ -55,6 +55,7 @@ dev_dependencies:
   freezed: 4.0.1
   json_serializable: 6.14.1
   theme_tailor: 4.0.1
+  sentry_dart_plugin: 3.4.0
 
 flutter:
   uses-material-design: true
