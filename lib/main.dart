@@ -4,6 +4,7 @@ import 'package:i_can_code/app.dart';
 import 'package:i_can_code/app_info.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/color_vision_controller.dart';
 import 'package:i_can_code/services/licenses/bundled_licenses.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
@@ -56,6 +57,7 @@ void setupServices() {
     ..registerSingleton<PendingNavigationService>(PendingNavigationService())
     ..registerSingleton<LocaleController>(LocaleController())
     ..registerSingleton<ThemeModeController>(ThemeModeController())
+    ..registerSingleton<ColorVisionController>(ColorVisionController())
     ..registerSingleton<ProgressStore>(ProgressStore())
     ..registerSingleton<CodeDraftStore>(CodeDraftStore())
     ..registerSingleton<TourStore>(TourStore())

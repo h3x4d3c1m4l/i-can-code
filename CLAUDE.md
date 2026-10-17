@@ -165,7 +165,17 @@ Rules it keeps:
 
 ### Debug menu
 
-**Alt+B** (Option+B on a Mac) opens `DebugMenu` in debug builds. It registers nothing unless `kDebugMode` is set, so release builds do not get it. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". Today it offers "Show tips again", which clears `TourStore`. The current screen then offers its introduction again right away. "Ask again" clears `MobileBrowserWarning`, which shows at the next start and only in a mobile browser. Put new developer tools here too. Its text is not localized because no student ever sees it.
+**Alt+B** (Option+B on a Mac) opens `DebugMenu`, **in release builds too**, so a simulation can be shown on the deployed site. The app is open source, so the key hides nothing. In a debug build the cog offers it as well, through `DebugMenu.opener`. It is a `HardwareKeyboard` handler rather than `Shortcuts`, because on a freshly opened page nothing has focus, and it matches the *physical* B because Option+B types "∫". **Alt and no other modifier**: ⌘⌥B is Chrome's bookmark manager on a Mac, and Alt+Shift+B moves to the bookmarks bar in Chrome and Edge. Firefox on Windows and Linux uses Alt+B as a menu access key (Bookmarks in English, *Bestand* in Dutch), and skips it because the page has already handled it.
+
+It offers three things:
+
+- "Colour vision" draws the whole window as protanopia, deuteranopia, tritanopia or achromatopsia (see below).
+- "Show tips again" clears `TourStore`. The current screen then offers its introduction again right away.
+- "Ask again" clears `MobileBrowserWarning`, which shows at the next start and only in a mobile browser.
+
+Put new developer tools here too, each as a `_DebugRow` of one line, so the dialog still fits a short window. Its text is not localized: a student only meets it by knowing the key.
+
+**The colour vision simulation is `ColorVisionFilter`** (`lib/views/components/`), around `AppHeaderHost` in the shell, so the bar, the dialogs and the introduction are drawn with it too. The three dichromacies are Machado et al.'s matrices at full severity. They work on linear RGB, so they sit between `ColorFilter.srgbToLinearGamma` and `linearToSrgbGamma`. Achromatopsia is Rec. 709 luminance. `ColorVisionController` holds the choice and does not persist it, so a reload draws the real colours. The filter is a render object that pushes its layers only while a simulation is on, **not a `ColorFiltered` put in and taken out**: changing the shape of the tree rebuilds everything under it, the router's pages and the debug dialog the simulation was picked in included. Off, it composites nothing, which is what a release build gets.
 
 ### Motion
 

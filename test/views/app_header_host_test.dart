@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/color_vision_controller.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/locale_controller.dart';
@@ -149,7 +150,8 @@ void main() {
       ..registerSingleton<ThemeModeController>(ThemeModeController())
       ..registerSingleton<ProgressStore>(ProgressStore())
       ..registerSingleton<CodeDraftStore>(CodeDraftStore())
-      ..registerSingleton<TourStore>(TourStore());
+      ..registerSingleton<TourStore>(TourStore())
+      ..registerSingleton<ColorVisionController>(ColorVisionController());
   });
 
   tearDown(GetIt.I.reset);
@@ -742,6 +744,58 @@ void main() {
 
       expect(find.text('Debug'), findsNothing);
       expect(find.text(showBarTip), findsOneWidget);
+    });
+  });
+
+  group('the debug menu', () {
+    Future<void> pumpHost(WidgetTester tester) async {
+      final screen = ValueNotifier<Widget>(_screen(crumbs: const [AppCrumb('Python')]));
+      addTearDown(screen.dispose);
+      await tester.pumpWidget(_host(screen));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('leaves Alt+B with another modifier to the browser', (tester) async {
+      await pumpHost(tester);
+
+      // Alt+Shift+B moves to the bookmarks bar in Chrome and Edge.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Colour vision'), findsNothing);
+    });
+
+    testWidgets('opens from the cog in a debug build', (tester) async {
+      await pumpHost(tester);
+
+      await tester.tap(find.byType(SettingsMenu));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Debug'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Colour vision'), findsOneWidget);
+    });
+
+    testWidgets('picks a simulation and stays open', (tester) async {
+      await pumpHost(tester);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Normal'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tritanopia'));
+      await tester.pumpAndSettle();
+
+      expect(GetIt.I<ColorVisionController>().deficiency, ColorVisionDeficiency.tritanopia);
+      expect(find.text('Colour vision'), findsOneWidget);
+      expect(find.text('Tritanopia'), findsOneWidget, reason: 'the menu has closed, and the button says what is on');
     });
   });
 }

@@ -9,6 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
+import 'package:i_can_code/services/color_vision_controller.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
@@ -107,6 +108,7 @@ void main() {
       ..registerSingleton<PendingNavigationService>(PendingNavigationService())
       ..registerSingleton<LocaleController>(LocaleController())
       ..registerSingleton<ThemeModeController>(ThemeModeController())
+      ..registerSingleton<ColorVisionController>(ColorVisionController())
       ..registerSingleton<ProgressStore>(ProgressStore())
       ..registerSingleton<CodeDraftStore>(CodeDraftStore())
       ..registerSingleton<TourStore>(TourStore())

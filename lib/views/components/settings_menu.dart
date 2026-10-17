@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
@@ -13,6 +14,7 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/debug_menu.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 
 /// The cog in the header. Holds the language choice and anything else that
@@ -45,6 +47,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     final themes = GetIt.I<ThemeModeController>();
     final progress = GetIt.I<ProgressStore>();
     final drafts = GetIt.I<CodeDraftStore>();
+    final openDebugMenu = kDebugMode ? DebugMenu.opener(context) : null;
 
     return Observer(
       builder: (context) => FPopoverMenu(
@@ -123,6 +126,19 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
               ),
             ],
           ),
+          if (openDebugMenu != null)
+            FItemGroup(
+              children: [
+                FItem(
+                  title: const Text('Debug'),
+                  prefix: const Icon(FLucideIcons.bug),
+                  onPress: () {
+                    unawaited(_controller.hide());
+                    openDebugMenu();
+                  },
+                ),
+              ],
+            ),
         ],
         child: HeaderIconButton(
           icon: FLucideIcons.settings,

@@ -9,6 +9,7 @@ import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
+import 'package:i_can_code/views/components/color_vision_filter.dart';
 
 /// The app shell.
 ///
@@ -75,8 +76,9 @@ class _ThemedBody extends StatelessWidget {
           data: buildAppTheme(brightness: brightness),
           // The bar sits above the router rather than inside each screen, so
           // navigating cannot take it with it. Screens fill it through
-          // AppHeaderPublisher.
-          child: AppHeaderHost(child: child ?? const SizedBox.shrink()),
+          // AppHeaderPublisher. The filter goes round the host and not the
+          // router, so the bar, the dialogs and the introduction are simulated too.
+          child: ColorVisionFilter(child: AppHeaderHost(child: child ?? const SizedBox.shrink())),
         );
       },
     );
