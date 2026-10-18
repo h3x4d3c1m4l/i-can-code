@@ -93,7 +93,8 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
                 ),
             ],
           ),
-          // Its one setting is about the Tkinter page.
+          // Its one setting is about the machine behind the Tkinter page, which a
+          // project on `runtime: tkinter` runs on too.
           if (tkinterShown)
             FItemGroup(
               children: [

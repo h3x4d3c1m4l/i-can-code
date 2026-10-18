@@ -366,7 +366,10 @@
   "tkinterScreen_incompatibleBody": "Laad de pagina opnieuw, dan krijg je de versie die erbij hoort.",
   "tkinterScreen_brokenTitle": "De machine startte niet",
   "tkinterScreen_brokenBody": "Dat ligt niet aan jou. Probeer het nog eens, en laad de pagina opnieuw als dat niet helpt.",
-  "tkinterScreen_replacedTitle": "Een andere Tkinter-pagina heeft de machine overgenomen",
+  "tkinterScreen_replacedTitle": "Een andere pagina heeft de machine overgenomen",
+  "@tkinterScreen_replacedTitle": {
+    "description": "Staat op de Tkinter-pagina en bij een project op de machine, als een andere pagina de machine heeft overgenomen: er draait er maar één per tabblad. Dat kan de Tkinter-pagina zijn of een project, dus de titel noemt geen van beide."
+  },
   "tkinterScreen_replacedBody": "Er draait maar één machine tegelijk. Probeer het opnieuw om hem hier weer te starten.",
   "tkinterScreen_failureDetails": "Technische details",
   "@tkinterScreen_failureDetails": {
@@ -418,6 +421,18 @@
   "resetCode_confirm": "Herstel",
   "projectScreen_done": "Het werkt!",
   "projectScreen_flashFirst": "Zet je code eerst op de micro:bit, dan kun je dit aanklikken.",
+  "projectScreen_showWindowFirst": "Laat je programma eerst een venster tonen, dan kun je dit aanklikken.",
+  "@projectScreen_showWindowFirst": {
+    "description": "Staat naast 'Het werkt!' bij een project dat op de machine in de pagina draait, zolang de knop wacht: die is te gebruiken zodra het programma een venster heeft laten zien sinds deze opdracht openging. Een project op een micro:bit zegt hier projectScreen_flashFirst."
+  },
+  "projectScreen_machineNotIncludedBody": "Tkinter-programma's draaien hier op een kleine computer die met de app wordt meegeleverd, en deze versie is zonder die computer gebouwd. Aan je browser of je internetverbinding ligt het niet.",
+  "@projectScreen_machineNotIncludedBody": {
+    "description": "Staat onder tkinterScreen_notIncludedTitle bij een project dat op de machine draait, in een build zonder het image van de machine. Anders dan tkinterScreen_notIncludedBody zegt het niet dat de lessen gewoon werken: dit project is zelf een les die hier niet werkt."
+  },
+  "projectScreen_machineUnavailableBody": "Tkinter draait hier op een kleine computer die in de pagina wordt nagebootst, en daarvoor is WebAssembly nodig. Deze browser heeft dat niet.",
+  "@projectScreen_machineUnavailableBody": {
+    "description": "Staat onder tkinterScreen_unavailableTitle bij een project dat op de machine draait, in een browser die de machine niet kan draaien. Anders dan tkinterScreen_unavailableBody zegt het niet dat de lessen gewoon werken: dit project is zelf een les die hier niet werkt."
+  },
   "projectScreen_doneWhen": "Klaar als",
   "projectScreen_requires": "Handig om eerst te doen:",
   "projectScreen_requirementFinished": "{lesson}: afgerond",
@@ -508,7 +523,7 @@
   "editorSettingsScreen_subtitle": "Bewaard in deze browser, net als je voortgang.",
   "editorSettingsScreen_advanced": "Geavanceerd",
   "editorSettingsScreen_tkinterSetupTitle": "Code vóór elk Tkinter-programma",
-  "editorSettingsScreen_tkinterSetupBody": "Vensters met Tkinter draait dit vóór je eigen programma, in dezelfde Python. Standaard laat het turtle ongeveer zo snel tekenen als op een gewone computer en krijgt het venster genoeg ruimte. Gaat er iets mis in deze code, dan staat de fout in de uitvoer en draait je programma gewoon.",
+  "editorSettingsScreen_tkinterSetupBody": "Dit draait vóór je eigen programma, in dezelfde Python: op de pagina Vensters met Tkinter en in elk project met vensters. Standaard laat het turtle ongeveer zo snel tekenen als op een gewone computer en krijgt het venster genoeg ruimte. Gaat er iets mis in deze code, dan staat de fout in de uitvoer en draait je programma gewoon.",
   "editorSettingsScreen_statusDefault": "Standaard",
   "editorSettingsScreen_statusChanged": "Aangepast",
   "editorSettingsScreen_back": "Terug",

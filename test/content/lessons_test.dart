@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/includes.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
@@ -110,6 +111,23 @@ void main() {
       }
     });
 
+    test('a project on the machine is hidden with the Tkinter page', () {
+      // Nothing in the app hides it otherwise, so a build without the machine's
+      // image would list a card that opens on "not in this version". Every
+      // translation names the same toggle, which `Course.fromFiles` holds.
+      for (final entry in lessons) {
+        final path = entry.paths.values.first;
+        final lesson = parsed(path);
+        if (!lesson.isProject || lesson.runtime != LessonRuntime.tkinter) continue;
+
+        expect(
+          [lesson.feature, entry.group?.feature],
+          contains(tkinterFeature.name),
+          reason: '${named(path)} runs on the machine; give it, or its group, `feature: ${tkinterFeature.name}`',
+        );
+      }
+    });
+
     test('every translation of a lesson describes the same lesson', () {
       for (final entry in lessons.where((entry) => entry.locales.length > 1)) {
         final first = parsed(entry.paths.values.first);
@@ -197,9 +215,9 @@ void _holdsTheRules(Lesson lesson) {
   expect(lesson.id, isNotEmpty);
   expect(lesson.title, isNotEmpty);
   expect(lesson.emoji, isNotNull, reason: 'every lesson that ships carries an `emoji` for its card');
-  // A lesson for a runtime this version cannot run parses to no steps, and
-  // `Course.load` leaves it out of the catalog.
-  if (lesson.runtime.isReady) expect(lesson.sections, isNotEmpty);
+  // A lesson for a runtime this version cannot run in its layout parses to no
+  // steps, and `Course.load` leaves it out of the catalog.
+  if (lesson.runtime.readyIn(lesson.layout)) expect(lesson.sections, isNotEmpty);
 
   expect(
     lesson.sections.map((s) => s.id),
@@ -299,8 +317,10 @@ void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why})
     first.sections.map((s) => s.files.keys.toList()),
     reason: why,
   );
-  // A project in one language is a project in all of them, and recommends the
-  // same lessons: those are ids, not words.
+  // A project in one language is a project in all of them, on the same runtime
+  // (the project screen reads it off one), and recommends the same lessons:
+  // those are ids, not words.
   expect(lesson.layout, first.layout, reason: why);
+  expect(lesson.runtime, first.runtime, reason: why);
   expect(lesson.sections.map((s) => s.requires), first.sections.map((s) => s.requires), reason: why);
 }

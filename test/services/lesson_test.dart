@@ -113,6 +113,13 @@ void main() {
           throwsA(isA<FormatException>()),
         );
       });
+
+      test('is the machine outside a project, and nothing else', () {
+        expect(LessonRuntime.tkinter.readyIn(LessonLayout.steps), isFalse);
+        expect(LessonRuntime.tkinter.readyIn(LessonLayout.project), isTrue, reason: 'a project runs windows');
+        expect(LessonRuntime.python.readyIn(LessonLayout.steps), isTrue);
+        expect(LessonRuntime.microbit.readyIn(LessonLayout.project), isTrue);
+      });
     });
 
     group('a project', () {
@@ -138,19 +145,53 @@ void main() {
         expect(lesson.sections[1].prose, isNot(contains('done-when')), reason: 'the card is drawn apart');
       });
 
-      test('runs on a micro:bit, and nothing but a project does', () {
-        expect(
-          () => Lesson.parse('# T\n\n```metadata\nid: x\nlayout: project\n```\n\n${task('a')}'),
-          throwsA(isA<FormatException>()),
+      test('may run on the machine, where its steps are kept rather than left out', () {
+        final lesson = Lesson.parse(
+          '# T\n\n```metadata\nid: x\nlayout: project\nruntime: tkinter\n```\n\n'
+          '$info${task('first', blocks: '```python-assignment\nimport tkinter as tk\n```\n\n')}${task('second')}',
         );
+
+        expect(lesson.isProject, isTrue);
+        expect(lesson.runtime, LessonRuntime.tkinter);
+        expect(lesson.sections.map((s) => s.id), ['read', 'first', 'second']);
+        expect(lesson.sections[1].starter, 'import tkinter as tk');
+      });
+
+      test('runs on a micro:bit or on the machine, and on nothing else', () {
+        // Python is the default, so a project that names no runtime is on it.
+        for (final runtime in ['', 'runtime: python\n']) {
+          expect(
+            () => Lesson.parse('# T\n\n```metadata\nid: x\nlayout: project\n$runtime```\n\n${task('a')}'),
+            throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('microbit or tkinter'))),
+            reason: runtime,
+          );
+        }
+      });
+
+      test('is the only lesson that runs on a micro:bit', () {
         expect(
           () => Lesson.parse('# T\n\n```metadata\nid: x\nruntime: microbit\n```\n\n$info'),
-          throwsA(isA<FormatException>()),
+          throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('only a project'))),
         );
         expect(
-          () => Lesson.parse('$head## a\n\n```metadata\nid: a\ntype: info\nruntime: python\n```\n\nprose\n\n${task('b')}'),
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\n```\n\n## a\n\n```metadata\nid: a\ntype: info\nruntime: microbit\n```\n\nprose\n',
+          ),
           throwsA(isA<FormatException>()),
+          reason: 'nor does one step of a lesson that is not a project',
         );
+      });
+
+      test('runs all of its sections on its own runtime, so none may name one', () {
+        for (final runtime in ['microbit', 'python', 'tkinter']) {
+          expect(
+            () => Lesson.parse(
+              '$head## a\n\n```metadata\nid: a\ntype: info\nruntime: $runtime\n```\n\nprose\n\n${task('b')}',
+            ),
+            throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('declares a `runtime`'))),
+            reason: runtime,
+          );
+        }
       });
 
       test('holds tasks and info, and a task belongs to a project only', () {

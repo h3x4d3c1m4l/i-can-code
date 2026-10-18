@@ -636,7 +636,10 @@
   "tkinterScreen_incompatibleBody": "Reload the page to get the version that goes with it.",
   "tkinterScreen_brokenTitle": "The machine did not start",
   "tkinterScreen_brokenBody": "That is not your doing. Try again, and reload the page if that does not help.",
-  "tkinterScreen_replacedTitle": "Another Tkinter page took over the machine",
+  "tkinterScreen_replacedTitle": "Another page took over the machine",
+  "@tkinterScreen_replacedTitle": {
+    "description": "Shown on the Tkinter page and on a project on the machine once another page took the machine over: there is one per browser tab. That page can be the Tkinter page or a project, so the title names neither."
+  },
   "tkinterScreen_replacedBody": "Only one machine runs at a time. Try again to start it here.",
   "tkinterScreen_failureDetails": "Technical details",
   "@tkinterScreen_failureDetails": {
@@ -694,6 +697,18 @@
   "@resetCode_confirm": {},
   "projectScreen_done": "It works!",
   "projectScreen_flashFirst": "Write your code to the micro:bit first, then you can press this.",
+  "projectScreen_showWindowFirst": "Run your program until it shows a window first, then you can press this.",
+  "@projectScreen_showWindowFirst": {
+    "description": "Beside 'It works!' on a project whose program runs on the machine in the page, while the button waits: it becomes pressable once the program has shown a window since this task opened. A project on a micro:bit says projectScreen_flashFirst instead."
+  },
+  "projectScreen_machineNotIncludedBody": "Tkinter programs run here on a small computer that ships with the app, and this version was built without it. It is not your browser or your internet connection.",
+  "@projectScreen_machineNotIncludedBody": {
+    "description": "Under tkinterScreen_notIncludedTitle on a project whose program runs on the machine, in a build without the machine's image. Unlike tkinterScreen_notIncludedBody it does not say the lessons work fine: this project is a lesson that does not work here."
+  },
+  "projectScreen_machineUnavailableBody": "Tkinter runs here on a small computer emulated inside the page, which needs WebAssembly. This browser does not have it.",
+  "@projectScreen_machineUnavailableBody": {
+    "description": "Under tkinterScreen_unavailableTitle on a project whose program runs on the machine, in a browser that cannot run the machine. Unlike tkinterScreen_unavailableBody it does not say the lessons work fine: this project is a lesson that does not work here."
+  },
   "projectScreen_doneWhen": "Done when",
   "projectScreen_requires": "Good to do first:",
   "projectScreen_requirementFinished": "{lesson}: finished",
@@ -838,7 +853,7 @@
     "description": "A small heading over settings most people never need to touch."
   },
   "editorSettingsScreen_tkinterSetupTitle": "Code before every Tkinter program",
-  "editorSettingsScreen_tkinterSetupBody": "Windows with Tkinter runs this before your own program, in the same Python. By default it makes turtle draw about as fast as on an ordinary computer and gives its window enough room. If something goes wrong in this code, its error shows in the output and your program still runs.",
+  "editorSettingsScreen_tkinterSetupBody": "This runs before your own program, in the same Python: on the Windows with Tkinter page and in every project with windows. By default it makes turtle draw about as fast as on an ordinary computer and gives its window enough room. If something goes wrong in this code, its error shows in the output and your program still runs.",
   "editorSettingsScreen_statusDefault": "Default",
   "@editorSettingsScreen_statusDefault": {
     "description": "Top right of the editor: the code is the app's default."

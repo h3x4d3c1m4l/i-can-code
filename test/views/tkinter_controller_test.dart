@@ -7,6 +7,8 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
+import 'package:i_can_code/views/components/vm/vm_session_controller.dart';
+import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_controller.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_view_model.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -24,6 +26,10 @@ void main() {
   late TkinterScreenViewModel viewModel;
   late TkinterScreenController controller;
 
+  /// The page's machine half, where everything about the machine and its runs
+  /// is kept.
+  late VmSessionViewModel session;
+
   FakeVmRuntime runtime() => runtimes.last;
 
   /// A page opened on a machine that is [supported], in a build that ships the
@@ -31,6 +37,7 @@ void main() {
   void open({bool supported = true, bool imageIncluded = true}) {
     final accessor = BuildContextAccessor();
     viewModel = TkinterScreenViewModel(contextAccessor: accessor, subjectSlug: 'learn-python');
+    session = viewModel.machine;
     controller = TkinterScreenController(
       viewModel: viewModel,
       contextAccessor: accessor,
@@ -76,7 +83,7 @@ void main() {
       open();
 
       expect(runtime().loads, 1);
-      expect(viewModel.machine, TkinterMachine.loading);
+      expect(session.machine, TkinterMachine.loading);
       expect(runtime().runs, isEmpty);
     });
 
@@ -85,22 +92,22 @@ void main() {
       runtime().emit(const VmLoadProgress(5000000, 20000000));
       await tester.pump();
 
-      expect(viewModel.loadProgress?.loaded, 5000000);
-      expect(viewModel.loadProgress?.total, 20000000);
+      expect(session.loadProgress?.loaded, 5000000);
+      expect(session.loadProgress?.total, 20000000);
 
       runtime().ready();
       await tester.pump();
 
-      expect(viewModel.machine, TkinterMachine.ready);
-      expect(viewModel.interpreterLabel, 'Python 3.12.12 · Tk 8.6.16');
+      expect(session.machine, TkinterMachine.ready);
+      expect(session.interpreterLabel, 'Python 3.12.12 · Tk 8.6.16');
     });
 
     testPage('a browser that cannot host it downloads nothing and runs nothing', (tester) async {
       open(supported: false);
 
-      expect(viewModel.machine, TkinterMachine.unavailable);
+      expect(session.machine, TkinterMachine.unavailable);
       expect(runtime().loads, 0);
-      expect(viewModel.canRun, isFalse);
+      expect(session.canRun, isFalse);
 
       controller.run();
       expect(runtime().runs, isEmpty);
@@ -109,9 +116,9 @@ void main() {
     testPage('a build without the image downloads nothing, and says so rather than blame the browser', (tester) async {
       open(imageIncluded: false);
 
-      expect(viewModel.machine, TkinterMachine.notIncluded);
+      expect(session.machine, TkinterMachine.notIncluded);
       expect(runtime().loads, 0, reason: 'every download would be a 404');
-      expect(viewModel.canRun, isFalse);
+      expect(session.canRun, isFalse);
 
       controller.run();
       expect(runtime().runs, isEmpty);
@@ -126,15 +133,15 @@ void main() {
         ..end(runtime().lastRunId, const VmExit(reason: VmEndReason.broken, message: 'HTTP 404'))
         ..emit(const VmFailed(VmFailure.network, 'HTTP 404'));
       await tester.pump();
-      expect(viewModel.machine, TkinterMachine.failed);
-      expect(viewModel.notices, isEmpty, reason: 'the failure card says it');
+      expect(session.machine, TkinterMachine.failed);
+      expect(session.notices, isEmpty, reason: 'the failure card says it');
 
-      controller.retry();
+      controller.machine.retry();
       runtime().ready();
       await tester.pump();
 
-      expect(viewModel.machine, TkinterMachine.ready);
-      expect(viewModel.notices, isEmpty, reason: 'nothing has run on the new machine');
+      expect(session.machine, TkinterMachine.ready);
+      expect(session.notices, isEmpty, reason: 'nothing has run on the new machine');
     });
 
     testPage('Retry does not bring back a hint about a run on the machine that failed', (tester) async {
@@ -145,17 +152,17 @@ void main() {
         ..emit(VmRunHint(id, VmHint.tkNoMainloop))
         ..end(id, const VmExit(reason: VmEndReason.exit, code: 0));
       await tester.pump();
-      expect(viewModel.notices, [TkinterNotice.noMainloop]);
+      expect(session.notices, [TkinterNotice.noMainloop]);
 
       // The park after the run failed.
       runtime().emit(const VmFailed(VmFailure.broken, 'The restore failed.'));
       await tester.pump();
-      controller.retry();
+      controller.machine.retry();
       runtime().ready();
       await tester.pump();
 
-      expect(viewModel.notices, isEmpty);
-      expect(viewModel.hints, isEmpty);
+      expect(session.notices, isEmpty);
+      expect(session.hints, isEmpty);
     });
 
     testPage('a byte count that arrives after the failure leaves the failure card and its Retry', (tester) async {
@@ -168,16 +175,16 @@ void main() {
         ..emit(const VmLoadProgress(2097152, 22659783));
       await tester.pump();
 
-      expect(viewModel.machine, TkinterMachine.failed);
-      expect(viewModel.failure, VmFailure.network);
-      expect(viewModel.loadProgress?.loaded, 1000000);
+      expect(session.machine, TkinterMachine.failed);
+      expect(session.failure, VmFailure.network);
+      expect(session.loadProgress?.loaded, 1000000);
 
-      controller.retry();
+      controller.machine.retry();
       runtime().emit(const VmLoadProgress(3000000, 22659783));
       await tester.pump();
 
-      expect(viewModel.machine, TkinterMachine.loading, reason: 'Retry is the one way out of failed');
-      expect(viewModel.loadProgress?.loaded, 3000000);
+      expect(session.machine, TkinterMachine.loading, reason: 'Retry is the one way out of failed');
+      expect(session.loadProgress?.loaded, 3000000);
     });
 
     testPage('a failed machine refuses runs, and Retry builds a new one', (tester) async {
@@ -185,20 +192,20 @@ void main() {
       runtime().emit(const VmFailed(VmFailure.unresponsive, 'No HELLO to READY, twice in a row.'));
       await tester.pump();
 
-      expect(viewModel.machine, TkinterMachine.failed);
-      expect(viewModel.failure, VmFailure.unresponsive);
-      expect(viewModel.failureMessage, contains('HELLO'));
+      expect(session.machine, TkinterMachine.failed);
+      expect(session.failure, VmFailure.unresponsive);
+      expect(session.failureMessage, contains('HELLO'));
 
       controller.run();
       expect(runtime().runs, isEmpty, reason: 'a failed machine cannot take a program');
 
       final failed = runtime();
-      controller.retry();
+      controller.machine.retry();
 
       expect(failed.disposed, isTrue);
       expect(runtimes, hasLength(2));
       expect(runtime().loads, 1);
-      expect(viewModel.machine, TkinterMachine.loading);
+      expect(session.machine, TkinterMachine.loading);
     });
 
     testPage('leaving the page frees the machine', (tester) async {
@@ -214,13 +221,13 @@ void main() {
   group('a run', () {
     testPage('sends what is in the editor as main.py', (tester) async {
       await openReady(tester);
-      viewModel.code.text = 'import tkinter\nprint("hoi")\n';
+      session.code.text = 'import tkinter\nprint("hoi")\n';
 
       controller.run();
 
       expect(runtime().runs.single.program.entry, 'main.py');
       expect(runtime().lastSource, 'import tkinter\nprint("hoi")\n');
-      expect(viewModel.running, isTrue);
+      expect(session.running, isTrue);
     });
 
     testPage('pressed before the machine is ready is handed over at once, to wait for it', (tester) async {
@@ -230,8 +237,8 @@ void main() {
 
       // The runtime queues it; the screen does not hold it back.
       expect(runtime().runs, hasLength(1));
-      expect(viewModel.running, isTrue);
-      expect(viewModel.machine, TkinterMachine.loading);
+      expect(session.running, isTrue);
+      expect(session.machine, TkinterMachine.loading);
     });
 
     testPage('output reaches the screen a few times a second, and all of it at the end', (tester) async {
@@ -243,19 +250,19 @@ void main() {
         ..emit(VmOutput(id, 'een\n', fromStderr: false))
         ..emit(VmOutput(id, 'twee\n', fromStderr: false));
       await tester.pump();
-      expect(viewModel.output, isEmpty, reason: 'batched, not laid out on every batch');
+      expect(session.output, isEmpty, reason: 'batched, not laid out on every batch');
 
-      await tester.pump(TkinterScreenController.outputInterval);
-      expect(viewModel.output, 'een\ntwee\n');
+      await tester.pump(VmSessionController.outputInterval);
+      expect(session.output, 'een\ntwee\n');
 
       runtime()
         ..emit(VmOutput(id, 'drie\n', fromStderr: false))
         ..end(id, const VmExit(reason: VmEndReason.exit, code: 0));
       await tester.pump();
 
-      expect(viewModel.output, 'een\ntwee\ndrie\n', reason: 'the end flushes what is left');
-      expect(viewModel.running, isFalse);
-      expect(viewModel.notices, isEmpty);
+      expect(session.output, 'een\ntwee\ndrie\n', reason: 'the end flushes what is left');
+      expect(session.running, isFalse);
+      expect(session.notices, isEmpty);
     });
 
     testPage('a new run supersedes the old, and nothing of the old lands after it', (tester) async {
@@ -263,7 +270,7 @@ void main() {
       controller.run();
       final first = runtime().lastRunId;
       runtime().emit(VmOutput(first, 'oud\n', fromStderr: false));
-      await tester.pump(TkinterScreenController.outputInterval);
+      await tester.pump(VmSessionController.outputInterval);
 
       controller.run();
       final second = runtime().lastRunId;
@@ -272,13 +279,13 @@ void main() {
         ..emit(VmOutput(first, 'te laat\n', fromStderr: false))
         ..emit(const VmWindows(1, [_root]))
         ..emit(VmOutput(second, 'nieuw\n', fromStderr: false));
-      await tester.pump(TkinterScreenController.outputInterval);
+      await tester.pump(VmSessionController.outputInterval);
 
       expect(second, isNot(first));
-      expect(viewModel.output, 'nieuw\n');
-      expect(viewModel.windows, isEmpty);
-      expect(viewModel.running, isTrue, reason: 'the first run ending is not this one ending');
-      expect(viewModel.exit, isNull);
+      expect(session.output, 'nieuw\n');
+      expect(session.windows, isEmpty);
+      expect(session.running, isTrue, reason: 'the first run ending is not this one ending');
+      expect(session.exit, isNull);
     });
 
     testPage('Stop turns the button back at once, and a stop is no verdict', (tester) async {
@@ -288,21 +295,21 @@ void main() {
       runtime().emit(VmOutput(id, 'bezig\n', fromStderr: false));
       await tester.pump();
 
-      final stopping = controller.stop();
-      expect(viewModel.running, isFalse, reason: 'the page never waits on the guest');
+      final stopping = controller.machine.stop();
+      expect(session.running, isFalse, reason: 'the page never waits on the guest');
       await stopping;
       await tester.pump();
 
       expect(runtime().stops, 1);
-      expect(viewModel.exit?.stopped, isTrue);
-      expect(viewModel.notices, isEmpty);
-      expect(viewModel.output, 'bezig\n', reason: 'what it printed still happened');
+      expect(session.exit?.stopped, isTrue);
+      expect(session.notices, isEmpty);
+      expect(session.output, 'bezig\n', reason: 'what it printed still happened');
     });
 
     testPage('Stop with nothing running asks nothing of the machine', (tester) async {
       await openReady(tester);
 
-      await controller.stop();
+      await controller.machine.stop();
 
       expect(runtime().stops, 0);
     });
@@ -315,10 +322,10 @@ void main() {
       runtime().emit(VmWindows(runtime().lastRunId, const [_root, _dialog]));
       await tester.pump();
 
-      expect(viewModel.framedWindow?.xid, 11);
-      expect(viewModel.labelledWindows.map((window) => window.xid), [12]);
+      expect(session.framedWindow?.xid, 11);
+      expect(session.labelledWindows.map((window) => window.xid), [12]);
 
-      controller.closeWindowById(12);
+      controller.machine.closeWindowById(12);
       expect(runtime().closedWindows, [12]);
     });
 
@@ -333,7 +340,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(viewModel.framedWindow?.title, 'Question');
+      expect(session.framedWindow?.title, 'Question');
     });
 
     testPage('the windows go with the run', (tester) async {
@@ -345,9 +352,9 @@ void main() {
         ..end(id, const VmExit(reason: VmEndReason.exit, code: 0));
       await tester.pump();
 
-      expect(viewModel.windows, isEmpty);
-      expect(viewModel.framedWindow, isNull);
-      expect(viewModel.labelledWindows, isEmpty, reason: 'nothing left to close');
+      expect(session.windows, isEmpty);
+      expect(session.framedWindow, isNull);
+      expect(session.labelledWindows, isEmpty, reason: 'nothing left to close');
     });
   });
 
@@ -391,17 +398,17 @@ void main() {
 
     testPage('the page follows the run\'s windows, and forgets them with it', (tester) async {
       await openReady(tester);
-      expect(viewModel.shownRegion, isNull);
+      expect(session.shownRegion, isNull);
 
       controller.run();
       final id = runtime().lastRunId;
       runtime().emit(VmWindows(id, const [root]));
       await tester.pump();
-      expect(viewModel.shownRegion, const Rect.fromLTWH(0, 0, 237, 113));
+      expect(session.shownRegion, const Rect.fromLTWH(0, 0, 237, 113));
 
       runtime().end(id, const VmExit(reason: VmEndReason.exit, code: 0));
       await tester.pump();
-      expect(viewModel.shownRegion, isNull);
+      expect(session.shownRegion, isNull);
     });
   });
 
@@ -419,7 +426,7 @@ void main() {
       if (noMainloop) runtime().emit(VmRunHint(id, VmHint.tkNoMainloop));
       runtime().end(id, exit);
       await tester.pump();
-      return viewModel.notices;
+      return session.notices;
     }
 
     testPage('a program without mainloop() is told so', (tester) async {
@@ -497,15 +504,15 @@ void main() {
     testPage('output the host cut off is marked incomplete', (tester) async {
       await endWith(tester, const VmExit(reason: VmEndReason.exit, code: 0, truncated: true), output: 'veel\n');
 
-      expect(viewModel.outputIncomplete, isTrue);
+      expect(session.outputIncomplete, isTrue);
     });
 
     testPage('only the end of a long output is shown', (tester) async {
-      final long = List.filled(TkinterScreenViewModelBase.outputShown + 10, 'x').join();
+      final long = List.filled(VmSessionViewModelBase.outputShown + 10, 'x').join();
       await endWith(tester, const VmExit(reason: VmEndReason.exit, code: 0), output: long);
 
-      expect(viewModel.visibleOutput, hasLength(TkinterScreenViewModelBase.outputShown));
-      expect(viewModel.outputIncomplete, isTrue);
+      expect(session.visibleOutput, hasLength(VmSessionViewModelBase.outputShown));
+      expect(session.outputIncomplete, isTrue);
     });
   });
 
@@ -553,17 +560,17 @@ void main() {
 
       open();
 
-      expect(viewModel.code.text, 'print("van de vorige keer")');
+      expect(session.code.text, 'print("van de vorige keer")');
     });
 
     testPage('what is typed is kept after a pause, and on the way out', (tester) async {
       open();
 
-      viewModel.code.text = 'print(1)';
+      session.code.text = 'print(1)';
       await tester.pump(CodeDraftStoreBase.writeDelay);
       expect(await stored(), 'print(1)');
 
-      viewModel.code.text = 'print(2)';
+      session.code.text = 'print(2)';
       controller.dispose();
       await tester.pump();
       expect(await stored(), 'print(2)');
@@ -572,7 +579,7 @@ void main() {
     testPage('Run keeps the program at once', (tester) async {
       await openReady(tester);
 
-      viewModel.code.text = 'print(3)';
+      session.code.text = 'print(3)';
       controller.run();
       await tester.pump();
 
@@ -583,9 +590,132 @@ void main() {
       drafts.keepPage('tkinter.python', 'print(4)');
       open();
 
-      viewModel.code.text = TkinterScreenViewModelBase.sample;
+      session.code.text = TkinterScreenViewModelBase.sample;
 
       expect(drafts.pageCodeFor('tkinter.python'), isNull);
+    });
+  });
+
+  // What a project on the machine waits for before "Het werkt!". The page
+  // asks for none of it, so this drives the session on its own.
+  group('the first window a run shows', () {
+    testWidgets('is reported once per run, only once it is mapped, and never for a run that was superseded', (
+      tester,
+    ) async {
+      final accessor = BuildContextAccessor();
+      final sessionModel = VmSessionViewModel(contextAccessor: accessor, subjectSlug: 'learn-python', program: '');
+      late FakeVmRuntime fake;
+      var shown = 0;
+      final sessionController = VmSessionController(
+        viewModel: sessionModel,
+        contextAccessor: accessor,
+        onWindowShown: () => shown++,
+        createRuntime: () => fake = FakeVmRuntime(),
+        settings: settings,
+        imageIncluded: true,
+      );
+      addTearDown(() {
+        sessionController.dispose();
+        sessionModel.dispose();
+      });
+      fake.ready();
+      await tester.pump();
+
+      sessionController.run();
+      final first = fake.lastRunId;
+      fake.emit(VmWindows(first, const [VmWindow(xid: 11, title: '', mapped: false, isRoot: true)]));
+      await tester.pump();
+      expect(shown, 0, reason: 'a withdrawn window shows nothing');
+
+      fake
+        ..emit(VmWindows(first, const [_root]))
+        ..emit(VmWindows(first, const [_root, _dialog]));
+      await tester.pump();
+      expect(shown, 1);
+
+      sessionController.run();
+      fake.emit(VmWindows(first, const [_root]));
+      await tester.pump();
+      expect(shown, 1, reason: 'the window of the run before is not this one\'s');
+
+      fake.emit(VmWindows(fake.lastRunId, const [_root]));
+      await tester.pump();
+      expect(shown, 2, reason: 'every run shows its own');
+    });
+  });
+
+  // The host keeps one machine per tab, so a screen opened over another takes
+  // the machine from it: a project that opens a task's requirement does.
+  group('the one machine', () {
+    /// A session of a screen of its own, and every runtime it makes.
+    (VmSessionController, VmSessionViewModel, List<FakeVmRuntime>) openSession() {
+      final accessor = BuildContextAccessor();
+      final made = <FakeVmRuntime>[];
+      final sessionModel = VmSessionViewModel(contextAccessor: accessor, subjectSlug: 'learn-python', program: '');
+      final sessionController = VmSessionController(
+        viewModel: sessionModel,
+        contextAccessor: accessor,
+        createRuntime: () {
+          final created = FakeVmRuntime();
+          made.add(created);
+          return created;
+        },
+        settings: settings,
+        imageIncluded: true,
+      );
+      addTearDown(() {
+        sessionController.dispose();
+        sessionModel.dispose();
+      });
+      return (sessionController, sessionModel, made);
+    }
+
+    /// What the host tells a session once a newer one's openVm() destroyed its machine.
+    const replaced = VmFailed(VmFailure.replaced, 'A newer openVm() on this page took over the machine.');
+
+    testWidgets('comes back to the screen under one that leaves, as a new machine', (tester) async {
+      final (_, under, made) = openSession();
+      made.single.ready();
+      await tester.pump();
+
+      final (over, _, _) = openSession();
+      made.single.emit(replaced);
+      await tester.pump();
+      expect(under.machine, TkinterMachine.failed);
+
+      over.dispose();
+
+      expect(made, hasLength(2), reason: 'a new machine, the way Retry builds one');
+      expect(made.first.disposed, isTrue);
+      expect(made.last.loads, 1);
+      expect(under.machine, TkinterMachine.loading);
+    });
+
+    testWidgets('is not built again for a machine that failed of its own accord', (tester) async {
+      final (_, under, made) = openSession();
+      made.single.emit(const VmFailed(VmFailure.network, 'HTTP 404'));
+      await tester.pump();
+
+      final (over, _, _) = openSession();
+      over.dispose();
+
+      expect(made, hasLength(1), reason: 'that failure keeps its card and its Retry');
+      expect(under.failure, VmFailure.network);
+    });
+
+    testWidgets('stays with the newest screen while an older one goes', (tester) async {
+      // A screen that replaces another is built before the old one is disposed.
+      final (older, _, olderMade) = openSession();
+      final (_, newer, newerMade) = openSession();
+      newerMade.single.ready();
+      olderMade.single.emit(replaced);
+      await tester.pump();
+
+      older.dispose();
+      await tester.pump();
+
+      expect(newerMade, hasLength(1));
+      expect(newer.machine, TkinterMachine.ready);
     });
   });
 }

@@ -35,8 +35,9 @@ turtle._CFG["height"] = 500
 
   final SharedPreferencesAsync _preferences;
 
-  /// Python the Tkinter page runs before every program, in the same
-  /// interpreter. The image's prelude runs it from `vmSetupFile`.
+  /// Python the machine runs before every program, in the same interpreter:
+  /// on the Tkinter page and in a project on `runtime: tkinter`. The image's
+  /// prelude runs it from `vmSetupFile`.
   @readonly
   String _tkinterSetup = defaultTkinterSetup;
 

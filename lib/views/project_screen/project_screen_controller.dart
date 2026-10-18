@@ -11,8 +11,13 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
+import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_controller.dart';
+import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
+import 'package:i_can_code/views/components/vm/vm_session_controller.dart';
+import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
 import 'package:i_can_code/views/project_screen/project_screen_view_model.dart';
 
 /// How far a student is with a lesson a task recommends.
@@ -26,8 +31,13 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   final ProgressStore _progress = GetIt.I<ProgressStore>();
   final CodeDraftStore _drafts = GetIt.I<CodeDraftStore>();
 
-  /// The board half of the screen: permission, flashing and the output.
-  late final MicrobitSessionController board;
+  /// The board half of a micro:bit project: permission, flashing and the
+  /// output. Null where [ProjectScreenViewModel.board] is.
+  late final MicrobitSessionController? board;
+
+  /// The machine half of a project on `runtime: tkinter`: the download, the
+  /// runs and what they report. Null where [ProjectScreenViewModel.machine] is.
+  late final VmSessionController? machine;
 
   bool _disposed = false;
 
@@ -35,24 +45,54 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   /// tab being closed or reloaded, which takes the store's pending write with it.
   late final AppLifecycleListener _lifecycle;
 
-  ProjectScreenController({required super.viewModel, required super.contextAccessor}) {
-    board = MicrobitSessionController(
-      viewModel: viewModel.board,
-      contextAccessor: contextAccessor,
-      // The program is meant to run, so nothing interrupts the board on its
-      // way into it.
-      interrupt: false,
-      onFlashed: viewModel.noteFlashed,
-    );
-    viewModel.board.code.addListener(_keepWork);
+  /// [createRuntime] and [imageIncluded] are for tests of a project on the
+  /// machine; it makes its own otherwise, and takes the last from the build
+  /// ([vmImageIncluded]).
+  ProjectScreenController({
+    required super.viewModel,
+    required super.contextAccessor,
+    VmRuntime Function()? createRuntime,
+    bool imageIncluded = vmImageIncluded,
+  }) {
+    board = switch (viewModel.board) {
+      final MicrobitSessionViewModel session => MicrobitSessionController(
+        viewModel: session,
+        contextAccessor: contextAccessor,
+        // The program is meant to run, so nothing interrupts the board on its
+        // way into it.
+        interrupt: false,
+        onFlashed: viewModel.noteTried,
+      ),
+      null => null,
+    };
+    machine = switch (viewModel.machine) {
+      final VmSessionViewModel session => VmSessionController(
+        viewModel: session,
+        contextAccessor: contextAccessor,
+        onWindowShown: viewModel.noteTried,
+        createRuntime: createRuntime,
+        imageIncluded: imageIncluded,
+      ),
+      null => null,
+    };
+    viewModel.code.addListener(_keepWork);
     _lifecycle = AppLifecycleListener(onHide: () => unawaited(_drafts.flush()));
+  }
+
+  /// Runs the program on the machine, and writes it out at once: ChromeOS
+  /// discards a tab this heavy first, and it reloads with only what was written.
+  void run() {
+    final machine = this.machine;
+    if (_disposed || machine == null || !machine.viewModel.canRun) return;
+    unawaited(_drafts.flush());
+    machine.run();
   }
 
   /// Keeps the shared program for the next visit, or forgets it when it is the
   /// starter again, so a starter the author rewrites still reaches a student
   /// who never touched it.
   void _keepWork() {
-    final code = viewModel.board.code.text;
+    final code = viewModel.code.text;
     if (viewModel.starters.contains(code)) {
       _drafts.forgetWork(viewModel.lesson);
     } else {
@@ -68,7 +108,7 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
     final wasFinished = _progress.isFinished(viewModel.lesson);
 
     if (section.kind == SectionKind.task) {
-      _drafts.keepSnapshot(viewModel.lesson, section.id, viewModel.board.code.text);
+      _drafts.keepSnapshot(viewModel.lesson, section.id, viewModel.code.text);
       unawaited(_drafts.flush());
     }
     viewModel.finish(index);
@@ -85,7 +125,7 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   String? snapshotOf(LessonSection section) => _drafts.snapshotFor(viewModel.lesson, section.id);
 
   /// Puts [code] back in the editor, in place of whatever is there.
-  void restore(String code) => viewModel.board.code.text = code;
+  void restore(String code) => viewModel.code.text = code;
 
   /// The lessons [section] recommends, in [locale], each with how far the
   /// student is. An id the course does not have is left out: the content test
@@ -111,6 +151,9 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   }
 
   /// Opens a lesson a task recommends, over this screen, so Back returns here.
+  ///
+  /// A project on the machine opened from here takes this screen's machine, if
+  /// it has one, and [VmSessionController] hands it back when that one closes.
   Future<void> openRequirement(CourseLesson lesson) async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
     unawaited(_drafts.flush());
@@ -163,10 +206,11 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   @override
   void dispose() {
     _disposed = true;
-    viewModel.board.code.removeListener(_keepWork);
+    viewModel.code.removeListener(_keepWork);
     unawaited(_drafts.flush());
     _lifecycle.dispose();
-    board.dispose();
+    board?.dispose();
+    machine?.dispose();
     super.dispose();
   }
 

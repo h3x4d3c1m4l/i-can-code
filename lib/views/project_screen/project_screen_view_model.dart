@@ -6,7 +6,9 @@ import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
+import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
 import 'package:mobx/mobx.dart';
+import 'package:re_editor/re_editor.dart';
 
 part 'project_screen_view_model.g.dart';
 
@@ -17,8 +19,13 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   /// The project being built, in every locale it has.
   final CourseLesson lesson;
 
-  /// The board, and the one program every task of the project shares.
-  late final MicrobitSessionViewModel board;
+  /// The board a project on `runtime: microbit` is written to. Exactly one of
+  /// this and [machine] exists, by the runtime the lesson names.
+  late final MicrobitSessionViewModel? board;
+
+  /// The machine a project on `runtime: tkinter` runs on, its windows in a
+  /// dialog over the page.
+  late final VmSessionViewModel? machine;
 
   /// Sections the student has finished, as indices into the lesson: info they
   /// said they read, and tasks they said work. Seeded from [ProgressStore],
@@ -38,11 +45,11 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   @readonly
   int? _open;
 
-  /// Whether the program was written to the board since the section in front
-  /// of the student opened. Until it was, "it works" is a claim about a program
-  /// the board has never run.
+  /// Whether the program was tried since the section in front of the student
+  /// opened: written to the board, or run on the machine until it showed a
+  /// window. Until it was, "it works" is a claim about a program nothing ran.
   @readonly
-  bool _flashedHere = false;
+  bool _triedHere = false;
 
   /// How many tasks were finished on this visit. Each one is a small burst,
   /// keyed on this count, so the next one fires again.
@@ -62,11 +69,24 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
     required String subjectSlug,
     required String lessonId,
   }) : lesson = GetIt.I<Course>().lessons.firstWhere((l) => l.translations.values.first.id == lessonId) {
-    board = MicrobitSessionViewModel(
-      contextAccessor: contextAccessor,
-      subjectSlug: subjectSlug,
-      program: GetIt.I<CodeDraftStore>().workFor(lesson) ?? _starterOf(lesson.translations.values.first),
-    );
+    final program = GetIt.I<CodeDraftStore>().workFor(lesson) ?? _starterOf(lesson.translations.values.first);
+    // Read off any translation: `lessons_test.dart` holds every locale to the
+    // same runtime.
+    switch (lesson.translations.values.first.runtime) {
+      case LessonRuntime.microbit:
+        board = MicrobitSessionViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug, program: program);
+        machine = null;
+      case LessonRuntime.tkinter:
+        board = null;
+        machine = VmSessionViewModel(
+          contextAccessor: contextAccessor,
+          subjectSlug: subjectSlug,
+          program: program,
+          options: CodeLineOptions(indentSize: subjectIndentSize(lesson.entry.subject)),
+        );
+      case LessonRuntime.python:
+        throw StateError('Lesson.parse refuses a project on python; it runs on microbit or tkinter.');
+    }
 
     final finished = GetIt.I<ProgressStore>().finishedIn(lesson);
     _passed = {
@@ -83,6 +103,10 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   /// The project's starter in every locale. An editor keeps its text across a
   /// change of language, so a program equal to any of them is untouched.
   Set<String> get starters => {for (final translation in lesson.translations.values) _starterOf(translation)};
+
+  /// The one program every task of the project shares, in the editor of
+  /// whichever of [board] and [machine] there is.
+  CodeLineEditingController get code => board?.code ?? machine!.code;
 
   /// Read off any translation: `lesson_test.dart` holds every locale to the
   /// same sections.
@@ -109,7 +133,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   CourseLesson? get nextLesson => visibleLessonAfter(lesson);
 
   @action
-  void noteFlashed() => _flashedHere = true;
+  void noteTried() => _triedHere = true;
 
   /// Opens [section] and closes whichever was open, or closes [section] when
   /// it was the open one. A section still ahead cannot be opened.
@@ -125,7 +149,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   @action
   void finish(int section) {
     _passed = {..._passed, section};
-    _flashedHere = false;
+    _triedHere = false;
     if (_sections[section].kind == SectionKind.task) _passBursts++;
     _open = current;
   }
@@ -133,7 +157,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   @action
   void skip(int section) {
     _skipped = {..._skipped, section};
-    _flashedHere = false;
+    _triedHere = false;
     _open = current;
   }
 
@@ -146,8 +170,9 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
   @override
   void dispose() {
     board
-      ..code.dispose()
+      ?..code.dispose()
       ..dispose();
+    machine?.dispose();
     super.dispose();
   }
 

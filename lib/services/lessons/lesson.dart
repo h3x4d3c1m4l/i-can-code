@@ -41,9 +41,10 @@ enum SectionKind {
   /// One task of a project: prose, what the program does once the task is done,
   /// and a button the student presses when theirs does it.
   ///
-  /// Nothing is run or checked here. The program runs on a board the app cannot
-  /// watch, so the student's own say-so is the verdict. Only a
-  /// [LessonLayout.project] has these, and it has no other kind but [info].
+  /// Nothing is checked here. The program runs on a board the app cannot
+  /// watch, or shows windows the app does not judge, so the student's own
+  /// say-so is the verdict. Only a [LessonLayout.project] has these, and it has
+  /// no other kind but [info].
   task;
 
   /// Whether the student writes and runs code here.
@@ -81,26 +82,30 @@ enum SectionKind {
 }
 
 /// What a step's code runs on, from a `runtime` in the lesson's or the
-/// section's `metadata`. The default is [python], which every shipped step uses.
+/// section's `metadata`. The default is [python].
 enum LessonRuntime {
 
   /// CPython built for wasm, in the page.
   python,
 
-  /// Python with Tk on the machine behind the Tkinter page.
+  /// Python with Tk on the machine behind the Tkinter page. A project runs
+  /// here, and a step of any other lesson cannot yet: see [readyIn].
   tkinter,
 
   /// MicroPython on a BBC micro:bit, written to the board over USB. Only a
-  /// [LessonLayout.project] runs here, and a project runs nowhere else.
+  /// [LessonLayout.project] runs here.
   microbit;
 
-  /// Whether a step on this runtime can be shown today.
+  /// Whether a step on this runtime can be shown today in a lesson laid out as
+  /// [layout].
   ///
-  /// False for [tkinter]: the page runs windows, the lesson screen does not,
-  /// and the harness that would check a window program is a design and not
-  /// code yet. A step that asks for it is **left out** by [Lesson.parse] rather
-  /// than refused, so a course may carry one before the app can run it.
-  bool get isReady => this != LessonRuntime.tkinter;
+  /// False for [tkinter] outside a project. A project shows the program's
+  /// windows and leaves the verdict to the student, but a lesson step has to
+  /// check them, and the harness that would check a window program a step at a
+  /// time is a design and not code yet. A step that asks for it is **left out**
+  /// by [Lesson.parse] rather than refused, so a course may carry one before
+  /// the app can run it.
+  bool readyIn(LessonLayout layout) => this != LessonRuntime.tkinter || layout == LessonLayout.project;
 
   static LessonRuntime parse(String value) => switch (value) {
     'python' => LessonRuntime.python,
@@ -121,7 +126,8 @@ enum LessonLayout {
 
   /// One program, built up over a run of [SectionKind.task]s. Each task appears
   /// under the one before it once that one works, and all of them share one
-  /// editor. See `docs/lesson-format.md`.
+  /// editor. It runs on [LessonRuntime.microbit] or [LessonRuntime.tkinter],
+  /// whichever the lesson's own `runtime` names. See `docs/lesson-format.md`.
   project;
 
   static LessonLayout parse(String value) => switch (value) {
@@ -332,10 +338,10 @@ class Lesson {
   /// for a lesson that is always listed. See `FeatureToggles`.
   final String? feature;
 
-  /// The steps the app can show. A step for a runtime that is not ready is not
-  /// among them: see [LessonRuntime.isReady]. So this may be empty, which is a
-  /// whole lesson written for a runtime this version cannot run, and
-  /// [Course.load] leaves such a lesson out.
+  /// The steps the app can show. A step for a runtime that is not ready in this
+  /// [layout] is not among them: see [LessonRuntime.readyIn]. So this may be
+  /// empty, which is a whole lesson written for a runtime this version cannot
+  /// run, and [Course.load] leaves such a lesson out.
   final List<LessonSection> sections;
 
   const Lesson({
@@ -424,10 +430,11 @@ class Lesson {
 
     void flush() {
       if (sectionTitle == null) return;
+      final stepRuntime = sectionRuntime ?? runtime;
       // A step for a runtime that is not ready is left out, and nothing about
       // it is read: it may declare a type and carry blocks that only the
       // harness for that runtime will know.
-      if (!(sectionRuntime ?? runtime).isReady) {
+      if (!stepRuntime.readyIn(layout)) {
         notReady++;
         clearSection();
         return;
@@ -438,12 +445,16 @@ class Lesson {
       if (sectionId == null) {
         throw FormatException('Section "$sectionTitle" declares no `id`. Saved progress keys on it.');
       }
-      // Both ways round: a board is the only thing a project runs on, and a
-      // project is the only screen that has one.
-      if ((layout == LessonLayout.project) != ((sectionRuntime ?? runtime) == LessonRuntime.microbit)) {
+      // The project screen is the only one with a board. It runs a program on
+      // a board or on the machine; a program for CPython belongs on a lesson
+      // step, where it is checked.
+      if (stepRuntime == LessonRuntime.microbit && layout != LessonLayout.project) {
+        throw FormatException('Section "$sectionTitle" runs on microbit, but only a project runs on a micro:bit.');
+      }
+      if (layout == LessonLayout.project && stepRuntime == LessonRuntime.python) {
         throw FormatException(
-          'Section "$sectionTitle" runs on ${(sectionRuntime ?? runtime).name}, but only a project runs on a micro:bit, and a '
-          'project runs nowhere else.',
+          'Section "$sectionTitle" runs on python, but a project runs on microbit or tkinter, named by the `runtime` '
+          'in the lesson\'s document-level `metadata`.',
         );
       }
       if (layout == LessonLayout.project &&
@@ -609,10 +620,17 @@ class Lesson {
                   'Section "$sectionTitle" declares a `feature`. Only a lesson or the group it is listed under can.',
                 );
               }
+              // Every task shares one program, so a project runs on one runtime.
+              if (layout == LessonLayout.project && meta.containsKey('runtime')) {
+                throw FormatException(
+                  'Section "$sectionTitle" declares a `runtime`. A project\'s sections run on the project\'s own, '
+                  'which its document-level `metadata` names.',
+                );
+              }
               // Before the type, which a step for another runtime may name in
               // words this version does not know yet.
               sectionRuntime = _readRuntime(meta, 'Section "$sectionTitle"') ?? runtime;
-              if (!sectionRuntime!.isReady) continue;
+              if (!sectionRuntime!.readyIn(layout)) continue;
 
               final type = meta['type'] as String?;
               if (type == null) throw FormatException('Section "$sectionTitle" declares no `type`.');

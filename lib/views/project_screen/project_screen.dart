@@ -5,8 +5,9 @@ import 'package:i_can_code/views/project_screen/project_screen_controller.dart';
 import 'package:i_can_code/views/project_screen/project_screen_view.dart';
 import 'package:i_can_code/views/project_screen/project_screen_view_model.dart';
 
-/// A lesson with `layout: project`: one program for a micro:bit, built up over
-/// its tasks. See `docs/lesson-format.md`.
+/// A lesson with `layout: project`: one program for a micro:bit or for the
+/// machine behind the Tkinter page, built up over its tasks. See
+/// `docs/lesson-format.md`.
 @RoutePage()
 class ProjectScreen extends ScreenBase<ProjectScreenViewModel, ProjectScreenController, ProjectScreenView> {
 

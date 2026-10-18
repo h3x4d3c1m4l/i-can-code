@@ -346,6 +346,9 @@ itself and every lesson under it:
 - **The app has toggles of its own**, for parts of it that are not ready yet,
   and they share these names. A lesson about such a part names the app's toggle
   and is hidden with it: `feature: tkinter` goes with the Tkinter environment.
+  A project on `runtime: tkinter` runs on that environment's machine, so it
+  names the toggle too, or stands under a group that does;
+  `test/content/lessons_test.dart` holds that.
 - **Hidden means not listed, and nothing more.** The catalog, the count on the
   subject's card and "Volgende les" pass it by. Its address still opens it, and
   the file is in the build like any other, so this keeps nothing secret.
@@ -360,7 +363,7 @@ itself and every lesson under it:
 
 Every step runs on `python`, CPython in the page, unless it says otherwise. A
 lesson may set the default for all of its steps in its document-level
-`metadata`, and a step may set its own:
+`metadata`, and a step may set its own, except in a project:
 
 ```metadata
 id: een-venster
@@ -370,12 +373,14 @@ runtime: tkinter
 `microbit` is MicroPython on a BBC micro:bit, and only a project runs there; see
 *`layout: project`*.
 
-`tkinter` is Python with Tk on the machine behind the Tkinter page. **The app
-cannot run a lesson step there yet**, so a step that asks for it is **left out**:
-it does not appear in the lesson, it counts towards no step count, and nothing
-else in its `metadata` is read — its `type` and its blocks may be ones this
-version has never heard of. A lesson whose every step is left out that way is
-dropped from the catalog rather than listed as a card that opens on nothing.
+`tkinter` is Python with Tk on the machine behind the Tkinter page, and a
+project runs there too. Nothing in a project is checked. A step of any other
+lesson is, and the app has no harness yet that checks a window program, so
+**outside a project a step that asks for `tkinter` is left out**: it does not
+appear in the lesson, it counts towards no step count, and nothing else in its
+`metadata` is read — its `type` and its blocks may be ones this version has
+never heard of. A lesson whose every step is left out that way is dropped from
+the catalog rather than listed as a card that opens on nothing.
 
 So a course may carry window lessons before the app can run them, and they cost
 a student nothing in the meantime. A `runtime` no version knows is still an
@@ -430,7 +435,9 @@ on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
 A lesson that says `layout: project` in its document-level `metadata` is not
 walked through a step at a time. It is **one program** the student builds up:
 each task appears under the one before it once the student says that one works,
-and every task shares one editor.
+and every task shares one editor. The program runs on a micro:bit, as in the
+example below, or with its windows on the machine behind the Tkinter page, as in
+`docs/samples/tkinter-project.md`.
 
 ````markdown
 # Dobbelsteen
@@ -468,18 +475,20 @@ from microbit import *
 ```
 ````
 
-**Nothing in a project is checked.** It runs on a micro:bit, a board the app
-writes the program to and cannot watch, so the student's own "it works" is the
-verdict. What keeps that honest is the task saying exactly what working looks
-like, right above the button, and the button waiting until the program has been
-put on the board at least once while that task was open.
+**Nothing in a project is checked.** The app writes the program to a board it
+cannot watch, or shows its windows without judging them, so the student's own
+"it works" is the verdict. What keeps that honest is the task saying exactly
+what working looks like, right above the button, and the button waiting until
+the program was tried while that task was open: put on the board at least once,
+or run until it showed a window.
 
 ### The rules
 
-- **`layout: project` and `runtime: microbit` come together.** A project runs on a
-  board, and nothing but a project does. Either one without the other is a
-  `FormatException`, and so is a section of a project declaring a runtime of its
-  own.
+- **A project runs on `microbit` or `tkinter`**, whichever the `runtime` in its
+  document-level `metadata` names. A project that names none is on `python`, the
+  default, and that is a `FormatException`; so is `runtime: microbit` outside a
+  project. A section of a project MUST NOT declare a `runtime` of its own: every
+  task shares one program, so the whole project runs on one.
 - **A project holds `task` and `info` sections, nothing else**, and a `task`
   belongs to a project only. An `info` section is a step of its own: the
   student finishes it by saying they read it.
@@ -494,8 +503,8 @@ put on the board at least once while that task was open.
 - **Only the first task MAY carry a `<lang>-assignment` block.** All tasks share
   one editor, and that block is what it opens with. After that the student's
   own program comes back on every visit.
-- **No validator, no `stdin`, and none of the other kinds' blocks.** There is
-  nothing to run in the page and nothing to check.
+- **No validator, no `stdin`, and none of the other kinds' blocks.** Nothing
+  checks the program, and nothing feeds it input.
 - **`optional: true` works as it does everywhere**: the task carries the
   *Verdieping* badge and an **Overslaan** link, and skipping records nothing.
 
@@ -507,7 +516,7 @@ question to think about as ordinary prose. Neither needs a block of its own.
 Every section is a block with its number and title, and only one block is
 open at a time.
 
-- The first section not finished is open. An `info` section ends in a
+- The section after the last finished one is open. An `info` section ends in a
   **Gelezen** button, a task in its `done-when` card and **Het werkt!**. Either
   one folds the block and opens the next.
 - Finished blocks can be opened again to reread them. A finished task keeps a
@@ -515,6 +524,19 @@ open at a time.
   they can look at and put back.
 - Blocks further on show their title and do not open, so the student sees how
   far there is to go without reading ahead.
+
+Beside the blocks is the editor, and what sits under it depends on the runtime:
+
+- On `microbit`, **Draai code** writes the program to the board, after asking
+  for one if none is connected, and the board's output is shown under it.
+  **Het werkt!** waits until the program has been written to the board since
+  its task opened.
+- On `tkinter`, **Uitvoeren** runs the program, and its windows open in a
+  dialog over the whole page until it ends. Under the button are the machine's
+  download, which starts when the project opens, and what the last run printed.
+  **Het werkt!** waits until the program has shown a window since its task
+  opened. A build of the app without the machine says so in place of the
+  download, as the Tkinter page does.
 
 ## `###` inside a section — foldable subheadings
 

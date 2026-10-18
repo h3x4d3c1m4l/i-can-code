@@ -70,9 +70,10 @@ LessonRoute lessonRoute({
 /// reason [lessonRoute] gives: keyed on the lesson, so opening the next project
 /// from the end of this one is a new screen rather than this one updated.
 ///
-/// Under [microbitLesson] because a project is a program for a board, and that
-/// address is where a program for a board already lives. `microbit` is a
-/// reserved lesson id, so no lesson can claim the segment.
+/// Under [microbitLesson] because the first projects were programs for a
+/// board, and that address is where a program for a board already lives. A
+/// project on the machine has the same address. `microbit` is a reserved
+/// lesson id, so no lesson can claim the segment.
 ProjectRoute projectRoute({required String subjectSlug, required String lessonId}) => ProjectRoute(
   key: ValueKey(lessonId),
   subjectSlug: subjectSlug,

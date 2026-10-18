@@ -8,8 +8,9 @@ class EditorSettingsScreenViewModel = EditorSettingsScreenViewModelBase with _$E
 
 abstract class EditorSettingsScreenViewModelBase extends ScreenViewModelBase with Store {
 
-  /// The code the Tkinter page runs before every program. Not observable, like
-  /// every editor's controller: it notifies its own listeners.
+  /// The code the machine runs before every program, on the Tkinter page and in
+  /// a project on it. Not observable, like every editor's controller: it
+  /// notifies its own listeners.
   final CodeLineEditingController tkinterSetup = CodeLineEditingController();
 
   EditorSettingsScreenViewModelBase({

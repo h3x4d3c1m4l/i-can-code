@@ -24,8 +24,8 @@ class EditorSettingsScreenController extends ScreenControllerBase<EditorSettings
 
   bool get tkinterSetupIsDefault => _settings.tkinterSetupIsDefault;
 
-  /// Every edit is kept at once, so a Tkinter page still open under this screen
-  /// runs it on its next Run.
+  /// Every edit is kept at once, so the Tkinter page or a project on the machine
+  /// still open under this screen runs it on its next Run.
   void _keepTkinterSetup() => unawaited(_settings.setTkinterSetup(viewModel.tkinterSetup.text));
 
   void restoreTkinterSetup() => viewModel.tkinterSetup.text = EditorSettingsBase.defaultTkinterSetup;

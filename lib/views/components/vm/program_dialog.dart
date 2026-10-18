@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/views/components/app_header.dart';
-import 'package:i_can_code/views/tkinter_screen/components/window_frame.dart';
+import 'package:i_can_code/views/components/vm/window_frame.dart';
 
 /// The running program, over the page: a dim across everything, and the
 /// program's windows in a [WindowFrame] in the middle of what is left.

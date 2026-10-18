@@ -1317,9 +1317,11 @@ the browser").
 ## Flutter side
 
 The page is `TkinterScreen` at `/learn-python/tkinter`, in
-`lib/views/tkinter_screen/`, and the Dart half of the host is `lib/services/vm/`.
-CLAUDE.md's *The Tkinter page and the VM* has the page's rules; this is how it
-binds to the Host API above.
+`lib/views/tkinter_screen/`. Its machine half, which a project on
+`runtime: tkinter` holds as well, is the session in `lib/views/components/vm/`,
+and the Dart half of the host is `lib/services/vm/`. CLAUDE.md's *The Tkinter
+page and the VM* has the page's rules; this is how it binds to the Host API
+above.
 
 | File | |
 |---|---|
@@ -1355,7 +1357,10 @@ binds to the Host API above.
   `document.activeElement` first: focus that has already moved on to a text
   field's hidden input must not be taken from it.
 - **The page disposes the runtime when it goes**, which destroys the `Vm` and the
-  screen. The next visit loads again, from the Cache API.
+  screen. The next visit loads again, from the Cache API. A session whose `Vm` a
+  newer one's `openVm()` destroyed builds a new runtime once that newer session
+  is disposed, as Retry would: the newest `VmSessionController` still standing
+  holds the machine, and one that goes hands it to the one under it.
 - **A build says whether it has a bundle.** `--dart-define=ICC_VM_IMAGE=true`
   turns the page on (`lib/services/vm/vm_image.dart`), and the `tkinter`
   feature toggle then shows it (`tkinterShown`); without the define the catalog
@@ -1366,7 +1371,7 @@ binds to the Host API above.
   "Technical details".
 - **The failure card words the reason, never the message.** `failed`'s `reason`
   picks the card's title and body in the page's language, `replaced` included
-  (`VmFailure.replaced`: "Another Tkinter page took over the machine"). The
+  (`VmFailure.replaced`: "Another page took over the machine"). The
   `message` is the host's English, for whoever helps the student, so `NoticeCard`
   folds it under a toggle (`detailLabel`) rather than print it under a Dutch
   sentence.
@@ -1431,7 +1436,7 @@ binds to the Host API above.
   therefore keeps the request and retries it for up to ten animation frames,
   dropping it if `releaseFocus()` comes first.
 - **The page shows the program's windows, not the screen.** `windowRegion`
-  (`tkinter_screen_view_model.dart`) is the smallest rectangle around every
+  (`vm_session_view_model.dart`) is the smallest rectangle around every
   mapped top-level in the run's latest WINDOW, each clipped to the 800 × 600
   screen first. A dialog widens it to hold both, closing the dialog shrinks it
   back, and a window that moves or resizes moves it in the same frame, with no
@@ -1471,7 +1476,8 @@ binds to the Host API above.
 
 It is tested under `flutter test` against a fake runtime and a fake platform view
 (`test/services/vm_host_event_test.dart`, `test/views/tkinter_controller_test.dart`,
-`test/views/tkinter_widgets_test.dart` and `test/views/vm_load_panel_fit_test.dart`),
+`test/views/tkinter_widgets_test.dart`, `test/views/vm_load_panel_fit_test.dart`
+and, for a project on the machine, `test/views/project_screen_test.dart`),
 and in headless Chrome by `just check-vm-app` ("The app in Chrome", under
 "Measurements").
 

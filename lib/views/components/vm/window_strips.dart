@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
-import 'package:i_can_code/views/tkinter_screen/components/window_frame.dart';
+import 'package:i_can_code/views/components/vm/window_frame.dart';
 
 /// A title strip with a close button over every window the outer [WindowFrame]
 /// does not name, drawn on top of the screen at that window's own place.

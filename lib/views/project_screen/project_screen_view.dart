@@ -25,6 +25,13 @@ import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart
 import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
+import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/components/vm/vm_display.dart';
+import 'package:i_can_code/views/components/vm/vm_machine_card.dart';
+import 'package:i_can_code/views/components/vm/vm_run_dialog.dart';
+import 'package:i_can_code/views/components/vm/vm_run_report.dart';
+import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
+import 'package:i_can_code/views/components/vm/vm_status_label.dart';
 import 'package:i_can_code/views/project_screen/components/connect_dialog.dart';
 import 'package:i_can_code/views/project_screen/components/done_when_card.dart';
 import 'package:i_can_code/views/project_screen/components/project_block.dart';
@@ -68,29 +75,68 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   /// The end of the project, for scrolling to it once it appears.
   final GlobalKey _completeKey = GlobalKey();
 
-  ProjectScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
+  /// Builds the platform view a project on the machine shows its program in.
+  /// A widget test passes one of its own, because `HtmlElementView` cannot be
+  /// built off the web.
+  final VmViewBuilder displayViewBuilder;
+
+  /// Held here so that Run can move the keyboard into the program's window.
+  final FocusNode _displayFocus = FocusNode(debugLabel: 'VmDisplay');
+
+  ProjectScreenView({
+    required super.viewModel,
+    required super.controller,
+    required super.contextAccessor,
+    this.displayViewBuilder = buildHtmlElementView,
+  });
 
   @override
   Widget get body {
+    final page = AppHeaderPublisher(builder: _buildHeader, child: Builder(builder: _buildPage));
+    final confetti = Positioned.fill(child: IgnorePointer(child: Observer(builder: _buildConfetti)));
+    final machine = viewModel.machine;
+    if (machine == null) return Stack(fit: StackFit.expand, children: [page, confetti]);
+
+    // The program over the whole page while it runs, as on the Tkinter page.
+    // The page leaves the focus tree before the dialog is built, so the
+    // display's own request for focus is the last one the frame makes.
+    return Observer(
+      builder: (context) {
+        final running = machine.running;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Confetti still falling, a block still folding or a scroll still
+            // easing would keep asking for frames on the emulator's thread.
+            // Paused rather than removed: a burst built again would fire again.
+            TickerMode(
+              enabled: !running,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [ExcludeFocus(excluding: running, child: page), confetti],
+              ),
+            ),
+            if (running)
+              VmRunDialog(
+                session: machine,
+                controller: controller.machine!,
+                focusNode: _displayFocus,
+                viewBuilder: displayViewBuilder,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildConfetti(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        AppHeaderPublisher(builder: _buildHeader, child: Builder(builder: _buildPage)),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Observer(
-              builder: (context) => Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (viewModel.passBursts > 0) ConfettiBurst.small(key: ValueKey(('pass', viewModel.passBursts))),
-                  if (viewModel.current == null && viewModel.earnedCelebration) const ConfettiBurst(),
-                  for (var i = math.max(1, viewModel.extraBursts - 2); i <= viewModel.extraBursts; i++)
-                    ConfettiBurst(key: ValueKey(('extra', i))),
-                ],
-              ),
-            ),
-          ),
-        ),
+        if (viewModel.passBursts > 0) ConfettiBurst.small(key: ValueKey(('pass', viewModel.passBursts))),
+        if (viewModel.current == null && viewModel.earnedCelebration) const ConfettiBurst(),
+        for (var i = math.max(1, viewModel.extraBursts - 2); i <= viewModel.extraBursts; i++)
+          ConfettiBurst(key: ValueKey(('extra', i))),
       ],
     );
   }
@@ -130,10 +176,10 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
               children: [
                 Observer(builder: _buildTasks),
                 const SizedBox(height: 36),
-                // Inside the page's scroll view, where a terminal never sees the
-                // space bar. Nothing in a project types into the board, so that
-                // is a cost worth paying on a narrow window.
-                _pastGutter(_buildWorkspace(context, editorHeight: 340, outputHeight: 240)),
+                // Inside the page's scroll view, where a board's terminal never
+                // sees the space bar. Nothing in a project types into the board,
+                // so that is a cost worth paying on a narrow window.
+                _pastGutter(_buildWorkspace(context, editorHeight: 340, stacked: true)),
               ],
             ),
           ),
@@ -162,7 +208,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
               Expanded(
                 child: Padding(
                   padding: vertical,
-                  child: _buildWorkspace(context, editorHeight: editorHeight),
+                  child: _buildWorkspace(context, editorHeight: editorHeight, stacked: false),
                 ),
               ),
             ],
@@ -305,10 +351,11 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     );
   }
 
-  /// "Het werkt!", waiting for the program to have been on the board while
-  /// this task was open.
+  /// "Het werkt!", waiting for the program to have been tried while this task
+  /// was open: written to the board, or run until it showed a window.
   Widget _buildWorks(BuildContext context, int task) {
-    final ready = viewModel.flashedHere;
+    final ready = viewModel.triedHere;
+    final l10n = context.localizations;
 
     return Wrap(
       spacing: 16,
@@ -318,11 +365,11 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
         AppButton(
           icon: FLucideIcons.check,
           onPress: ready ? () => _finish(task) : null,
-          child: Text(context.localizations.projectScreen_done),
+          child: Text(l10n.projectScreen_done),
         ),
         if (!ready)
           Text(
-            context.localizations.projectScreen_flashFirst,
+            viewModel.machine == null ? l10n.projectScreen_flashFirst : l10n.projectScreen_showWindowFirst,
             style: context.appTheme.text.bodySmall.copyWith(color: context.theme.colors.mutedForeground),
           ),
       ],
@@ -350,27 +397,47 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     );
   }
 
-  /// The right-hand column: the program, the buttons that put it on the board,
-  /// and what the board says back.
+  /// The right-hand column: the program, and what runs it. [stacked] is the
+  /// layout where the column sits in the page's own scroll view, under the
+  /// tasks.
+  Widget _buildWorkspace(BuildContext context, {required double editorHeight, required bool stacked}) {
+    return switch (viewModel.machine) {
+      final VmSessionViewModel machine => _buildMachineWorkspace(
+        context,
+        machine,
+        editorHeight: editorHeight,
+        stacked: stacked,
+      ),
+      null => _buildBoardWorkspace(editorHeight: editorHeight, outputHeight: stacked ? 240 : null),
+    };
+  }
+
+  /// The one editor every task shares, under [status].
+  Widget _buildEditor({required double height, required String Function(BuildContext context) status}) {
+    return Observer(
+      builder: (context) => CodeEditorCard(
+        controller: viewModel.code,
+        status: status(context),
+        height: height,
+        autofocus: false,
+        // No reset: the program is every task's work so far, and a
+        // finished task's snapshot is the way back.
+      ),
+    );
+  }
+
+  /// The right-hand column of a micro:bit project: the program, the buttons
+  /// that put it on the board, and what the board says back.
   ///
   /// [outputHeight] null lets the output take what is left of the column,
   /// which is only possible where the column is not inside a scroll view.
-  Widget _buildWorkspace(BuildContext context, {required double editorHeight, double? outputHeight}) {
+  Widget _buildBoardWorkspace({required double editorHeight, double? outputHeight}) {
     final output = Observer(builder: _buildOutput);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Observer(
-          builder: (context) => CodeEditorCard(
-            controller: viewModel.board.code,
-            status: _editorStatus(context),
-            height: editorHeight,
-            autofocus: false,
-            // No reset: the program is every task's work so far, and a
-            // finished task's snapshot is the way back.
-          ),
-        ),
+        _buildEditor(height: editorHeight, status: _editorStatus),
         const SizedBox(height: 12),
         Observer(builder: _buildBoardButtons),
         const SizedBox(height: 16),
@@ -379,11 +446,72 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     );
   }
 
+  /// The right-hand column of a project on the machine: the program, Run, and
+  /// what the machine and the last run have to say. The program's windows are
+  /// a dialog over the whole page while it runs, as on the Tkinter page.
+  ///
+  /// Beside the tasks, the machine's card and the run's report scroll on their
+  /// own, so the editor and Run stay where they are; [stacked], they are part
+  /// of the page.
+  Widget _buildMachineWorkspace(
+    BuildContext context,
+    VmSessionViewModel machine, {
+    required double editorHeight,
+    required bool stacked,
+  }) {
+    final report = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VmMachineCard(
+          session: machine,
+          onRetry: controller.machine!.retry,
+          // Not the Tkinter page's words, which promise that the lessons work:
+          // this lesson is one that needs the machine.
+          notIncludedBody: context.localizations.projectScreen_machineNotIncludedBody,
+          unavailableBody: context.localizations.projectScreen_machineUnavailableBody,
+        ),
+        VmRunReport(session: machine),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildEditor(height: editorHeight, status: (context) => vmStatusLabel(context.localizations, machine)),
+        const SizedBox(height: 12),
+        Observer(
+          builder: (context) => AppButtonRow(
+            children: [
+              RunButton(
+                running: machine.running,
+                runLabel: context.localizations.tkinterScreen_run,
+                stopLabel: context.localizations.tkinterScreen_stop,
+                onRun: machine.canRun ? _run : null,
+                onStop: controller.machine!.stop,
+              ),
+            ],
+          ),
+        ),
+        if (stacked) report else Expanded(child: SingleChildScrollView(child: report)),
+      ],
+    );
+  }
+
+  /// Runs, and hands the keyboard to the program's window, which is where the
+  /// next thing typed is meant to go. The display is built with the dialog, a
+  /// frame later, and a node asked for focus before it is in the tree takes it
+  /// as it arrives.
+  void _run() {
+    controller.run();
+    _displayFocus.requestFocus();
+  }
+
   /// Writing to the board is always offered. Without one it asks for one
   /// first, which is when a missing board matters, rather than holding a
   /// panel about it on the page the whole time.
   Widget _buildBoardButtons(BuildContext context) {
-    final board = viewModel.board;
+    final board = viewModel.board!;
     final flashing = board.status == MicrobitStatus.flashing;
     final connected = board.status == MicrobitStatus.connected;
     final measured = flashing && board.flashProgress > 0;
@@ -394,13 +522,13 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
           icon: FLucideIcons.zap,
           busy: flashing && !measured,
           progress: measured ? board.flashProgress : null,
-          onPress: flashing ? null : (connected ? controller.board.flash : () => _connectThenFlash(context)),
+          onPress: flashing ? null : (connected ? controller.board!.flash : () => _connectThenFlash(context)),
           child: Text(context.localizations.microbitScreen_flash),
         ),
         AppButton(
           tone: AppButtonTone.neutral,
           icon: FLucideIcons.rotateCcw,
-          onPress: connected ? controller.board.restart : null,
+          onPress: connected ? controller.board!.restart : null,
           child: Text(context.localizations.microbitScreen_restart),
         ),
         const MicrobitDocsButton(),
@@ -410,7 +538,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
 
   /// What the board prints, under a line saying which board that is.
   Widget _buildOutput(BuildContext context) {
-    final board = viewModel.board;
+    final board = viewModel.board!;
     final device = board.devices.firstOrNull;
     final open = board.status == MicrobitStatus.connected || board.status == MicrobitStatus.flashing;
 
@@ -439,7 +567,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   /// The strip over the editor, which says what the board is doing.
   String _editorStatus(BuildContext context) {
     final l10n = context.localizations;
-    final board = viewModel.board;
+    final board = viewModel.board!;
     final percent = (board.flashProgress * 100).round();
     final plan = board.flashPlan;
 
@@ -455,10 +583,10 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
   Future<void> _connectThenFlash(BuildContext context) async {
     final connected = await showConnectDialog(
       context,
-      board: viewModel.board,
-      onConnect: controller.board.connect,
+      board: viewModel.board!,
+      onConnect: controller.board!.connect,
     );
-    if (connected) await controller.board.flash();
+    if (connected) await controller.board!.flash();
   }
 
   Future<void> _finish(int index) async {
@@ -549,6 +677,12 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       language: viewModel.lesson.entry.subject,
     );
     if (restore) controller.restore(code);
+  }
+
+  @override
+  void dispose() {
+    _displayFocus.dispose();
+    super.dispose();
   }
 
 }

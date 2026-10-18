@@ -15,13 +15,14 @@ import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
 import 'package:i_can_code/views/components/output_card.dart';
-import 'package:i_can_code/views/tkinter_screen/components/no_window_panel.dart';
-import 'package:i_can_code/views/tkinter_screen/components/program_dialog.dart';
-import 'package:i_can_code/views/tkinter_screen/components/run_notice.dart';
-import 'package:i_can_code/views/tkinter_screen/components/vm_display.dart';
-import 'package:i_can_code/views/tkinter_screen/components/vm_load_panel.dart';
-import 'package:i_can_code/views/tkinter_screen/components/window_frame.dart';
-import 'package:i_can_code/views/tkinter_screen/components/window_strips.dart';
+import 'package:i_can_code/views/components/vm/no_window_panel.dart';
+import 'package:i_can_code/views/components/vm/program_dialog.dart';
+import 'package:i_can_code/views/components/vm/run_notice.dart';
+import 'package:i_can_code/views/components/vm/vm_display.dart';
+import 'package:i_can_code/views/components/vm/vm_load_panel.dart';
+import 'package:i_can_code/views/components/vm/vm_session_controller.dart';
+import 'package:i_can_code/views/components/vm/window_frame.dart';
+import 'package:i_can_code/views/components/vm/window_strips.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_controller.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_view.dart';
@@ -30,37 +31,6 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import '../support/fake_vm_runtime.dart';
-
-/// Stands in for the platform view, which `flutter test` cannot build. It
-/// reports a view id the way the engine does, a frame after it is created.
-class _FakeView extends StatefulWidget {
-
-  static const int viewId = 7;
-
-  final ValueChanged<int> onCreated;
-
-  const _FakeView({required this.onCreated});
-
-  @override
-  State<_FakeView> createState() => _FakeViewState();
-
-}
-
-class _FakeViewState extends State<_FakeView> {
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onCreated(_FakeView.viewId));
-  }
-
-  @override
-  Widget build(BuildContext context) => const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand());
-
-}
-
-Widget _fakeView(BuildContext context, VmDisplayBinding binding, ValueChanged<int> onCreated) =>
-    _FakeView(onCreated: onCreated);
 
 /// What the VmDisplay tests show: the top left of the screen, the size of the
 /// box they lay the display out in.
@@ -101,7 +71,7 @@ class _TestTkinterScreen extends TkinterScreen {
     viewModel: viewModel,
     controller: controller,
     contextAccessor: contextAccessor,
-    displayViewBuilder: _fakeView,
+    displayViewBuilder: fakeVmView,
   );
 
 }
@@ -516,7 +486,7 @@ void main() {
                               semanticsLabel: 'My window',
                               background: const Color(0xFF101010),
                               holdsTab: holdsTab,
-                              viewBuilder: _fakeView,
+                              viewBuilder: fakeVmView,
                             ),
                           ),
                           ?over,
@@ -548,7 +518,7 @@ void main() {
 
       await tester.pumpWidget(const SizedBox());
 
-      expect(binding.released, [_FakeView.viewId]);
+      expect(binding.released, [FakeVmView.viewId]);
       expect(binding.keyboardEnabled, isFalse);
       expect(binding.mouseEnabled, isFalse);
     });
@@ -570,7 +540,7 @@ void main() {
                   scale: 0.5,
                   semanticsLabel: 'My window',
                   background: const Color(0xFF101010),
-                  viewBuilder: _fakeView,
+                  viewBuilder: fakeVmView,
                 ),
               ),
             ),
@@ -601,7 +571,7 @@ void main() {
           scale: 1,
           semanticsLabel: 'My window',
           background: const Color(0xFF101010),
-          viewBuilder: _fakeView,
+          viewBuilder: fakeVmView,
         ),
       );
       await tester.pumpWidget(
@@ -652,7 +622,7 @@ void main() {
               semanticsLabel: 'My window',
               background: const Color(0xFF101010),
               onFocusChange: reported.add,
-              viewBuilder: _fakeView,
+              viewBuilder: fakeVmView,
             ),
           ),
         ),
@@ -690,7 +660,7 @@ void main() {
                 semanticsLabel: 'My window',
                 background: const Color(0xFF101010),
                 onFocusChange: reported.add,
-                viewBuilder: _fakeView,
+                viewBuilder: fakeVmView,
               ),
             ),
           ),
@@ -733,7 +703,7 @@ void main() {
                   focusNode: node,
                   semanticsLabel: 'My window',
                   background: const Color(0xFF101010),
-                  viewBuilder: _fakeView,
+                  viewBuilder: fakeVmView,
                 ),
               ),
             ),
@@ -899,7 +869,7 @@ void main() {
                     scale: 1,
                     semanticsLabel: 'My window',
                     background: const Color(0xFF101010),
-                    viewBuilder: _fakeView,
+                    viewBuilder: fakeVmView,
                   ),
                 ),
                 const SizedBox(
@@ -966,6 +936,7 @@ void main() {
 
       expect(find.text('Tkinter zit niet in deze versie van de app'), findsOneWidget);
       expect(find.textContaining('internetverbinding ligt het niet'), findsOneWidget);
+      expect(find.textContaining('De lessen zelf werken gewoon'), findsOneWidget, reason: 'on this page they do');
       expect(find.byType(VmLoadPanel), findsNothing, reason: 'there is nothing to download');
       expect(find.byType(VmDisplay), findsNothing);
       // The editor stays: a program can still be written, only not run here.
@@ -978,6 +949,7 @@ void main() {
       await _settleEditor(tester);
 
       expect(find.text('Dit werkt niet in deze browser'), findsOneWidget);
+      expect(find.textContaining('De lessen zelf werken gewoon'), findsOneWidget, reason: 'on this page they do');
       expect(find.byType(VmDisplay), findsNothing);
     });
 
@@ -1156,7 +1128,7 @@ void main() {
       runtime()
         ..emit(VmWindows(id, const [VmWindow(xid: 11, title: 'My first window', mapped: true, isRoot: true)]))
         ..emit(VmOutput(id, 'Hallo\n', fromStderr: false));
-      await tester.pump(TkinterScreenController.outputInterval);
+      await tester.pump(VmSessionController.outputInterval);
       await _deliver(tester);
 
       expect(find.text('My first window'), findsOneWidget);
@@ -1282,7 +1254,7 @@ void main() {
         ..emit(const VmFailed(VmFailure.replaced, 'A newer openVm() on this page took over the machine.'));
       await _deliver(tester);
 
-      expect(find.text('Een andere Tkinter-pagina heeft de machine overgenomen'), findsOneWidget);
+      expect(find.text('Een andere pagina heeft de machine overgenomen'), findsOneWidget);
       expect(find.textContaining('openVm()'), findsNothing);
       expect(find.text('Opnieuw proberen'), findsOneWidget);
     });

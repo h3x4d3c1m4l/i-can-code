@@ -8,8 +8,8 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
-import 'package:i_can_code/views/tkinter_screen/components/vm_load_panel.dart';
-import 'package:i_can_code/views/tkinter_screen/components/window_frame.dart';
+import 'package:i_can_code/views/components/vm/vm_load_panel.dart';
+import 'package:i_can_code/views/components/vm/window_frame.dart';
 
 /// Loads the app's own fonts, which `flutter test` otherwise draws every glyph
 /// of as a square a whole em wide. In a file of its own, since a font once

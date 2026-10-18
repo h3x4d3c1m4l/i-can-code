@@ -811,7 +811,7 @@ await runCase(main, 'big-canvas', async () => {
   const pongs = tap.of('PONG', { from, to: ended.at }).map(f => f.at);
   const gaps = pongs.slice(1).map((at, i) => at - pongs[i]);
   const stderr = main.output(run, 'stderr').trim().split('\n').at(-1);
-  // What TkinterScreenViewModelBase matches to say the canvas is too large for the machine, rather
+  // What VmSessionViewModelBase matches to say the canvas is too large for the machine, rather
   // than show a crash of the student's own program.
   const badAlloc = /X Error of failed request:\s+BadAlloc/.test(main.output(run, 'stderr'));
   return {

@@ -1,8 +1,40 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show Color, Rect;
 
+import 'package:flutter/widgets.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
+
+/// Stands in for the platform view, which `flutter test` cannot build. It
+/// reports a view id the way the engine does, a frame after it is created.
+class FakeVmView extends StatefulWidget {
+
+  static const int viewId = 7;
+
+  final ValueChanged<int> onCreated;
+
+  const FakeVmView({required this.onCreated, super.key});
+
+  @override
+  State<FakeVmView> createState() => _FakeVmViewState();
+
+}
+
+class _FakeVmViewState extends State<FakeVmView> {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onCreated(FakeVmView.viewId));
+  }
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand());
+
+}
+
+/// A display's view builder that builds a [FakeVmView].
+Widget fakeVmView(BuildContext context, VmDisplayBinding binding, ValueChanged<int> onCreated) =>
+    FakeVmView(onCreated: onCreated);
 
 /// A machine that does what `web/vm/vm_host.js` promises and nothing else,
 /// driven by the test: it supersedes and stops the way the host does, and every

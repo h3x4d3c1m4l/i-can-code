@@ -176,7 +176,7 @@ class Course {
       }
 
       // A lesson whose steps all need a runtime this version cannot run parses
-      // to no steps at all (see [LessonRuntime.isReady]). It is left out rather
+      // to no steps at all (see [LessonRuntime.readyIn]). It is left out rather
       // than listed as a card that opens on nothing, and a course may carry one
       // before the app can run it. Any locale, not every: a card that opens in
       // one language and not in another is worse than no card.
@@ -394,8 +394,9 @@ int subjectIndentSize(String subject) => switch (subject) {
 /// an "Extra" section offers.
 ///
 /// True for Python because the VM image carries Python with Tk, and only in a
-/// build that ships the image. A fact about the image, not about the lessons,
-/// which never open a window. [imageIncluded] is for tests.
+/// build that ships the image. A fact about the image, not about the lessons: a
+/// project on `runtime: tkinter` opens its windows on the same machine, and its
+/// own file says so. [imageIncluded] is for tests.
 bool subjectHasWindows(String subject, {bool imageIncluded = vmImageIncluded}) =>
     imageIncluded && subject == 'python';
 
