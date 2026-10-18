@@ -1,0 +1,9 @@
+{
+  "imageId": "c5594d6160a1889b",
+  "url": "https://github.com/h3x4d3c1m4l/i-can-code/releases/download/vm-image-c5594d6160a1889b/vm-image-c5594d6160a1889b.tar.zst",
+  "sha256": "2a191370e8d128b15d4fcfbd2ea95d5d5306e25c25a36e99ddab8af805e37f32",
+  "bytes": 44473690,
+  "sourceHash": "sha256:790336281cf765075071eb6c5e87a61f71ebc512e6ea45389e8f41bb054cdf35",
+  "agentProto": 1,
+  "builtAt": "2026-10-17T17:04:37.870Z"
+}
