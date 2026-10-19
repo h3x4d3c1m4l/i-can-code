@@ -237,14 +237,14 @@ impl Supervisor {
             if let Some(windows) = &self.windows {
                 windows.begin_run(id, Some(warm.xid));
             }
-            if let Some(group) = &self.group {
-                if let Err(error) = group.enter(warm.pid) {
-                    agent.log(
-                        id,
-                        Level::Warn,
-                        format!("moving the warm interpreter into the run's cgroup: {error}"),
-                    );
-                }
+            if let Some(group) = &self.group
+                && let Err(error) = group.enter(warm.pid)
+            {
+                agent.log(
+                    id,
+                    Level::Warn,
+                    format!("moving the warm interpreter into the run's cgroup: {error}"),
+                );
             }
             match hand_over(warm, request, tz) {
                 Ok(child) => {
@@ -304,10 +304,10 @@ impl Supervisor {
     /// SIGKILL to everything the run started. The process group as well as the cgroup: a leader
     /// that could not be moved into the cgroup is still in its own group.
     fn kill_all(&self, running: &Running, agent: &mut Agent) {
-        if let Some(group) = &self.group {
-            if let Err(error) = group.kill() {
-                agent.log(running.id, Level::Warn, format!("cgroup.kill: {error}"));
-            }
+        if let Some(group) = &self.group
+            && let Err(error) = group.kill()
+        {
+            agent.log(running.id, Level::Warn, format!("cgroup.kill: {error}"));
         }
         // SAFETY: kill takes a process group and a signal.
         unsafe { libc::kill(-running.pid, libc::SIGKILL) };

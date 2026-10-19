@@ -132,7 +132,7 @@ jobs:
         run: just check-rust-licenses
 
       # The Tkinter VM's guest agent, on stable like the crate above: its
-      # `rust-version` (1.87) is the floor clippy holds it to, under whatever Rust
+      # `rust-version` (1.96) is the floor clippy holds it to, under whatever Rust
       # the pinned Alpine builds it with inside the image. The image build itself
       # stays local.
       - name: VM agent format

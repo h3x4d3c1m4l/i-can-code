@@ -646,10 +646,17 @@ const withDraft = (page, source) => page.evaluateOnNewDocument((key, source) => 
   else localStorage.setItem(key, JSON.stringify(source));
 }, DRAFT_KEY, source);
 
+/** A page with the `tkinter` feature toggle on. Every toggle starts off, and that one hides the Tkinter card. */
+async function newPage() {
+  const page = await browser.newPage();
+  await page.evaluateOnNewDocument(() => localStorage.setItem('features.enabled', JSON.stringify(['tkinter'])));
+  return page;
+}
+
 // Survey: with semantics on, where everything is, and what a screen reader is told
 
 async function survey() {
-  const page = await browser.newPage();
+  const page = await newPage();
   watch(page, 'survey');
   await withDraft(page, null);
   const layout = {};
@@ -672,7 +679,7 @@ async function survey() {
   }
   layout.card = card;
   check('the catalog lists the Tkinter page under Extra', !!card && !!heading, card ? `after ${layout.scrollSteps} wheel steps`
-    : 'no card: was the build made without --dart-define=ICC_VM_IMAGE=true? `just build` passes it when web/vm/image/ holds a bundle');
+    : 'no card: was the build made without --dart-define=ICC_VM_IMAGE=true, or is the tkinter toggle off? `just build` passes the define when web/vm/image/ holds a bundle');
   if (!card) throw new Error('no Tkinter card');
 
   await clickRect(page, card);
@@ -717,7 +724,7 @@ async function survey() {
 // The page as most students have it: no semantics, everything by position
 
 async function main(layout) {
-  const page = await browser.newPage();
+  const page = await newPage();
   watch(page, 'main');
   await withDraft(page, null);
   await page.goto(appUrl, { waitUntil: 'load' });
@@ -1028,7 +1035,7 @@ async function overDisplay() {
 
 /** The Tkinter page by its address, with `source` in the editor, the machine ready and Run found. */
 async function openWithDraft(label, viewport, source) {
-  const page = await browser.newPage();
+  const page = await newPage();
   await page.setViewport(viewport);
   watch(page, label);
   await withDraft(page, source);
@@ -1148,7 +1155,7 @@ async function crop() {
 // The Tkinter page at 4× CPU, opened by its address
 
 async function throttled(layout, rate) {
-  const page = await browser.newPage();
+  const page = await newPage();
   watch(page, `${rate}x`);
   await withDraft(page, null);
   await page.emulateCPUThrottling(rate);
@@ -1185,7 +1192,7 @@ async function throttled(layout, rate) {
 // A lesson step, which runs through python.wasm rather than the machine
 
 async function lesson(address, code) {
-  const survey = await browser.newPage();
+  const survey = await newPage();
   watch(survey, 'lesson-survey');
   await survey.goto(`${appUrl}#/${address}`, { waitUntil: 'load' });
   await enableSemantics(survey);
@@ -1194,7 +1201,7 @@ async function lesson(address, code) {
   const editorLabel = await findSettled(survey, 'main.py', { exact: true, timeout: 3000 });
   await survey.close();
 
-  const page = await browser.newPage();
+  const page = await newPage();
   watch(page, 'lesson');
   await page.goto(`${appUrl}#/${address}`, { waitUntil: 'load' });
   await page.waitForSelector('flutter-view', { timeout: 60_000 });

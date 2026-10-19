@@ -288,7 +288,7 @@ check-vm-app *flags:
   npm install --prefix vm/tools --no-audit --no-fund --silent
   node vm/tools/check-app.mjs {{flags}}
 
-# On stable: the crate's `rust-version` (1.87) makes clippy flag anything newer. The second clippy
+# On stable: the crate's `rust-version` (1.96) makes clippy flag anything newer. The second clippy
 # lints for the guest's own target, the only one that compiles the Linux-only modules.
 # Lints the guest agent and holds it to the protocol fixtures.
 test-vm-agent:

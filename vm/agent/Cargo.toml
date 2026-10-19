@@ -2,10 +2,10 @@
 name = "icc-vm-agent"
 version = "0.1.0"
 edition = "2024"
-# Alpine 3.22's rust package, which the image build compiles this with. Resolver
+# Alpine 3.24's rust package, which the image build compiles this with. Resolver
 # 3 reads it when the lock is generated, so Cargo.lock only holds versions that
 # build there.
-rust-version = "1.87"
+rust-version = "1.96"
 publish = false
 
 [[bin]]

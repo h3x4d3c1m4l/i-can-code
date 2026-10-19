@@ -262,7 +262,7 @@ Nobody with legal training has read any of this.
 | Where | What | Language |
 |---|---|---|
 | `vm/image/` | The guest: Dockerfile, config files, the warm interpreter's prelude, `machine.mjs`, and `packages.lock`, every package in it ("Regenerating the image") | Docker, Python |
-| `vm/agent/` | `icc-agent`, the one process the page talks to, on ttyS1 | Rust (`rust-version` 1.87) |
+| `vm/agent/` | `icc-agent`, the one process the page talks to, on ttyS1 | Rust (`rust-version` 1.96) |
 | `vm/protocol/` | The control line's spec, `README.md`, and its byte-exact fixtures | |
 | `web/vm/vm_protocol.js` | The host's codec for that line | JS |
 | `web/vm/vm_host.js` | The host's entry point: `openVm()` loads a bundle, runs programs, stops them, parks the machine; `prefetchBundle()` downloads a bundle without a machine (see "The host") | JS |
@@ -746,7 +746,7 @@ server.
 
 The release binary is 785,168 B, static-pie, built inside the image build with
 whatever Rust the pinned Alpine ships, 1.96.1 on 3.24. The crate's
-`rust-version` stays at 1.87, which is the floor `cargo clippy` holds it to.
+`rust-version` is 1.96 to match, and it is the floor `cargo clippy` holds it to.
 Its dependencies are `libc`, `serde`, `serde_json`,
 `crc32fast` and `x11rb` 0.14 without default features, a pure-Rust X client
 that needs nothing from the image.
@@ -2848,8 +2848,9 @@ Found while building this, each the reason for something above.
   loads it into the handed-over root now.
 - **Linux-only agent code is invisible to clippy on a Mac.** `just test-vm-agent`
   also lints for `i686-unknown-linux-musl`, which caught a deprecated `time_t`.
-  The crate's `rust-version` is 1.87, which has no let chains, so clippy refuses
-  one even though the Rust that builds the image is now newer.
+  Clippy holds the code to the crate's `rust-version`, not to the Rust that
+  builds the image: at 1.87 it refused a let chain that Alpine 3.24's 1.96
+  builds. So `rust-version` moves with the Alpine pin.
 - **Node's mocked `Date` jumps to the end of a `tick()` before intervals run.**
   The watchdog adds at most 100 ms per sample, so a long mocked tick looks like a
   stalled thread; the tests step time 100 ms at a time.

@@ -17,7 +17,7 @@ flutter_rust_bridge = "=2.13.0"
 # The USB abstraction itself. Deliberately not `cfg`-gated: nusb's own backends
 # are the platform split (WebUSB in the browser, usbfs on Android, WinUSB, IOKit),
 # which is the whole reason the transport is in Rust.
-nusb = "0.2.7"
+nusb = "0.2.8"
 
 # Only for `platform::sleep`, which the session loop needs so that polling the
 # board does not become a spin. Split by target because there is no portable

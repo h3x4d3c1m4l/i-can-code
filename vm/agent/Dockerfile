@@ -6,7 +6,7 @@
 ARG ALPINE_VERSION
 
 # Builds icc-agent for the guest with the Rust the pinned Alpine release ships. Cargo.toml's
-# rust-version and the committed Cargo.lock hold it to Rust 1.87, Alpine 3.22's. v86 emulates a
+# rust-version and the committed Cargo.lock hold it to Rust 1.96, Alpine 3.24's. v86 emulates a
 # 32-bit PC, so the platform is fixed rather than taken from the build.
 FROM --platform=linux/386 alpine:${ALPINE_VERSION} AS build
 

@@ -37,7 +37,7 @@ libdrm	2.4.134-r0	MIT	libdrm	2015800769b781bef45917b668d10bffe2ac538f
 libelf	0.195-r0	GPL-3.0-or-later AND ( GPL-2.0-or-later OR LGPL-3.0-or-later )	elfutils	8f13294206888f3dd44ed74a8eb3dd9934499e81
 libepoxy	1.5.10-r1	MIT	libepoxy	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
 libevdev	1.13.6-r0	MIT	libevdev	2af4dd0082956420a61fe680bb3da04034e67e34
-libexpat	2.8.5-r0	MIT	expat	41a9605db84bb52cd65c6349e5e087c2c7fe9efb
+libexpat	2.9.0-r0	MIT	expat	c10df79ce35862cf273f98f6eb78d52e4f064ac7
 libffi	3.5.2-r1	MIT	libffi	2c2a7bb4a8b16066834e90402567b2c19403a790
 libfontenc	1.1.9-r0	MIT	libfontenc	9667f1121e207bb3819d91ab6734375f7698e5a7
 libgcc	15.2.0-r5	GPL-2.0-or-later AND LGPL-2.1-or-later	gcc	423a8ad043d07f2c7546c8ec3e2b0384cda360ae
@@ -48,7 +48,7 @@ libpciaccess	0.19-r0	X11	libpciaccess	d5de88aad8098d25c1b9e53d4ca5e6ff6c90e234
 libpng	1.6.59-r0	Libpng	libpng	8f222b50cd6e31c83f7dd69ab7c00e7471e11d4b
 libssl3	3.5.8-r0	Apache-2.0	openssl	013edf8b29199933e8ea34dde460b5584b979042
 libstdc++	15.2.0-r5	GPL-2.0-or-later AND LGPL-2.1-or-later	gcc	423a8ad043d07f2c7546c8ec3e2b0384cda360ae
-libx11	1.8.13-r0	X11	libx11	f993bc30142d46271ede4a746c1abefaa1a78eee
+libx11	1.8.14-r0	X11	libx11	e129d974905f6cf078e41390b58241a73519f572
 libxau	1.0.12-r0	MIT	libxau	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
 libxcb	1.17.0-r2	MIT	libxcb	5e1b822309fb17cc2ebd46d6fbacb1763acbcdd1
 libxcvt	0.1.3-r0	custom	libxcvt	6bd45b53fb316dc01bda59f5feaf1e127eb64f22
@@ -58,10 +58,10 @@ libxfont2	2.0.8-r0	MIT	libxfont2	1ad07911a02441114c991576c13fa0f4746e685b
 libxft	2.3.9-r0	MIT	libxft	9a4062b0f278b43370faa58195206c5ef94e7899
 libxkbfile	1.2.0-r0	MIT	libxkbfile	4caf66685895cb1db7bfdfc9f63c1dbf726712fd
 libxml2	2.13.9-r2	MIT	libxml2	f1bd5b6767a0e7fdda380c95138a1c938eb6e102
-libxrender	0.9.12-r0	MIT	libxrender	74030d4140b68e8d4d36a357751f156ab31840c2
+libxrender	0.9.13-r0	MIT	libxrender	5ccdccc7a1dbc47bea804a77db56dfecf31b10ad
 libxshmfence	1.3.3-r0	MIT	libxshmfence	8bac74716d06c84627ab02d101fd9d2bafd0a34c
 libxxf86vm	1.1.7-r0	MIT	libxxf86vm	ac89fbb35d37756385378e461847c2b0a61613dd
-llvm22-libs	22.1.3-r0	Apache-2.0	llvm22	4067b1fd9a40691da357b0ae07a700c6a458b1bd
+llvm22-libs	22.1.3-r1	Apache-2.0	llvm22	7d10bc6cb2ec4d1202cc140ecc753d3200d84fc2
 mdev-conf	4.10-r0	MIT	mdev-conf	203310a84fe34bc9b8dad2c97cba2f5189303415
 mesa	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
 mesa-egl	26.1.6-r0	MIT AND SGI-B-2.0 AND BSL-1.0	mesa	b94e73658216f4e91c701bfdeb420e6874910a74
@@ -92,15 +92,15 @@ sqlite-libs	3.53.4-r0	blessing	sqlite	a9c3ba8b9129ec0f294d0a9bf538c2f1632bb016
 ssl_client	1.37.0-r31	GPL-2.0-only	busybox	c3ef5d10e6ef6528852c51f0564963e2f8c1be19
 tcl	8.6.17-r1	TCL	tcl	a9e2a2dc46f377eb25884f7fea9834492de7f518
 tk	8.6.17-r1	TCL	tk	a9e2a2dc46f377eb25884f7fea9834492de7f518
-tzdata	2026d-r0	Public-Domain	tzdata	a19caf9fe771707618d4d9e4fa2dd9db8155b461
+tzdata	2026e-r0	Public-Domain	tzdata	faa135a1a22c90309bf381766a7cc47490dea786
 util-macros	1.20.2-r0	MIT	util-macros	ff5bcaba738490af891f11024ced8940d8f9eeb4
 wayland-libs-client	1.25.0-r0	MIT	wayland	5960a969742897aba03257e84f0aa40f3c1e84d6
 xf86-input-evdev	2.11.0-r0	MIT	xf86-input-evdev	cb9217e8247ec4cf3a967258f6f95ca93616aca2
 xf86-video-fbdev	0.5.0-r6	MIT	xf86-video-fbdev	614e9166706cec427fc3d907b8d981390a42e088
 xkbcomp	1.5.0-r0	MIT	xkbcomp	aa8ee026b4c1ab3a33ac7feeba3bbdd2ee151ea6
 xkeyboard-config	2.47-r0	MIT	xkeyboard-config	ec89b244a8f186e061fdc6433d384e93c4155ff7
-xorg-server	21.1.24-r0	MIT	xorg-server	84eefe18e0addbebda9b4dc42960b58fb159382b
-xorg-server-common	21.1.24-r0	MIT	xorg-server	84eefe18e0addbebda9b4dc42960b58fb159382b
+xorg-server	21.1.25-r0	MIT	xorg-server	dc96cf1c49dce180a4e7720735bfb5895e4d5c5e
+xorg-server-common	21.1.25-r0	MIT	xorg-server	dc96cf1c49dce180a4e7720735bfb5895e4d5c5e
 xwininfo	1.1.6-r0	MIT	xwininfo	55a9d95d44c8c4830342df61685d7f3f97a5b4e6
 xz-libs	5.8.4-r0	GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later	xz	0c088d609f9fe69eedd6b4c7f4b99cdad847c20a
 zlib	1.3.2-r0	Zlib	zlib	f248b33b5943c7dc69bf691031d7612ab2e8ed93

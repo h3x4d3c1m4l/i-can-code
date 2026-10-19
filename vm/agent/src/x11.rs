@@ -472,11 +472,11 @@ impl Watcher {
             // A window destroyed since it was asked about answers with an error; its
             // DestroyNotify is on its way and takes it off the list.
             let top = state.tops.entry(request.window).or_default();
-            if let Some((geometry, attributes)) = request.geometry {
-                if let (Ok(geometry), Ok(attributes)) = (geometry.reply(), attributes.reply()) {
-                    top.geometry = Some((geometry.x, geometry.y, geometry.width, geometry.height));
-                    top.override_redirect = attributes.override_redirect;
-                }
+            if let Some((geometry, attributes)) = request.geometry
+                && let (Ok(geometry), Ok(attributes)) = (geometry.reply(), attributes.reply())
+            {
+                top.geometry = Some((geometry.x, geometry.y, geometry.width, geometry.height));
+                top.override_redirect = attributes.override_redirect;
             }
             if let Some([net_name, name, transient]) = request.names {
                 let net_name = net_name.reply().ok();
