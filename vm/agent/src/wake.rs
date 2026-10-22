@@ -97,7 +97,8 @@ mod tests {
         }];
         // SAFETY: the pointer and length describe `fds`, which outlives the call.
         unsafe { libc::poll(fds.as_mut_ptr(), 1, timeout_ms) };
-        fds[0].revents & libc::POLLIN != 0
+        // Linux reports a pipe whose writer is gone as POLLHUP alone; macOS sets POLLIN with it.
+        fds[0].revents & (libc::POLLIN | libc::POLLHUP) != 0
     }
 
     #[test]
@@ -112,13 +113,11 @@ mod tests {
             sender
         });
         assert!(readable(receiver.fd(), 5_000));
-        let mut got = Vec::new();
-        while got.len() < 3 {
-            got.extend(receiver.drain().unwrap());
-        }
-        assert_eq!(got, [0, 1, 2]);
-        assert!(!readable(receiver.fd(), 0), "drain empties the pipe");
+        // A value reaches the channel before its byte reaches the pipe, so a drain while sends are
+        // still returning can leave a byte behind.
         let sender = worker.join().unwrap();
+        assert_eq!(receiver.drain().unwrap(), [0, 1, 2]);
+        assert!(!readable(receiver.fd(), 0), "drain empties the pipe");
         drop(sender);
         assert!(readable(receiver.fd(), 0), "a closed pipe polls readable");
         assert_eq!(receiver.drain(), Err(Gone));
