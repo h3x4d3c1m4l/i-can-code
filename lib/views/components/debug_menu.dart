@@ -13,6 +13,7 @@ import 'package:i_can_code/services/mobile_browser_warning.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_dialog.dart';
 
 /// Developer tools behind Alt+B, in release builds as well, so a simulation can
 /// be shown on the deployed site. The app is open source, so the key hides
@@ -77,13 +78,7 @@ class _DebugMenuState extends State<DebugMenu> {
   Future<void> _show() async {
     if (_open) return;
     _open = true;
-    await showFDialog<void>(
-      context: context,
-      builder: (context, style, animation) => FDialog(
-        animation: animation,
-        builder: (context, style) => const _DebugPanel(),
-      ),
-    );
+    await showAppDialog<void>(context, builder: (context) => const _DebugPanel());
     _open = false;
   }
 

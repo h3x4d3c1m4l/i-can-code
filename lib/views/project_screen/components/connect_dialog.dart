@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/microbit/microbit_state_panel.dart';
 import 'package:mobx/mobx.dart';
@@ -19,14 +19,9 @@ Future<bool> showConnectDialog(
   required MicrobitSessionViewModel board,
   required VoidCallback onConnect,
 }) async {
-  final connected = await showFDialog<bool>(
-    context: context,
-    // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
-    useRootNavigator: true,
-    builder: (context, style, animation) => FDialog(
-      animation: animation,
-      builder: (context, style) => _ConnectDialogBody(board: board, onConnect: onConnect),
-    ),
+  final connected = await showAppDialog<bool>(
+    context,
+    builder: (context) => _ConnectDialogBody(board: board, onConnect: onConnect),
   );
 
   return connected ?? false;
@@ -69,32 +64,23 @@ class _ConnectDialogBodyState extends State<_ConnectDialogBody> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Observer(
-            builder: (context) => MicrobitStatePanel(
-              status: widget.board.status,
-              failureKind: widget.board.failureKind,
-              failure: widget.board.failure,
-              onConnect: widget.onConnect,
-              framed: false,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: AppButton(
-              tone: AppButtonTone.neutral,
-              onPress: () => Navigator.of(context).pop(false),
-              child: Text(context.localizations.projectScreen_close),
-            ),
-          ),
-        ],
+    return AppDialog(
+      content: Observer(
+        builder: (context) => MicrobitStatePanel(
+          status: widget.board.status,
+          failureKind: widget.board.failureKind,
+          failure: widget.board.failure,
+          onConnect: widget.onConnect,
+          framed: false,
+        ),
       ),
+      actions: [
+        AppButton(
+          tone: AppButtonTone.neutral,
+          onPress: () => Navigator.of(context).pop(false),
+          child: Text(context.localizations.projectScreen_close),
+        ),
+      ],
     );
   }
 

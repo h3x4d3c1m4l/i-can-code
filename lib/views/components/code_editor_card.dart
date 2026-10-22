@@ -6,6 +6,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/code_strip_button.dart';
 import 'package:i_can_code/views/components/escape_then_tab_exit.dart';
 import 'package:re_editor/re_editor.dart';
@@ -254,43 +255,22 @@ class _ResetButton extends StatelessWidget {
   /// Irreversible, the same reason the settings menu's "reset progress" asks
   /// first.
   Future<void> _confirmReset(BuildContext context) async {
-    final confirmed = await showFDialog<bool>(
-      context: context,
-      // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
-      useRootNavigator: true,
-      builder: (context, style, animation) => FDialog(
-        animation: animation,
-        builder: (context, style) => Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.localizations.resetCode_title, style: context.appTheme.text.h3),
-              const SizedBox(height: 12),
-              Text(
-                context.localizations.resetCode_body,
-                style: context.appTheme.text.bodySmall.copyWith(fontSize: 17),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AppButton(
-                    tone: AppButtonTone.neutral,
-                    onPress: () => Navigator.of(context).pop(false),
-                    child: Text(context.localizations.common_cancel),
-                  ),
-                  const SizedBox(width: 12),
-                  AppButton(
-                    onPress: () => Navigator.of(context).pop(true),
-                    child: Text(context.localizations.resetCode_confirm),
-                  ),
-                ],
-              ),
-            ],
+    final confirmed = await showAppDialog<bool>(
+      context,
+      builder: (context) => AppDialog(
+        title: Text(context.localizations.resetCode_title),
+        body: Text(context.localizations.resetCode_body),
+        actions: [
+          AppButton(
+            tone: AppButtonTone.neutral,
+            onPress: () => Navigator.of(context).pop(false),
+            child: Text(context.localizations.common_cancel),
           ),
-        ),
+          AppButton(
+            onPress: () => Navigator.of(context).pop(true),
+            child: Text(context.localizations.resetCode_confirm),
+          ),
+        ],
       ),
     );
 

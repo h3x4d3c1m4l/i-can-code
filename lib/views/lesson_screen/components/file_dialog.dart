@@ -11,6 +11,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/lesson/selectable_code.dart';
 
 /// Where a file on a step came from, which is what its dialog says about it.
@@ -59,17 +60,8 @@ class ShownFile {
 ///
 /// A dialog rather than a card on the step, so a file of any length costs the
 /// step one button and never pushes Run out of view.
-Future<void> showFileDialog(BuildContext context, ShownFile file) => showFDialog<void>(
-  context: context,
-  // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
-  useRootNavigator: true,
-  builder: (context, style, animation) => FDialog(
-    animation: animation,
-    // Wider than a question: this one holds a file, and a CSV's rows are long.
-    constraints: const BoxConstraints(maxWidth: 760),
-    builder: (context, style) => _FileDialogBody(file: file),
-  ),
-);
+Future<void> showFileDialog(BuildContext context, ShownFile file) =>
+    showAppDialog<void>(context, wide: true, builder: (context) => _FileDialogBody(file: file));
 
 class _FileDialogBody extends StatefulWidget {
 
@@ -134,63 +126,49 @@ class _FileDialogBodyState extends State<_FileDialogBody> {
       _ => null,
     };
 
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
+    return AppDialog(
+      title: Text(file.path, style: TextStyle(fontFamily: tokens.text.code.fontFamily)),
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(file.path, style: tokens.text.h3.copyWith(fontFamily: tokens.text.code.fontFamily)),
-          const SizedBox(height: 12),
-          Text(about, style: tokens.text.bodySmall.copyWith(fontSize: 17)),
+          Text(about),
           if (note != null) ...[
             const SizedBox(height: 8),
-            Text(note, style: tokens.text.bodySmall.copyWith(fontSize: 15, color: tokens.colors.warning)),
+            Text(note, style: TextStyle(fontSize: 15, color: tokens.colors.warning)),
           ],
-          if (text != null && text.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            ConstrainedBox(
+        ],
+      ),
+      content: text == null || text.isEmpty
+          ? null
+          : ConstrainedBox(
               // A long file scrolls inside the card rather than pushing the
               // buttons off the screen.
               constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
               child: _Contents(text: text),
             ),
-          ],
-          const SizedBox(height: 24),
-          // The column only stretches a child that asks, and a Wrap as wide as
-          // its buttons has nothing to align them against.
-          SizedBox(
-            width: double.infinity,
-            child: Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                if (text != null && text.isNotEmpty)
-                  AppButton(
-                    tone: AppButtonTone.outline,
-                    icon: _copied ? FLucideIcons.check : FLucideIcons.copy,
-                    onPress: () => unawaited(_copy(text)),
-                    child: Text(localizations.fileDialog_copy),
-                  ),
-                // Not the start of a file passed off as the whole of it.
-                if (canDownloadFiles && text != null && !file.truncated)
-                  AppButton(
-                    tone: AppButtonTone.outline,
-                    icon: FLucideIcons.download,
-                    onPress: () => downloadTextFile(file.path.split('/').last, text),
-                    child: Text(localizations.fileDialog_download),
-                  ),
-                AppButton(
-                  tone: AppButtonTone.neutral,
-                  onPress: () => Navigator.of(context).pop(),
-                  child: Text(localizations.fileDialog_close),
-                ),
-              ],
-            ),
+      actions: [
+        if (text != null && text.isNotEmpty)
+          AppButton(
+            tone: AppButtonTone.outline,
+            icon: _copied ? FLucideIcons.check : FLucideIcons.copy,
+            onPress: () => unawaited(_copy(text)),
+            child: Text(localizations.fileDialog_copy),
           ),
-        ],
-      ),
+        // Not the start of a file passed off as the whole of it.
+        if (canDownloadFiles && text != null && !file.truncated)
+          AppButton(
+            tone: AppButtonTone.outline,
+            icon: FLucideIcons.download,
+            onPress: () => downloadTextFile(file.path.split('/').last, text),
+            child: Text(localizations.fileDialog_download),
+          ),
+        AppButton(
+          tone: AppButtonTone.neutral,
+          onPress: () => Navigator.of(context).pop(),
+          child: Text(localizations.fileDialog_close),
+        ),
+      ],
     );
   }
 

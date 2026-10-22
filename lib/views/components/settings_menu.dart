@@ -15,6 +15,7 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
+import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/debug_menu.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
 
@@ -187,41 +188,22 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
 
   /// Asks before forgetting. Irreversible.
   Future<void> _confirmReset(BuildContext context, ProgressStore progress, CodeDraftStore drafts) async {
-    final confirmed = await showFDialog<bool>(
-      context: context,
-      builder: (context, style, animation) => FDialog(
-        animation: animation,
-        builder: (context, style) => Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.localizations.resetProgress_title, style: context.appTheme.text.h3),
-              const SizedBox(height: 12),
-              Text(
-                context.localizations.resetProgress_body,
-                style: context.appTheme.text.bodySmall.copyWith(fontSize: 17),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AppButton(
-                    tone: AppButtonTone.neutral,
-                    onPress: () => Navigator.of(context).pop(false),
-                    child: Text(context.localizations.common_cancel),
-                  ),
-                  const SizedBox(width: 12),
-                  AppButton(
-                    onPress: () => Navigator.of(context).pop(true),
-                    child: Text(context.localizations.resetProgress_confirm),
-                  ),
-                ],
-              ),
-            ],
+    final confirmed = await showAppDialog<bool>(
+      context,
+      builder: (context) => AppDialog(
+        title: Text(context.localizations.resetProgress_title),
+        body: Text(context.localizations.resetProgress_body),
+        actions: [
+          AppButton(
+            tone: AppButtonTone.neutral,
+            onPress: () => Navigator.of(context).pop(false),
+            child: Text(context.localizations.common_cancel),
           ),
-        ),
+          AppButton(
+            onPress: () => Navigator.of(context).pop(true),
+            child: Text(context.localizations.resetProgress_confirm),
+          ),
+        ],
       ),
     );
 

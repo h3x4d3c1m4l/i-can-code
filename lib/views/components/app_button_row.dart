@@ -21,9 +21,13 @@ class AppButtonRow extends StatelessWidget {
 
   final List<Widget> children;
 
-  const AppButtonRow({required this.children, super.key});
+  /// Where the buttons sit on a line that has room to spare.
+  final WrapAlignment alignment;
+
+  const AppButtonRow({required this.children, this.alignment = WrapAlignment.start, super.key});
 
   @override
-  Widget build(BuildContext context) => Wrap(spacing: gap, runSpacing: gap, children: children);
+  Widget build(BuildContext context) =>
+      Wrap(alignment: alignment, spacing: gap, runSpacing: gap, children: children);
 
 }
