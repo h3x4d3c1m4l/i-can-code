@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
@@ -144,6 +145,10 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
       radius: kCardCornerRadius,
       child: CopyLinkMenu(
         address: () => _addressOf(anchor),
+        restart: (
+          enabled: () => controller.canRestart(courseLesson),
+          onPress: () => unawaited(controller.restartLesson(courseLesson, courseLesson.forLocale(locale).title)),
+        ),
         child: Observer(
           builder: (context) {
             final lesson = courseLesson.forLocale(locale);

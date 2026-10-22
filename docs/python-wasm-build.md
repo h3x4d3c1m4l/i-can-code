@@ -58,13 +58,19 @@ minutes of compute.
    run again over the same `.python-wasm-build/`.
 4. Fetches the licence texts of what it just built into
    `assets/python/licenses/`, for the licence screen. See `docs/licenses.md`.
+5. Bakes pytest into the stdlib zip with `tool/bake_pytest.py`, and adds
+   pytest's licence texts beside the others. See *pytest in the stdlib* below.
 
 Output, both committed as Flutter assets:
 
 | file | size | gzipped |
 |---|---|---|
 | `assets/python/python.wasm` | 7.8 MB | 2.3 MB |
-| `assets/python/python315.zip` | 15 MB | 6.7 MB |
+| `assets/python/python315.zip` | 16.2 MB | 6.1 MB |
+
+The zip is smaller over the wire than before pytest was in it: `ensurepip`
+left at the same time, and its 1.8 MB pip wheel was already deflated, so gzip
+could not shrink it.
 
 ## The five things that are easy to get wrong
 
@@ -135,6 +141,56 @@ on isolated mode, which ignores the `PYTHON*` variables both workers depend on.
 `web/python/stdlib_layout.js` names the two paths for both workers, and the
 `directories` option of `Wasi` creates the empty one.
 
+## pytest in the stdlib
+
+Lessons with `run: pytest` (see `docs/lesson-format.md`) run the student's tests
+with pytest, so pytest ships inside `python315.zip` beside the stdlib: pytest,
+pluggy, iniconfig, packaging and part of Pygments, as bytecode at the zip's root.
+`tool/bake_pytest.py` does it, after the stdlib is packed:
+
+```bash
+python3.15 tool/bake_pytest.py            # bakes into assets/python/python315.zip
+```
+
+It runs on its own against the committed zip, so a pin bump does not need the
+CPython build. Running it twice gives the same zip.
+
+What it does, and why:
+
+- **The wheels are pinned with their sha256** in `PACKAGES`. A build never bakes
+  in a version nobody chose.
+- **Pygments is cut to the 21 modules pytest loads.** `_pytest/_io/terminalwriter.py`
+  imports it at the top, so it cannot go, but pytest only uses the Python and diff
+  lexers and the terminal formatter. The rest is 4.7 MB of lexers for other
+  languages, formatters and styles. Which 21 is not written down: the script
+  imports pytest, highlights one line of each kind, and keeps what got loaded. It
+  fails when `pygments.lexers.python` is not among them, which is what a pytest
+  that changed how it highlights would look like. The lesson runs pass
+  `--color=no`, so in practice none of it runs at all.
+- **The bytecode is compiled with `-d /lib/python315.zip`**, not from `.` as the
+  stdlib is. pytest hides its own frames from a failing test's traceback by
+  comparing a frame's path with the directory of `_pytest.__file__`, which at
+  runtime is `/lib/python315.zip/_pytest`. With `./_pytest/...` a student would see
+  pytest's internals under their own assertion.
+- **The host python MUST be the zip's minor version**, because the packages go in
+  as bytecode. It checks the magic number of `os.pyc` in the zip and stops on a
+  mismatch.
+- **It verifies its own result**: the host python imports pytest from the zip,
+  and `tool/smoke_pytest.mjs` runs one passing and one failing test on the real
+  `python.wasm` through `web/python/wasi.js`, which CI also runs on every PR.
+
+A pytest run in the browser takes about 200 ms against 14 ms for `print(1)`,
+measured in Node on an M2 Pro. Each further `run_tests` in a validator adds about
+20 ms. A lesson that does not use pytest pays 0.5 ms for the longer zip
+directory and nothing else.
+
+Two things pytest needs from the WASI build, which the run passes as flags (see
+`lib/services/python/python_pytest_library.dart`):
+
+- `--capture=sys`: the default fd capture needs `os.dup2`, which WASI does not
+  have.
+- `-p no:faulthandler`: enabling it fails with `OSError: [Errno 58] Not supported`.
+
 ## Running it
 
 ```bash
@@ -171,7 +227,8 @@ later by cross-compiling the C libraries for WASI and reconfiguring.
 The build is also a genuine sandbox, and that is worth preserving: a WASM module
 can only reach what its imports allow. A student's code has no network and no way out,
 and the filesystem it does have is **entirely inside `web/python/wasi.js`** — a
-tree of nodes in memory, seeded with the stdlib zip and the program being run.
+tree of nodes in memory, seeded with the stdlib zip, the program being run, an
+empty `/tmp` and `/dev/null`, which pytest's logging plugin opens at startup.
 There is no host directory behind it and nothing is preopened from disk, so a
 program can write, list and delete all it likes without touching anything real.
 Nothing it writes outlives the wasm instance.
@@ -213,3 +270,10 @@ fail quietly rather than loudly:
   drifted apart fail on the first import rather than at build time. Nothing in
   `flutter test` covers this — those tests run against the machine's own
   `python3`, not against the two artifacts that ship.
+
+`tool/bake_pytest.py` runs as part of the build and compiles with the host
+python, so the new minor version has to be installed on the host too.
+
+To bump pytest or one of its dependencies, change its version and sha256 in
+`PACKAGES` in `tool/bake_pytest.py`, run it, and change the same versions in both
+workflows' `pip install` and in `kPytestVersion` in `test/support/host_python.dart`.

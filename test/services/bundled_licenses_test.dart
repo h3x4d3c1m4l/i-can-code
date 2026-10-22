@@ -126,7 +126,16 @@ void main() {
     expect(app.texts.single, startsWith('Mozilla Public License Version 2.0'));
 
     expect(catalog.of(LicenseOrigin.packages).map((it) => it.name), containsAll(['flutter', 'mobx', 'auto_route']));
-    expect(catalog.of(LicenseOrigin.python).map((it) => it.name), ['CPython', 'LLVM compiler-rt', 'wasi-libc']);
+    expect(catalog.of(LicenseOrigin.python).map((it) => it.name), [
+      'CPython',
+      'iniconfig',
+      'LLVM compiler-rt',
+      'packaging',
+      'pluggy',
+      'Pygments',
+      'pytest',
+      'wasi-libc',
+    ]);
     expect(catalog.of(LicenseOrigin.rust).map((it) => it.name), containsAll(['nusb', 'Rust standard library']));
     expect(catalog.of(LicenseOrigin.fonts), hasLength(4));
 

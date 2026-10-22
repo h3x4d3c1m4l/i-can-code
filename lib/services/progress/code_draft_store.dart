@@ -156,6 +156,29 @@ abstract class CodeDraftStoreBase with Store {
   /// Drops [page]'s draft, so it opens on what it started with again.
   void forgetPage(String page) => _drop(pageKeyFor(page));
 
+  /// Whether any code of [lesson] is kept: a step's draft, a project's program
+  /// or a task's snapshot.
+  bool hasCodeIn(CourseLesson lesson) => _drafts.keys.any((key) => _isIn(lesson, key));
+
+  /// Drops all of [lesson]'s code, so every step opens on its starter block
+  /// again, and writes that out at once.
+  Future<void> forgetLesson(CourseLesson lesson) async {
+    for (final key in _drafts.keys.where((key) => _isIn(lesson, key)).toList()) {
+      _drop(key);
+    }
+    await flush();
+  }
+
+  /// Whether [key] is one of [lesson]'s. The section keys end the lesson id in
+  /// a dot, so `loops` does not claim the code of `loops-2`.
+  bool _isIn(CourseLesson lesson, String key) {
+    final subject = lesson.entry.subject;
+    final id = lesson.translations.values.first.id;
+    return key.startsWith('$_codePrefix$subject.$id.') ||
+        key.startsWith('$_snapshotPrefix$subject.$id.') ||
+        key == workKeyFor(subject, id);
+  }
+
   void _put(String key, String code) {
     if (_drafts[key] == code) return;
 

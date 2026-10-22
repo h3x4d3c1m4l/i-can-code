@@ -256,6 +256,8 @@ class _ResetButton extends StatelessWidget {
   Future<void> _confirmReset(BuildContext context) async {
     final confirmed = await showFDialog<bool>(
       context: context,
+      // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
+      useRootNavigator: true,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         builder: (context, style) => Padding(

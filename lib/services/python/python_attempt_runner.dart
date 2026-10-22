@@ -1,7 +1,58 @@
 import 'dart:convert';
 
 import 'package:i_can_code/services/python/python_check_library.dart';
+import 'package:i_can_code/services/python/python_pytest_library.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+
+/// How a section's code is run.
+enum PythonRunMode {
+  /// As a program, the way a student would run `python main.py`.
+  script,
+
+  /// Under pytest, with the section's files beside it.
+  pytest,
+}
+
+/// How one test ended, in a [PythonRunMode.pytest] run.
+enum TestOutcomeKind {
+  passed,
+  failed,
+
+  /// Its setup or teardown raised, so the test itself never decided anything.
+  error,
+  skipped,
+}
+
+/// One test of a [PythonRunMode.pytest] run.
+class TestOutcome {
+
+  /// As pytest names it within its file: `test_deel`, `TestRekenmachine::test_deel`
+  /// or `test_deel[3-0]`.
+  final String name;
+
+  final TestOutcomeKind kind;
+
+  /// pytest's one-line reason, such as `assert 4 == 5`. Null for a pass.
+  final String? message;
+
+  const TestOutcome({required this.name, required this.kind, this.message});
+
+  factory TestOutcome.fromJson(Map<String, dynamic> json) => TestOutcome(
+    name: json['name'] as String,
+    kind: TestOutcomeKind.values.byName(json['outcome'] as String),
+    message: json['message'] as String?,
+  );
+
+}
+
+/// Why a [PythonRunMode.pytest] run failed before its validator ran.
+enum TestsProblem {
+  /// pytest collected no tests.
+  none,
+
+  /// At least one test failed or errored.
+  failing,
+}
 
 /// What one attempt at an assignment produced.
 class AttemptResult {
@@ -30,6 +81,18 @@ class AttemptResult {
   /// anything with no localizations to reach for, such as `tool/try_lesson.dart`.
   final String? disallowedConstruct;
 
+  /// The test `require_aaa` refused, when the author wrote no message of their
+  /// own. A name for the same reason as [disallowedConstruct].
+  final String? aaaTest;
+
+  /// Every test of a [PythonRunMode.pytest] run, passed or not. Empty for a
+  /// script.
+  final List<TestOutcome> tests;
+
+  /// Set when a [PythonRunMode.pytest] run failed on its tests, before the
+  /// validator could run.
+  final TestsProblem? testsProblem;
+
   /// Output hit the runtime's per-run cap and was cut short.
   final bool truncated;
 
@@ -50,6 +113,9 @@ class AttemptResult {
     this.programError,
     this.checkMessage,
     this.disallowedConstruct,
+    this.aaaTest,
+    this.tests = const [],
+    this.testsProblem,
     this.truncated = false,
     this.writtenFiles = const [],
     this.filesCut = false,
@@ -64,6 +130,9 @@ class AttemptResult {
       programError = message,
       checkMessage = null,
       disallowedConstruct = null,
+      aaaTest = null,
+      tests = const [],
+      testsProblem = null,
       truncated = false,
       writtenFiles = const [],
       filesCut = false,
@@ -129,6 +198,9 @@ class PythonAttemptRunner {
   /// rather than per attempt: it is a constant and every run gets the same bytes.
   static final String _encodedChecks = base64.encode(utf8.encode(kCheckLibrary));
 
+  /// [kPytestLibrary], carried the same way.
+  static final String _encodedPytest = base64.encode(utf8.encode(kPytestLibrary));
+
   final PythonRuntime _runtime;
 
   PythonAttemptRunner(this._runtime);
@@ -145,11 +217,15 @@ class PythonAttemptRunner {
   ///
   /// [files] are written into the program's working directory, by name, before
   /// it starts. Every attempt gets them as given, whatever the last one did.
+  ///
+  /// [mode] and [fileName] are as for [buildProgram].
   Future<AttemptResult> attempt({
     required String code,
     String? validator,
     String? stdin,
     Map<String, String> files = const {},
+    PythonRunMode mode = PythonRunMode.script,
+    String fileName = 'main.py',
   }) async {
     if (!_runtime.isSupported) {
       return const AttemptResult.broken('Running code is not available in this browser.');
@@ -157,7 +233,7 @@ class PythonAttemptRunner {
 
     await _runtime.ready();
     final result = await _runtime.run(
-      buildProgram(code: code, validator: validator, files: files),
+      buildProgram(code: code, validator: validator, files: files, mode: mode, fileName: fileName),
       stdin: stdin ?? '',
     );
 
@@ -172,9 +248,20 @@ class PythonAttemptRunner {
   /// The student's source, the validator and [files] MUST be carried as
   /// **base64 of a JSON document**, never interpolated: base64's alphabet
   /// contains no quote, so the payload cannot terminate the literal holding it.
-  static String buildProgram({required String code, String? validator, Map<String, String> files = const {}}) {
+  ///
+  /// With [PythonRunMode.pytest], [code] is the file named [fileName], and
+  /// pytest runs on it and [files] instead of [code] running as a script. The
+  /// validator only runs once every test passed, and also gets `results` and
+  /// `run_tests`; see [kPytestLibrary].
+  static String buildProgram({
+    required String code,
+    String? validator,
+    Map<String, String> files = const {},
+    PythonRunMode mode = PythonRunMode.script,
+    String fileName = 'main.py',
+  }) {
     final payload = base64.encode(
-      utf8.encode(jsonEncode({'code': code, 'validator': validator ?? '', 'files': files})),
+      utf8.encode(jsonEncode({'code': code, 'validator': validator ?? '', 'files': files, 'file': fileName})),
     );
 
     return '''
@@ -185,23 +272,24 @@ import base64, codecs, gc, io, json, linecache, os, sys, traceback
 # that reads as a file the student wrote.
 sys.dont_write_bytecode = True
 _p = json.loads(base64.b64decode("$payload").decode("utf-8"))
-# The code is compiled as "main.py", and CPython reads a traceback's lines, and a
+# The code is compiled under its file name, "main.py" unless a pytest step names
+# another, and CPython reads a traceback's lines, and a
 # SyntaxError's text and column, back from the file by that name. The browser runs
 # this wrapper as main.py, so every error quoted a line of the harness. The script
 # is already parsed, so the file can hold what was actually compiled.
 try:
-    with open("main.py", "w", encoding="utf-8") as _f:
+    with open(_p["file"], "w", encoding="utf-8") as _f:
         _f.write(_p["code"])
 except OSError:
     # mtime None keeps linecache.checkcache from dropping the entry.
-    linecache.cache["main.py"] = (len(_p["code"]), None, _p["code"].splitlines(True), "main.py")
+    linecache.cache[_p["file"]] = (len(_p["code"]), None, _p["code"].splitlines(True), _p["file"])
 _root = os.getcwd()
 for _name, _text in _p["files"].items():
     # newline="" writes the text as the lesson has it, on a host that would
     # otherwise turn every \\n into \\r\\n.
     with open(_name, "w", encoding="utf-8", newline="") as _f:
         _f.write(_text)
-# Everything here before the program starts that is not the lesson's: main.py,
+# Everything here before the program starts that is not the lesson's: the code,
 # and in the browser the standard library and /tmp. None of it is shown.
 _harness = set(os.listdir(_root)) - set(_p["files"])
 _out = sys.stdout
@@ -306,32 +394,7 @@ def _fit(found, more, room):
     return json.dumps({"files": kept, "more": more})
 
 
-_verdict = {"ok": True, "error": None, "message": None}
-_g = {"__name__": "__main__"}
-
-try:
-    _compiled = compile(_p["code"], "main.py", "exec")
-except SyntaxError as _e:
-    _verdict["ok"] = False
-    _verdict["error"] = "".join(traceback.format_exception_only(type(_e), _e))
-else:
-    sys.stdout = _buf
-    sys.stdin = _Echo(_in)
-    try:
-        exec(_compiled, _g)
-    except SystemExit:
-        pass
-    except BaseException as _e:
-        # tb_next drops this harness's own exec frame, so the student sees only
-        # the lines they wrote.
-        _verdict["ok"] = False
-        _verdict["error"] = "".join(
-            traceback.format_exception(type(_e), _e, _e.__traceback__.tb_next)
-        )
-    finally:
-        sys.stdout = _out
-        sys.stdin = _in
-
+${mode == PythonRunMode.pytest ? _pytestRun : _scriptRun}
 # What `python main.py` does on its way out. A file the program opened and never
 # closed is flushed once nothing holds it, and would otherwise be read back
 # empty. Anything printed on the way is dropped, as it would be after the end.
@@ -360,7 +423,7 @@ if _verdict["ok"] and _p["validator"].strip():
     # `output` is stripped of trailing whitespace on purpose: print() ends every
     # line with a newline, so an author checking `output == "42"` would never
     # pass. See docs/lesson-format.md.
-    _scope = {"code": _p["code"], "output": _captured.rstrip()}
+    _scope = {"code": _p["code"], "output": _captured.rstrip(), **_extra}
     try:
         # Inside the try on purpose: a broken library must surface as a check
         # that failed, not as a run that produced no verdict at all.
@@ -372,9 +435,10 @@ if _verdict["ok"] and _p["validator"].strip():
     except BaseException as _e:
         _verdict["ok"] = False
         _verdict["message"] = str(_e) or type(_e).__name__
-        # Set only by the check library's NotAllowed, so the message above stays
-        # the author's whenever they wrote one.
+        # Set only by the check library's NotAllowed and AaaMissing, so the
+        # message above stays the author's whenever they wrote one.
         _verdict["notAllowed"] = getattr(_e, "icc_construct", None)
+        _verdict["aaa"] = getattr(_e, "icc_aaa", None)
 
 _verdict["output"] = _captured
 _line = "\\n$sentinel" + json.dumps(_verdict) + "\\n"
@@ -390,6 +454,80 @@ except BaseException:
 _out.write("$filesSentinel" + _listed + "\\n")
 ''';
   }
+
+  /// Runs the student's code as a script. Leaves `_verdict`, the program's
+  /// globals in `_g`, what it printed in `_buf`, and `_extra` for the
+  /// validator's scope.
+  static const String _scriptRun = '''
+_verdict = {"ok": True, "error": None, "message": None}
+_g = {"__name__": "__main__"}
+_extra = {}
+
+try:
+    _compiled = compile(_p["code"], _p["file"], "exec")
+except SyntaxError as _e:
+    _verdict["ok"] = False
+    _verdict["error"] = "".join(traceback.format_exception_only(type(_e), _e))
+else:
+    sys.stdout = _buf
+    sys.stdin = _Echo(_in)
+    try:
+        exec(_compiled, _g)
+    except SystemExit:
+        pass
+    except BaseException as _e:
+        # tb_next drops this harness's own exec frame, so the student sees only
+        # the lines they wrote.
+        _verdict["ok"] = False
+        _verdict["error"] = "".join(
+            traceback.format_exception(type(_e), _e, _e.__traceback__.tb_next)
+        )
+    finally:
+        sys.stdout = _out
+        sys.stdin = _in
+''';
+
+  /// Runs pytest on the student's file and the section's files. Leaves the same
+  /// names as [_scriptRun], with pytest's report in `_buf`.
+  ///
+  /// A test that fails is a failed check and not a crash: in either kind of
+  /// exercise it means the student's half is wrong. What does count as a crash
+  /// is a file pytest cannot collect, because no test in it ran at all.
+  static final String _pytestRun = '''
+_verdict = {"ok": True, "error": None, "message": None, "tests": []}
+_g = {}
+_extra = {}
+
+try:
+    compile(_p["code"], _p["file"], "exec")
+except SyntaxError as _e:
+    _verdict["ok"] = False
+    _verdict["error"] = "".join(traceback.format_exception_only(type(_e), _e))
+else:
+    _plib = {}
+    try:
+        exec(compile(base64.b64decode("$_encodedPytest").decode("utf-8"), "pytest_checks.py", "exec"), _plib)
+    except ImportError as _e:
+        _verdict["ok"] = False
+        _verdict["error"] = "pytest is not available in this Python: %s" % _e
+    else:
+        _files = dict(_p["files"])
+        _files[_p["file"]] = _p["code"]
+        _results = _plib["_run"](_files)
+        _buf.write(_results.output)
+        _verdict["tests"] = [{"name": _t.name, "outcome": _t.outcome, "message": _t.message} for _t in _results.tests]
+        if _results.errors:
+            _verdict["ok"] = False
+            _verdict["error"] = "\\n".join(_results.errors)
+        elif not _results.tests:
+            _verdict["ok"] = False
+            _verdict["testsProblem"] = "none"
+        elif not _results.passed:
+            _verdict["ok"] = False
+            _verdict["testsProblem"] = "failing"
+        else:
+            _extra = {"results": _results, "run_tests": _plib["make_run_tests"](_files)}
+''';
 
   /// Reads the verdict back out of a run.
   ///
@@ -435,6 +573,14 @@ _out.write("$filesSentinel" + _listed + "\\n")
       programError: verdict['error'] as String?,
       checkMessage: verdict['message'] as String?,
       disallowedConstruct: verdict['notAllowed'] as String?,
+      aaaTest: verdict['aaa'] as String?,
+      tests: [
+        for (final test in verdict['tests'] as List<dynamic>? ?? const []) TestOutcome.fromJson(test as Map<String, dynamic>),
+      ],
+      testsProblem: switch (verdict['testsProblem']) {
+        final String problem => TestsProblem.values.byName(problem),
+        _ => null,
+      },
       // The verdict carries the whole output, so the cap can only have cut
       // what came after it: the files, which say so themselves.
       writtenFiles: files,

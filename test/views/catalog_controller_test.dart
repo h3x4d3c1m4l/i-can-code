@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_controller.dart';
@@ -56,7 +57,9 @@ void main() {
 
   setUp(() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-    GetIt.I.registerSingleton<ProgressStore>(ProgressStore());
+    GetIt.I
+      ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<CodeDraftStore>(CodeDraftStore());
     router = _Router();
   });
 

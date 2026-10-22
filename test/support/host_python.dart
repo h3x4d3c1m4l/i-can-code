@@ -2,8 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/python/section_attempt.dart';
+
+/// The pytest that `tool/bake_pytest.py` bakes into the app. A host with
+/// another one still runs the tests, but may word its output differently.
+const String kPytestVersion = '9.1.1';
 
 /// Runs the harness's program through whatever CPython is on this machine.
 ///
@@ -15,9 +21,11 @@ Future<AttemptResult> attempt({
   String? validator,
   String? stdin,
   Map<String, String> files = const {},
+  PythonRunMode mode = PythonRunMode.script,
+  String fileName = 'main.py',
 }) async {
   final result = await runOnHost(
-    PythonAttemptRunner.buildProgram(code: code, validator: validator, files: files),
+    PythonAttemptRunner.buildProgram(code: code, validator: validator, files: files, mode: mode, fileName: fileName),
     stdin: stdin,
   );
   return PythonAttemptRunner.parseResult(result);
@@ -50,6 +58,16 @@ Future<PythonResult> runOnHost(String program, {String? stdin}) async {
   return PythonResult(stdout: streams[0], stderr: streams[1], exitCode: exitCode);
 }
 
+/// Runs [code] the way the lesson screen runs it for [section].
+Future<AttemptResult> attemptSection(LessonSection section, String code) => attempt(
+  code: code,
+  validator: section.validator,
+  stdin: section.stdin,
+  files: section.files,
+  mode: section.runMode,
+  fileName: section.fileName,
+);
+
 /// Whether this machine can run [attempt] at all. A test that needs it skips
 /// rather than fails without it.
 bool get hasPython3 {
@@ -59,3 +77,17 @@ bool get hasPython3 {
     return false;
   }
 }
+
+/// Whether the host python can also run a [PythonRunMode.pytest] attempt.
+/// Install it with `pip install pytest==$kPytestVersion`.
+final bool hasPytest = () {
+  if (!hasPython3) return false;
+  final result = Process.runSync('python3', ['-c', 'import pytest; print(pytest.__version__)']);
+  if (result.exitCode != 0) return false;
+  final version = (result.stdout as String).trim();
+  if (version != kPytestVersion) {
+    // ignore: avoid_print
+    print('Host pytest is $version; the app ships $kPytestVersion.');
+  }
+  return true;
+}();

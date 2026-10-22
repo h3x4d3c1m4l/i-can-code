@@ -184,6 +184,15 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze
 
+      # See pr-ci.yml: the pytest harness tests need pytest on the host python.
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install pytest
+        run: pip install pytest==9.1.1 pluggy==1.7.0 iniconfig==2.3.1 packaging==26.3 pygments==2.21.0
+
       # Not optional: `dart analyze` stays green while every build and test
       # fails when a generator emits syntax the language version rejects.
       - name: Flutter test

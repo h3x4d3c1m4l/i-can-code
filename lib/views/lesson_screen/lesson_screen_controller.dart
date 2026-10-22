@@ -13,7 +13,9 @@ import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/python/section_attempt.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
+import 'package:i_can_code/views/components/lesson/requirements_row.dart';
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
 
@@ -78,6 +80,8 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
       validator: section.validator,
       stdin: section.stdin,
       files: section.files,
+      mode: section.runMode,
+      fileName: section.fileName,
     );
     if (_disposed || token != _runToken) return;
     viewModel.finishRun(result);
@@ -270,6 +274,24 @@ class LessonScreenController extends ScreenControllerBase<LessonScreenViewModel>
     await _progress.markFinished(viewModel.lesson, section.id);
 
     if (!wasFinished && _progress.isFinished(viewModel.lesson)) viewModel.noteLessonFinished();
+  }
+
+  /// The lessons [lesson] recommends doing first, in [locale]. See
+  /// [requirementsFor].
+  List<Requirement> requirementsOf(Lesson lesson, String locale) => requirementsFor(
+    lesson.requires,
+    subject: viewModel.lesson.entry.subject,
+    locale: locale,
+    course: GetIt.I<Course>(),
+    progress: _progress,
+  );
+
+  /// Opens a lesson this one recommends, over this screen, so Back returns here.
+  Future<void> openRequirement(CourseLesson lesson) async {
+    await stop();
+    unawaited(_drafts.flush());
+    if (_disposed || !contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(openingRoute(lesson, _progress));
   }
 
   /// One more burst over the end page, for the fun of it.

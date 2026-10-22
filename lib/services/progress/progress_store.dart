@@ -104,6 +104,20 @@ abstract class ProgressStoreBase with Store {
     }
   }
 
+  /// Forgets the finished steps of [lesson] alone, in storage as well as in
+  /// memory, so it counts as never started.
+  Future<void> forget(CourseLesson lesson) async {
+    final key = keyFor(lesson.entry.subject, lesson.translations.values.first.id);
+    if (!_finished.containsKey(key)) return;
+
+    _replace({..._finished}..remove(key));
+    try {
+      await _preferences.remove(key);
+    } on Object {
+      // Nothing to do about a storage that will not forget.
+    }
+  }
+
   /// Forgets everything, in storage as well as in memory, including progress
   /// in lessons the course no longer has.
   Future<void> clear() async {

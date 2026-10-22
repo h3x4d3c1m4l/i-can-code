@@ -116,6 +116,24 @@ enum LessonRuntime {
 
 }
 
+/// How an assignment's code is run, from `run` in the section's `metadata`.
+enum SectionRun {
+
+  /// As a program. Every step that does not say otherwise.
+  script,
+
+  /// Under pytest: the editor holds one file, the section's `file` blocks the
+  /// others, and pytest runs the tests among them. See `docs/lesson-format.md`.
+  pytest;
+
+  static SectionRun parse(String value) => switch (value) {
+    'script' => SectionRun.script,
+    'pytest' => SectionRun.pytest,
+    _ => throw FormatException('Unknown run "$value".'),
+  };
+
+}
+
 /// How a lesson is walked through, from `layout` in its document-level
 /// `metadata`.
 enum LessonLayout {
@@ -275,6 +293,14 @@ class LessonSection {
   /// Advice, not a gate: the task opens whether or not they are finished.
   final List<String> requires;
 
+  /// How the student's code is run. [SectionRun.script] on every kind but an
+  /// assignment that declares otherwise.
+  final SectionRun run;
+
+  /// What the editor's file is called. `main.py` unless a [SectionRun.pytest]
+  /// step names it, which it MUST.
+  final String fileName;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -293,6 +319,8 @@ class LessonSection {
     this.files = const {},
     this.doneWhen,
     this.requires = const [],
+    this.run = SectionRun.script,
+    this.fileName = 'main.py',
   });
 
 }
@@ -338,6 +366,13 @@ class Lesson {
   /// for a lesson that is always listed. See `FeatureToggles`.
   final String? feature;
 
+  /// The lessons worth doing before this one, by [Lesson.id], from the lesson's
+  /// own `requires`. Empty when it names none, and always on a project, whose
+  /// tasks name their own.
+  ///
+  /// Advice, not a gate: the lesson opens whether or not they are finished.
+  final List<String> requires;
+
   /// The steps the app can show. A step for a runtime that is not ready in this
   /// [layout] is not among them: see [LessonRuntime.readyIn]. So this may be
   /// empty, which is a whole lesson written for a runtime this version cannot
@@ -353,6 +388,7 @@ class Lesson {
     this.runtime = LessonRuntime.python,
     this.layout = LessonLayout.steps,
     this.feature,
+    this.requires = const [],
     required this.sections,
   });
 
@@ -378,6 +414,8 @@ class Lesson {
     var runtime = LessonRuntime.python;
     var layout = LessonLayout.steps;
     String? feature;
+    // Named apart from the section's `requires` below, which a task fills.
+    List<String>? lessonRequires;
     final sections = <LessonSection>[];
     // Steps left out for a runtime that is not ready, so that a lesson made
     // only of those is empty rather than malformed.
@@ -407,6 +445,8 @@ class Lesson {
     var files = <(String, List<String>)>[];
     String? doneWhen;
     List<String>? requires;
+    SectionRun? sectionRun;
+    String? sectionFile;
 
     void clearSection() {
       sectionKind = null;
@@ -426,6 +466,8 @@ class Lesson {
       files = [];
       doneWhen = null;
       requires = null;
+      sectionRun = null;
+      sectionFile = null;
     }
 
     void flush() {
@@ -475,7 +517,9 @@ class Lesson {
       }
       // Wider than the editor: an order-lines step runs a program and is
       // checked like an exercise, but has nothing to type in.
-      if (sectionKind!.usesValidator && validator == null) {
+      // Under pytest the tests are a check of their own, so one written to
+      // pass needs nothing more.
+      if (sectionKind!.usesValidator && validator == null && sectionRun != SectionRun.pytest) {
         throw FormatException('Section "$sectionTitle" is a ${sectionKind!.name} but has no validator block.');
       }
       if (!sectionKind!.usesValidator && validator != null) {
@@ -531,7 +575,8 @@ class Lesson {
           'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `file` block; nothing here runs.',
         );
       }
-      final seeded = _readFiles(files, sectionTitle);
+      final seeded = _readFiles(files, sectionTitle, modules: sectionRun == SectionRun.pytest);
+      _checkRun(sectionTitle, sectionKind!, sectionRun, sectionFile, seeded, stdin);
       // Optional where it belongs, refused everywhere else: it is shown with the
       // answer to a prediction, and no other kind has an answer to show it with.
       if (sectionKind != SectionKind.predictOutput && explanation != null) {
@@ -568,6 +613,8 @@ class Lesson {
           files: seeded,
           doneWhen: doneWhen,
           requires: requires ?? const [],
+          run: sectionRun ?? SectionRun.script,
+          fileName: sectionFile ?? 'main.py',
         ),
       );
       clearSection();
@@ -612,6 +659,7 @@ class Lesson {
               runtime = _readRuntime(meta, 'The lesson') ?? runtime;
               layout = _readLayout(meta) ?? layout;
               feature = _readFeature(meta) ?? feature;
+              lessonRequires = _readRequires(meta, 'The lesson') ?? lessonRequires;
             } else {
               // Read by nothing, it would leave the step showing while its
               // author thinks it is hidden.
@@ -649,12 +697,13 @@ class Lesson {
                 throw FormatException('Section "$sectionTitle" declares an `optional` that is not true or false.');
               }
               sectionOptional = optional as bool? ?? false;
-              final required = meta['requires'];
-              if (required != null &&
-                  (required is! YamlList || required.any((id) => id is! String || id.trim().isEmpty))) {
-                throw FormatException('Section "$sectionTitle" declares a `requires` that is not a list of lesson ids.');
+              requires = _readRequires(meta, 'Section "$sectionTitle"');
+              sectionRun = _readRun(meta, sectionTitle);
+              final file = meta['file'];
+              if (file != null && file is! String) {
+                throw FormatException('Section "$sectionTitle" declares a `file` that is not text.');
               }
-              requires = (required as YamlList?)?.map((id) => (id as String).trim()).toList();
+              sectionFile = (file as String?)?.trim();
             }
           case _BlockRole.assignment:
             starter = body.join('\n');
@@ -740,6 +789,10 @@ class Lesson {
     // A lesson whose every step was left out is empty on purpose, not broken.
     if (sections.isEmpty && notReady == 0) throw const FormatException('The lesson has no `##` sections.');
     if (layout == LessonLayout.project && sections.isNotEmpty) _checkProject(sections);
+    // A project has no first step to show it on; each task names its own.
+    if (layout == LessonLayout.project && lessonRequires != null) {
+      throw const FormatException('The lesson is a project and declares a `requires`; a project puts it on a task.');
+    }
 
     return Lesson(
       id: id,
@@ -750,6 +803,7 @@ class Lesson {
       runtime: runtime,
       layout: layout,
       feature: feature,
+      requires: lessonRequires ?? const [],
       sections: sections,
     );
   }
@@ -765,6 +819,70 @@ class Lesson {
   }
 
   static bool _isTask(LessonSection section) => section.kind == SectionKind.task;
+
+  /// A module name Python can import, which is what a Python file in a pytest
+  /// step is.
+  static final RegExp _moduleFile = RegExp(r'^[A-Za-z_]\w*\.py$');
+
+  /// pytest and what it imports, from the stdlib zip. A file by one of these
+  /// names would be imported in their place and break the run before any test.
+  static const Set<String> _reservedModules = {'pytest', '_pytest', 'py', 'pluggy', 'iniconfig', 'packaging', 'pygments'};
+
+  /// The rules for `run`, `file` and the Python files beside it, which only
+  /// make sense together.
+  static void _checkRun(
+    String section,
+    SectionKind kind,
+    SectionRun? run,
+    String? fileName,
+    Map<String, String> files,
+    String? stdin,
+  ) {
+    if (run != null && !kind.isAssignment) {
+      throw FormatException('Section "$section" is a ${kind.name} step but declares a `run`; only an exercise has one.');
+    }
+    if (run != SectionRun.pytest) {
+      if (fileName != null) {
+        throw FormatException('Section "$section" names a `file` for the editor, which only a step with `run: pytest` has.');
+      }
+      return;
+    }
+    if (fileName == null) {
+      throw FormatException('Section "$section" runs pytest but declares no `file` for the editor.');
+    }
+    final modules = [fileName, ...files.keys.where((name) => name.endsWith('.py'))];
+    for (final name in modules) {
+      if (!_moduleFile.hasMatch(name)) {
+        throw FormatException('Section "$section" names the file "$name"; a Python file is a module name ending in .py.');
+      }
+      if (_reservedModules.contains(name.substring(0, name.length - 3))) {
+        throw FormatException('Section "$section" names the file $name, which would hide what pytest imports.');
+      }
+    }
+    if (files.keys.any((name) => name.toLowerCase() == fileName.toLowerCase())) {
+      throw FormatException('Section "$section" gives the file $fileName, which is the editor\'s.');
+    }
+    if (!modules.any((name) => name.startsWith('test_') || name.endsWith('_test.py'))) {
+      throw FormatException('Section "$section" runs pytest but has no test_*.py or *_test.py file to collect.');
+    }
+    // pytest's capture makes input() raise, so a scripted answer is never read.
+    if (stdin != null) {
+      throw FormatException('Section "$section" runs pytest, which reads no `stdin`.');
+    }
+  }
+
+  /// The `run` [meta] declares, or null where it declares none.
+  static SectionRun? _readRun(YamlMap meta, String section) {
+    final run = meta['run'];
+    if (run == null) return null;
+    if (run is! String) throw FormatException('Section "$section" declares a `run` that is not text.');
+
+    try {
+      return SectionRun.parse(run.trim());
+    } on FormatException catch (error) {
+      throw FormatException('Section "$section" ${error.message[0].toLowerCase()}${error.message.substring(1)}');
+    }
+  }
 
   /// Reads a `pairs` block: one pair per paragraph, two lines each.
   ///
@@ -803,7 +921,13 @@ class Lesson {
   static final RegExp _fileName = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]*$');
 
   /// Reads a section's `file` blocks into the files written beside its program.
-  static Map<String, String> _readFiles(List<(String, List<String>)> blocks, String section) {
+  ///
+  /// [modules] allows Python files, which only a [SectionRun.pytest] step has.
+  static Map<String, String> _readFiles(
+    List<(String, List<String>)> blocks,
+    String section, {
+    bool modules = false,
+  }) {
     final files = <String, String>{};
     final seen = <String>{};
 
@@ -826,7 +950,8 @@ class Lesson {
       }
       // The working directory is first on `sys.path`, so a module here would
       // be imported in place of the standard library's, by the checks as well.
-      if (name.endsWith('.py')) {
+      // A pytest step gives modules on purpose; `_checkRun` holds their names.
+      if (name.endsWith('.py') && !modules) {
         throw FormatException('Section "$section" declares a Python file "$name"; only data files may be given.');
       }
       // A Mac's filesystem cannot tell the two apart, and the browser's can.
@@ -875,6 +1000,18 @@ class Lesson {
     }
 
     return feature;
+  }
+
+  /// The lesson ids `requires` in [meta] lists, or null where it lists none.
+  /// [owner] is how the error names what declared it.
+  static List<String>? _readRequires(YamlMap meta, String owner) {
+    final required = meta['requires'];
+    if (required == null) return null;
+    if (required is! YamlList || required.any((id) => id is! String || id.trim().isEmpty)) {
+      throw FormatException('$owner declares a `requires` that is not a list of lesson ids.');
+    }
+
+    return required.map((id) => (id as String).trim()).toList();
   }
 
   static LessonLayout? _readLayout(YamlMap meta) {

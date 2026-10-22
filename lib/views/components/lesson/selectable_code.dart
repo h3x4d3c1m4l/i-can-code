@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// Lets the reader select the text under it with the pointer, and copy it with
@@ -44,6 +45,12 @@ class _SelectableCodeState extends State<SelectableCode> {
     if (Overlay.maybeOf(context) == null) return widget.child;
 
     return SelectableRegion(
+      // The region wraps itself in the browser-menu shim only while
+      // BrowserContextMenu is on, and rebuilding it across a switch of that
+      // trips Flutter's "one selectable" assertion. A catalog card switches it
+      // off under the pointer, so a lesson opened from one meets the switch on
+      // its first rebuild. A new key builds a new region instead.
+      key: ValueKey(BrowserContextMenu.enabled),
       focusNode: _focusNode,
       selectionControls: emptyTextSelectionControls,
       child: widget.child,

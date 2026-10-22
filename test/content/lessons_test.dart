@@ -92,7 +92,7 @@ void main() {
       expect(unlisted, isEmpty);
     });
 
-    test('every lesson a task recommends is a lesson of its own subject', () {
+    test('every lesson a lesson or a task recommends is a lesson of its own subject', () {
       final ids = <String, Set<String>>{};
       final all = [
         for (final entry in lessons)
@@ -103,6 +103,10 @@ void main() {
       }
 
       for (final (:entry, :path, :lesson) in all) {
+        for (final id in lesson.requires) {
+          expect(ids[entry.subject], contains(id), reason: '${named(path)} recommends "$id"');
+          expect(id, isNot(lesson.id), reason: '${named(path)} recommends itself');
+        }
         for (final section in lesson.sections) {
           for (final id in section.requires) {
             expect(ids[entry.subject], contains(id), reason: '${named(path)}: "${section.title}" recommends "$id"');
@@ -161,25 +165,21 @@ void main() {
 
           for (var i = 0; i < translations.first.sections.length; i++) {
             final section = translations.first.sections[i];
-            final validator = section.validator;
-            if (validator == null) continue;
+            if (section.validator == null) continue;
+            if (section.run == SectionRun.pytest && !hasPytest) continue;
 
             for (final code in answers) {
               // Each with its own input and files: without them a validator
               // that reads either fails the same way in every language.
-              final first = await attempt(code: code, validator: validator, stdin: section.stdin, files: section.files);
+              final first = await attemptSection(section, code);
 
               for (final other in translations.skip(1)) {
-                final verdict = await attempt(
-                  code: code,
-                  validator: other.sections[i].validator,
-                  stdin: other.sections[i].stdin,
-                  files: other.sections[i].files,
-                );
+                final verdict = await attemptSection(other.sections[i], code);
                 final why = '${named(entry.paths.values.first)} section $i, $code';
 
                 expect(verdict.passed, first.passed, reason: why);
                 expect(verdict.disallowedConstruct, first.disallowedConstruct, reason: why);
+                expect(verdict.aaaTest, first.aaaTest, reason: why);
               }
             }
           }
@@ -240,7 +240,10 @@ void _holdsTheRules(Lesson lesson) {
 
     if (section.kind.isAssignment) {
       expect(section.starter, isNotNull, reason: '${section.title} needs an assignment block');
-      expect(section.validator, isNotNull, reason: '${section.title} needs a validator');
+      // Under pytest the tests check the answer, so a validator is optional.
+      if (section.run == SectionRun.script) {
+        expect(section.validator, isNotNull, reason: '${section.title} needs a validator');
+      }
     }
     if (section.kind == SectionKind.matchPairs) {
       expect(section.pairs.length, greaterThanOrEqualTo(2), reason: '${section.title} is a board with nothing to match');
@@ -323,4 +326,5 @@ void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why})
   expect(lesson.layout, first.layout, reason: why);
   expect(lesson.runtime, first.runtime, reason: why);
   expect(lesson.sections.map((s) => s.requires), first.sections.map((s) => s.requires), reason: why);
+  expect(lesson.requires, first.requires, reason: why);
 }

@@ -101,6 +101,14 @@
   "lessonScreen_constructComprehension": "comprehension",
   "lessonScreen_constructFString": "f-string",
   "lessonScreen_constructTypeAlias": "type-alias",
+  "lessonScreen_checkAaa": "Geef in `{test}` de drie delen aan met de commentaren `# Arrange`, `# Act` en `# Assert`, elk één keer en in die volgorde.",
+  "lessonScreen_testsNone": "pytest vond geen tests. Een test is een functie waarvan de naam begint met `test`.",
+  "lessonScreen_testsFailing": "Nog niet elke test slaagt. Hieronder zie je welke faalt, en waarom.",
+  "lessonScreen_tests": "Tests",
+  "lessonScreen_testPassed": "geslaagd",
+  "lessonScreen_testFailed": "mislukt",
+  "lessonScreen_testError": "fout voordat de test liep",
+  "lessonScreen_testSkipped": "overgeslagen",
   "appHeader_hideBar": "Balk verbergen",
   "appHeader_step": "{step} / {total}",
   "appHeader_stepLabel": "Stap {step} van {total}",
@@ -410,8 +418,19 @@
   },
   "catalogScreen_copyLink": "Link kopiëren",
   "@catalogScreen_copyLink": {
-    "description": "Het enige item in het menu dat opent bij een rechtermuisklik op een leskaart of een groepskop in de catalogus. Zet het adres op het klembord waarmee de catalogus op die plek opent."
+    "description": "Een item in het menu dat opent bij een rechtermuisklik op een leskaart of een groepskop in de catalogus. Zet het adres op het klembord waarmee de catalogus op die plek opent."
   },
+  "catalogScreen_restartLesson": "Les opnieuw beginnen",
+  "catalogScreen_restartTitle": "\u201c{lesson}\u201d opnieuw beginnen?",
+  "@catalogScreen_restartTitle": {
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogScreen_restartBody": "Je vinkjes en je code in deze les verdwijnen, en de les begint weer bij de eerste stap. Dit kun je niet ongedaan maken.",
+  "catalogScreen_restartConfirm": "Opnieuw beginnen",
   "catalogScreen_linkCopied": "Gekopieerd",
   "@catalogScreen_linkCopied": {
     "description": "Staat een seconde in plaats van 'Link kopiëren' nadat de link is gekopieerd, en wordt aan een schermlezer gemeld."
@@ -434,25 +453,25 @@
     "description": "Staat onder tkinterScreen_unavailableTitle bij een project dat op de machine draait, in een browser die de machine niet kan draaien. Anders dan tkinterScreen_unavailableBody zegt het niet dat de lessen gewoon werken: dit project is zelf een les die hier niet werkt."
   },
   "projectScreen_doneWhen": "Klaar als",
-  "projectScreen_requires": "Handig om eerst te doen:",
-  "projectScreen_requirementFinished": "{lesson}: afgerond",
-  "@projectScreen_requirementFinished": {
+  "requirementsRow_title": "Handig om eerst te doen:",
+  "requirementsRow_finished": "{lesson}: afgerond",
+  "@requirementsRow_finished": {
     "placeholders": {
       "lesson": {
         "type": "String"
       }
     }
   },
-  "projectScreen_requirementStarted": "{lesson}: begonnen",
-  "@projectScreen_requirementStarted": {
+  "requirementsRow_started": "{lesson}: begonnen",
+  "@requirementsRow_started": {
     "placeholders": {
       "lesson": {
         "type": "String"
       }
     }
   },
-  "projectScreen_requirementNotStarted": "{lesson}: nog niet begonnen",
-  "@projectScreen_requirementNotStarted": {
+  "requirementsRow_notStarted": "{lesson}: nog niet begonnen",
+  "@requirementsRow_notStarted": {
     "placeholders": {
       "lesson": {
         "type": "String"

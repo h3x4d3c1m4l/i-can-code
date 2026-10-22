@@ -21,6 +21,8 @@ Future<bool> showConnectDialog(
 }) async {
   final connected = await showFDialog<bool>(
     context: context,
+    // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
+    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       builder: (context, style) => _ConnectDialogBody(board: board, onConnect: onConnect),

@@ -102,6 +102,37 @@ void main() {
     });
   });
 
+  group('parseResult of a pytest run', () {
+    test('reads every test, why it stopped, and the test require_aaa named', () {
+      final result = PythonAttemptRunner.parseResult(
+        const PythonResult(
+          stdout:
+              '\n${PythonAttemptRunner.sentinel}{"ok": false, "error": null, "message": "x", "aaa": "test_b", '
+              '"testsProblem": "failing", "tests": [{"name": "test_a", "outcome": "passed", "message": null}, '
+              '{"name": "test_b", "outcome": "failed", "message": "assert 1 == 2"}], "output": ""}\n',
+          stderr: '',
+        ),
+      );
+
+      expect(result.tests.map((test) => (test.name, test.kind, test.message)), [
+        ('test_a', TestOutcomeKind.passed, null),
+        ('test_b', TestOutcomeKind.failed, 'assert 1 == 2'),
+      ]);
+      expect(result.testsProblem, TestsProblem.failing);
+      expect(result.aaaTest, 'test_b');
+    });
+
+    test('a script run has no tests and no problem with them', () {
+      final result = PythonAttemptRunner.parseResult(
+        PythonResult(stdout: '\n${PythonAttemptRunner.sentinel}{"ok": true, "error": null, "message": null, "output": ""}\n', stderr: ''),
+      );
+
+      expect(result.tests, isEmpty);
+      expect(result.testsProblem, isNull);
+      expect(result.aaaTest, isNull);
+    });
+  });
+
   group('against a real CPython', () {
     test('a correct answer passes', () async {
       final result = await attempt(code: 'print("Hello, world")', validator: 'assert "print(" in code');

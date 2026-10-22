@@ -27,7 +27,10 @@ never executed and never sees a value that was computed: `x = 40 + 2; print(x)`
 is a call to `print` with a variable, not with 42.
 """
 import ast
+import io
 import keyword
+import re
+import tokenize
 
 __all__ = ["analyze", "anything", "a_string", "a_number", "a_variable", "a_call"]
 
@@ -35,6 +38,17 @@ __all__ = ["analyze", "anything", "a_string", "a_number", "a_variable", "a_call"
 #: English, and so wrong in every lesson not written in English — it is a
 #: placeholder, and the `message` argument is the way out of it.
 NOT_ALLOWED = "%s is not allowed in this exercise."
+
+#: What `require_aaa` says when the author gave it no message. A placeholder in
+#: English, for the same reason as `NOT_ALLOWED`.
+AAA_MISSING = "`%s` needs the comments `# Arrange`, `# Act` and `# Assert`, once each and in that order."
+
+#: The part markers `require_aaa` looks for. Text may follow the word, as in
+#: `# Act: pay the bill`, but `# Actually` is no marker. One comment may mark
+#: two parts, as `# Act / Assert` does around `pytest.raises`, where the call
+#: and its check are the same `with` block.
+_AAA_WORD = r"(?:arrange|act|assert)\b"
+_AAA_MARKER = re.compile(r"#\s*%s(?:\s*(?:/|&|\+|,|and\b|en\b)\s*%s)*" % (_AAA_WORD, _AAA_WORD), re.IGNORECASE)
 
 
 #: The constructs that are not a Python keyword, and so have no word to quote.
@@ -81,6 +95,18 @@ class NotAllowed(Exception):
     def __init__(self, construct):
         super().__init__(NOT_ALLOWED % _describe(construct))
         self.icc_construct = construct
+
+
+class AaaMissing(Exception):
+    """What `require_aaa` raises when the author wrote no message.
+
+    Carries the test's name as `icc_aaa`, so Dart can say it in the reader's own
+    language, the same way `NotAllowed` carries its construct.
+    """
+
+    def __init__(self, test):
+        super().__init__(AAA_MISSING % test)
+        self.icc_aaa = test
 
 
 def _types(*names):
@@ -449,6 +475,46 @@ class Program:
             if name is not None and name not in allowed:
                 offenders.append(node)
         self._refuse(offenders, message)
+
+    def _tests(self):
+        """The functions pytest collects by default: `test*` at module level, and
+        `test*` methods of a `Test*` class. In source order."""
+        functions = _types("FunctionDef", "AsyncFunctionDef")
+        found = [n for n in self.tree.body if isinstance(n, functions)]
+        for node in self.tree.body:
+            if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+                found += [n for n in node.body if isinstance(n, functions)]
+        return sorted((n for n in found if n.name.startswith("test")), key=lambda n: n.lineno)
+
+    def require_aaa(self, message=None):
+        """Raises unless every test marks its three parts with a comment:
+
+            def test_korting():
+                # Arrange
+                prijs = 100
+                # Act
+                nieuw = korting(prijs)
+                # Assert
+                assert nieuw == 90
+
+        Each of `# Arrange`, `# Act` and `# Assert` MUST appear exactly once inside
+        the test, in that order. Case does not matter, and text may follow the
+        word. `# Act / Assert` (or `&`, `+`, `,`, `and`, `en`) marks two parts at
+        once. Whether a part holds any code is not checked. A source without
+        tests passes; the run itself fails when pytest collects none.
+        """
+        markers = []
+        for token in tokenize.generate_tokens(io.StringIO(self.source).readline):
+            found = _AAA_MARKER.match(token.string) if token.type == tokenize.COMMENT else None
+            if found:
+                for word in re.findall(_AAA_WORD, found.group(0), re.IGNORECASE):
+                    markers.append((token.start[0], word.lower()))
+        for test in self._tests():
+            inside = [word for line, word in markers if test.lineno <= line <= test.end_lineno]
+            if inside != ["arrange", "act", "assert"]:
+                if message:
+                    raise Exception(message)
+                raise AaaMissing(test.name)
 
 
 def analyze(source):

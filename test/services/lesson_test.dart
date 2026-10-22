@@ -242,6 +242,16 @@ void main() {
         );
       });
 
+      test('recommends lessons per task and not as a whole', () {
+        expect(
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\nlayout: project\nruntime: microbit\nrequires: [lijsten]\n```\n\n'
+            '${task('a')}',
+          ),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
       test('a layout no version has is an author\'s mistake', () {
         expect(
           () => Lesson.parse('# T\n\n```metadata\nid: x\nlayout: slides\n```\n\n$info'),
@@ -281,6 +291,84 @@ void main() {
           reason: type,
         );
       }
+    });
+
+    group('what a lesson recommends', () {
+      String lesson(String meta) =>
+          '# T\n\n```metadata\nid: x\n$meta```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n';
+
+      test('is a list of lesson ids from its own metadata', () {
+        expect(Lesson.parse(lesson('requires: [je-code-testen, " lijsten "]\n')).requires, ['je-code-testen', 'lijsten']);
+      });
+
+      test('is nothing when it names none', () {
+        expect(Lesson.parse(lesson('')).requires, isEmpty);
+      });
+
+      test('is refused when it is not a list of ids', () {
+        for (final meta in ['requires: je-code-testen\n', 'requires: [""]\n', 'requires: [3]\n']) {
+          expect(() => Lesson.parse(lesson(meta)), throwsA(isA<FormatException>()), reason: meta);
+        }
+      });
+    });
+
+    group('a pytest step', () {
+      const module = '```file rekenmachine.py\ndef deel(a, b):\n    return a / b\n```\n\n';
+      const editor = '```python-assignment\nfrom rekenmachine import deel\n```\n';
+
+      String lesson({
+        String meta = 'run: pytest\nfile: test_rekenmachine.py',
+        String blocks = '$module$editor',
+        String type = 'exercise',
+      }) =>
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: $type\nid: s\n$meta\n```\n\nprose\n\n$blocks';
+
+      test('reads the run, the editor\'s file and the given module, and needs no validator', () {
+        final section = Lesson.parse(lesson()).sections.single;
+
+        expect(section.run, SectionRun.pytest);
+        expect(section.fileName, 'test_rekenmachine.py');
+        expect(section.files, {'rekenmachine.py': 'def deel(a, b):\n    return a / b\n'});
+        expect(section.validator, isNull);
+      });
+
+      test('a step that says nothing runs as a script, as main.py', () {
+        final section = Lesson.parse(
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: exercise\nid: s\n```\n\n'
+          '```python-assignment\nprint(1)\n```\n\n```python-validator\n```\n',
+        ).sections.single;
+
+        expect(section.run, SectionRun.script);
+        expect(section.fileName, 'main.py');
+      });
+
+      test('a data file may sit beside the modules', () {
+        final section = Lesson.parse(
+          lesson(blocks: '$module```file cijfers.csv\nnaam,cijfer\n```\n\n$editor'),
+        ).sections.single;
+
+        expect(section.files.keys, ['rekenmachine.py', 'cijfers.csv']);
+      });
+
+      test('rejects what does not fit together', () {
+        final cases = {
+          'an unknown run': lesson(meta: 'run: unittest\nfile: test_rekenmachine.py'),
+          'a run off an assignment': lesson(type: 'info', blocks: ''),
+          'no file for the editor': lesson(meta: 'run: pytest'),
+          'a module without pytest': lesson(meta: 'file: test_rekenmachine.py'),
+          'an editor file without pytest':
+              lesson(meta: 'file: test_rekenmachine.py', blocks: '$editor\n```python-validator\n```\n'),
+          'a module name that is no module': lesson(blocks: '```file reken_machine-2.py\nx = 1\n```\n\n$editor'),
+          "a given file with the editor's name":
+              lesson(blocks: '```file test_rekenmachine.py\nx = 1\n```\n\n$editor'),
+          'a file that hides pytest': lesson(blocks: '```file pytest.py\nx = 1\n```\n\n$editor'),
+          'nothing pytest would collect': lesson(meta: 'run: pytest\nfile: oplossing.py'),
+          'scripted input, which pytest never reads': lesson(blocks: '$module$editor\n```stdin\n4\n```\n'),
+        };
+        for (final MapEntry(key: reason, value: source) in cases.entries) {
+          expect(() => Lesson.parse(source), throwsA(isA<FormatException>()), reason: reason);
+        }
+      });
     });
 
     test('a section is required unless it says otherwise', () {

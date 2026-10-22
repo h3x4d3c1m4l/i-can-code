@@ -14,17 +14,12 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/vm/vm_image.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
+import 'package:i_can_code/views/components/lesson/requirements_row.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_controller.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/vm/vm_session_controller.dart';
 import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
 import 'package:i_can_code/views/project_screen/project_screen_view_model.dart';
-
-/// How far a student is with a lesson a task recommends.
-enum RequirementStatus { finished, started, notStarted }
-
-/// One lesson a task recommends, ready to be drawn.
-typedef Requirement = ({String title, RequirementStatus status, CourseLesson lesson});
 
 class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewModel> {
 
@@ -127,28 +122,14 @@ class ProjectScreenController extends ScreenControllerBase<ProjectScreenViewMode
   /// Puts [code] back in the editor, in place of whatever is there.
   void restore(String code) => viewModel.code.text = code;
 
-  /// The lessons [section] recommends, in [locale], each with how far the
-  /// student is. An id the course does not have is left out: the content test
-  /// is what catches it, and a student can do nothing about it.
-  List<Requirement> requirementsOf(LessonSection section, String locale) {
-    final course = GetIt.I<Course>();
-    final subject = viewModel.lesson.entry.subject;
-
-    return [
-      for (final id in section.requires)
-        if (course.lessonsFor(subject).where((l) => l.translations.values.first.id == id).firstOrNull
-            case final CourseLesson lesson)
-          (
-            title: lesson.forLocale(locale).title,
-            status: _progress.isFinished(lesson)
-                ? RequirementStatus.finished
-                : _progress.isStarted(lesson)
-                ? RequirementStatus.started
-                : RequirementStatus.notStarted,
-            lesson: lesson,
-          ),
-    ];
-  }
+  /// The lessons [section] recommends, in [locale]. See [requirementsFor].
+  List<Requirement> requirementsOf(LessonSection section, String locale) => requirementsFor(
+    section.requires,
+    subject: viewModel.lesson.entry.subject,
+    locale: locale,
+    course: GetIt.I<Course>(),
+    progress: _progress,
+  );
 
   /// Opens a lesson a task recommends, over this screen, so Back returns here.
   ///

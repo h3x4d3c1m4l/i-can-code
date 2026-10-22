@@ -146,6 +146,22 @@ void main() {
     expect(await _stored(_intro, 'a'), isNull);
   });
 
+  test('forgetting one lesson drops its code, and nothing of a lesson whose id it starts', () async {
+    final intro2 = _lesson(id: 'intro-2', sectionIds: ['a']);
+    store
+      ..keep(_intro, 'a', 'print(1)')
+      ..keep(_intro, 'b', 'print(2)')
+      ..keep(intro2, 'a', 'print(3)');
+    await store.flush();
+    expect(store.hasCodeIn(_intro), isTrue);
+
+    await store.forgetLesson(_intro);
+    expect(store.hasCodeIn(_intro), isFalse);
+    expect(await _stored(_intro, 'a'), isNull, reason: 'the forget is written out at once');
+    expect(await _stored(_intro, 'b'), isNull);
+    expect(await _stored(intro2, 'a'), 'print(3)');
+  });
+
   test('sections of the same name in different lessons are kept apart', () {
     expect(CodeDraftStoreBase.keyFor('python', 'intro', 'a'), isNot(CodeDraftStoreBase.keyFor('python', 'loops', 'a')));
     expect(CodeDraftStoreBase.keyFor('python', 'intro', 'a'), isNot(CodeDraftStoreBase.keyFor('java', 'intro', 'a')));
@@ -196,6 +212,18 @@ void main() {
       final reloaded = await reload();
       expect(reloaded.workFor(project), isNull);
       expect(reloaded.snapshotFor(project, 'roll'), 'print(1)');
+    });
+
+    test('forgetting the lesson drops its program and its snapshots', () async {
+      store
+        ..keepWork(project, 'print(2)')
+        ..keepSnapshot(project, 'roll', 'print(1)');
+      await store.forgetLesson(project);
+
+      final reloaded = await reload();
+      expect(reloaded.workFor(project), isNull);
+      expect(reloaded.snapshotFor(project, 'roll'), isNull);
+      expect(store.hasCodeIn(project), isFalse);
     });
 
     test('clearing forgets both', () async {

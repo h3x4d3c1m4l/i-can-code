@@ -7,6 +7,7 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
+import 'package:i_can_code/views/lesson_screen/components/test_result_list.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
 
 /// What the last run produced: its verdict, then the program's output. The
@@ -34,17 +35,24 @@ class OutputPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_hasVerdict) _buildVerdict(context),
-        if (_hasVerdict && _hasOutput) const SizedBox(height: 16),
+        if (_hasVerdict && (_hasTests || _hasOutput)) const SizedBox(height: 16),
+        // Between the verdict and the report: the list is the short answer to
+        // which test it was, and the output is the long one.
+        if (_hasTests) TestResultList(tests: result.tests),
+        if (_hasTests && _hasOutput) const SizedBox(height: 16),
         if (_hasOutput) _buildOutput(context),
         if (FilesCard.writtenBy(context, result) case final Widget files) ...[
-          if (_hasVerdict || _hasOutput) const SizedBox(height: 16),
+          if (_hasVerdict || _hasTests || _hasOutput) const SizedBox(height: 16),
           files,
         ],
       ],
     );
   }
 
-  bool get _hasVerdict => result.passed || result.programError != null || result.checkMessage != null;
+  bool get _hasVerdict =>
+      result.passed || result.programError != null || result.checkMessage != null || result.testsProblem != null;
+
+  bool get _hasTests => result.tests.isNotEmpty;
 
   bool get _hasOutput => result.output.trim().isNotEmpty;
 
@@ -82,6 +90,13 @@ class OutputPanel extends StatelessWidget {
       );
     }
 
+    if (result.testsProblem case final TestsProblem problem) {
+      return VerdictBanner(
+        background: tokens.colors.warningSurface,
+        child: LessonProse(markdown: context.localizations.testsProblem(problem), fontSize: 17, paragraphSpacing: 0),
+      );
+    }
+
     if (result.checkMessage case final String message) {
       // Markdown, not text: a validator's message is authored alongside the
       // prose and uses the same `code` spans to name a function.
@@ -90,9 +105,10 @@ class OutputPanel extends StatelessWidget {
       // sentence the check library also built, so it can be said here in the
       // reader's own language. An author who wrote their own message has already
       // written it in the lesson's language, and it is used as it stands.
-      final text = switch (result.disallowedConstruct) {
-        final String construct => context.localizations.checkNotAllowed(construct),
-        null => message,
+      final text = switch ((result.disallowedConstruct, result.aaaTest)) {
+        (final String construct, _) => context.localizations.checkNotAllowed(construct),
+        (_, final String test) => context.localizations.checkAaa(test),
+        _ => message,
       };
 
       return VerdictBanner(

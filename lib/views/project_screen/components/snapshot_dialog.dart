@@ -20,6 +20,8 @@ Future<bool> showSnapshotDialog(
 }) async {
   final restore = await showFDialog<bool>(
     context: context,
+    // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
+    useRootNavigator: true,
     builder: (context, style, animation) => FDialog(
       animation: animation,
       // Wider than a question: this one holds a program.

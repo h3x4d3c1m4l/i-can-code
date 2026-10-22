@@ -217,7 +217,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime`, `layout` and `feature`. |
+| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime`, `layout`, `feature` and `requires`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -283,6 +283,9 @@ than writing it, so it has no editor and no assignment block. That split is
 
 `Lesson.parse` throws a `FormatException` naming the section when any of those
 is broken.
+
+An exercise with `run: pytest` changes two cells of its row: the validator
+becomes optional and `stdin` is refused. See *`run: pytest` — unit tests* below.
 
 ### `optional: true` — a "Verdieping"
 
@@ -358,6 +361,31 @@ itself and every lesson under it:
   listed in one language and not in the other is refused at load.
 - **Only a lesson or a group.** A `feature` on a step is a `FormatException`
   rather than a line nothing reads.
+
+### `requires:` — lessons worth doing first
+
+A lesson that builds on another may say so, by lesson id, as a YAML list:
+
+```metadata
+id: mocking
+emoji: "🎭"
+optional: true
+requires: [je-code-testen]
+```
+
+Its first step then shows **Handig om eerst te doen:** under its title, with
+the same row a project task shows: each lesson with a mark for whether the
+student finished it, started it or has not opened it, and a tap that opens it
+over this one, so Back returns here.
+
+- **Advice, never a gate.** The lesson opens either way, and the row is on the
+  first step only.
+- **Ids in the same subject.** `test/content/lessons_test.dart` holds every id to
+  a lesson there, and refuses a lesson that names itself. An id the course does
+  not have is left out of the row rather than shown broken.
+- **Every translation names the same lessons**: they are ids, not words.
+- **Not on a project.** A project names them per task, below; one on the whole
+  project is a `FormatException`.
 
 ### `runtime:` — what the step's code runs on
 
@@ -499,7 +527,8 @@ or run until it showed a window.
   list. The task shows them in a row, each with a mark for whether the student
   finished it, started it or has not opened it, and each opens that lesson. It
   is advice and never a gate. `test/content/lessons_test.dart` holds every id to
-  a lesson in the same subject.
+  a lesson in the same subject. An ordinary lesson says the same for itself as a
+  whole; see `requires:` above.
 - **Only the first task MAY carry a `<lang>-assignment` block.** All tasks share
   one editor, and that block is what it opens with. After that the student's
   own program comes back on every visit.
@@ -1025,6 +1054,158 @@ Progress works as it does everywhere else: solving the board records the
 section's `id`, and a `match-pairs` step marked `optional: true` can be skipped
 without recording anything.
 
+## `run: pytest` — unit tests
+
+An `exercise` or `quick-exercise` may say `run: pytest`. The Run button then runs
+pytest on the student's file instead of running it as a program. `file:` names the
+editor's file. A `file` block may then hold a Python module, which no other step
+allows, and it is shown as code above the editor instead of as a button in the
+files card. A data file beside it stays a button, as on any step.
+
+````markdown
+## Tests die de fout vinden
+
+```metadata
+type: exercise
+id: tests-voor-deel
+run: pytest
+file: test_rekenmachine.py
+```
+
+Schrijf tests voor `deel`.
+
+```file rekenmachine.py
+def deel(a, b):
+    if b == 0:
+        raise ValueError("delen door nul")
+    return a / b
+```
+
+```python-assignment
+from rekenmachine import deel
+```
+
+```python-validator
+program.require_aaa()
+if run_tests(replace={"rekenmachine.py": ("if b == 0", "if b == 1")}).passed:
+    raise Exception("Test ook wat er gebeurt als je door 0 deelt.")
+```
+````
+
+Either half can be the student's. Above, they write the tests for a given module.
+With `file: korting.py` and a given `test_korting.py`, they write the code until
+the given tests pass. `docs/samples/pytest.md` has one of each.
+
+### The rules
+
+- `file:` is required, and names a module: letters, digits and `_`, ending in
+  `.py`. So does every `file` block whose name ends in `.py`, and none of them
+  has the editor's name. The other rules of `file` blocks hold as on any step.
+- At least one module is `test_*.py` or `*_test.py`, which is what pytest collects.
+- Do not name a module after one in the standard library, such as `random.py`.
+  The working directory comes first on `sys.path`, so it would be imported in
+  its place, by pytest as well. Nothing checks this for you.
+- No file may be called after what pytest imports: `pytest`, `_pytest`, `py`,
+  `pluggy`, `iniconfig`, `packaging` or `pygments`. It would be imported instead.
+- No `stdin` block. pytest makes `input()` raise inside a test, so a test that
+  reads input has to patch `input` instead, which is what a mocking lesson wants.
+- The validator block is optional.
+
+### What decides the verdict
+
+The tests run first, and decide on their own until they all pass:
+
+| pytest found | The student sees |
+| --- | --- |
+| A `SyntaxError`, or a file it cannot import | The crash banner, with pytest's reason |
+| No tests | "pytest vond geen tests", in the app's language |
+| A test that failed or errored | "Nog niet elke test slaagt", and which one |
+| Every test passed | The validator runs, or the step passes when there is none |
+
+A failing test is never a crash: in either kind of step it means the student's
+half is wrong. Below the verdict, a list shows each test with its outcome and
+pytest's one-line reason, above pytest's own report.
+
+### What the validator gets
+
+Besides `code`, `output` and `program`, a pytest step's validator gets:
+
+| Name | Meaning |
+| --- | --- |
+| `results` | The run the student just saw, as a `TestRun` |
+| `run_tests(replace=None, files=None)` | Runs pytest again on the student's files, changed first, and returns a `TestRun` |
+
+`output` is pytest's report. **Do not compare it letter for letter**: the host
+python of `tool/try_lesson.dart` and the browser word it differently.
+
+`run_tests` is how a step checks that the student's tests catch a bug. Give it a
+mutant: the given file with one change, which good tests fail on.
+
+```python
+for old, new, hint in [
+    ("if b == 0", "if b == 1", "Test ook wat er gebeurt als je door 0 deelt."),
+    ("return a / b", "return a // b", "Test een deling die niet precies uitkomt."),
+]:
+    if run_tests(replace={"rekenmachine.py": (old, new)}).passed:
+        raise Exception(hint)
+```
+
+- `replace` maps a file to one `(old, new)` pair or a list of them. Every
+  occurrence of `old` is replaced, and an `old` that does not occur raises
+  `ValueError`, so a typo in a mutant cannot pass for a mutant that is caught.
+- `files` adds or replaces whole files.
+- Each call takes about 20 ms in the browser. A handful of mutants per step is
+  fine.
+
+A `TestRun` has:
+
+| Name | Meaning |
+| --- | --- |
+| `.passed` | At least one test ran, and none failed or errored |
+| `.failed` | The names of the tests that failed or errored |
+| `.tests` | Each test, as a `TestResult` with `.name`, `.outcome` (`passed`, `failed`, `error`, `skipped`), `.passed` and `.message` |
+| `run["test_deel"]` | One test by name; `KeyError` when there is none |
+| `.errors` | What pytest could not collect |
+
+A `TestRun` is not true or false. `if run_tests():` raises a `TypeError` that
+says to ask for `.passed`, because "ran" and "passed" are both natural readings.
+
+### Arrange, Act, Assert
+
+`program.require_aaa()` raises unless every test marks its three parts with a
+comment, once each and in this order:
+
+```python
+def test_deel():
+    # Arrange
+    a, b = 7, 2
+    # Act
+    uitkomst = deel(a, b)
+    # Assert
+    assert uitkomst == 3.5
+```
+
+A test is a function whose name starts with `test`, at module level or in a
+class whose name starts with `Test`. Case does not matter, and text may follow
+the word: `# Act: deel 7 door 2`. One comment may mark two parts, as
+`# Act / Assert` does around `pytest.raises`, where the call and its check are the
+same `with` block. `&`, `+`, `,`, `and` and `en` work in place of `/`. Whether a
+part holds any code is not checked.
+
+Like `allow_only`, it takes a `message`. Without one the app names the test in
+the reader's language (`lessonScreen_checkAaa`).
+
+### Checking a pytest step
+
+`tool/try_lesson.dart` and the tests run on the machine's own `python3`, which
+needs the same pytest the app ships:
+
+```bash
+pip install pytest==9.1.1 pluggy==1.7.0 iniconfig==2.3.1 packaging==26.3 pygments==2.21.0
+```
+
+Without it, `try_lesson.dart` says so and the pytest tests skip.
+
 ## `<lang>-validator` — the hidden checks
 
 The validator is a **script**, not a function. It runs in the same in-browser
@@ -1036,6 +1217,7 @@ names already bound:
 | `code` | `str` | Exactly what the student typed |
 | `output` | `str` | Their program's standard output, **with trailing whitespace stripped**. Includes any prompt the program wrote — see `stdin` below |
 | `program` | `Program` | The same source, read as a tree. See *Reading the code* below |
+| `results`, `run_tests` | | Only in a `run: pytest` step. See *What the validator gets* above |
 
 It reports a failure by raising, and the exception message is what the student
 sees:
@@ -1110,8 +1292,9 @@ exits. A program that changed directory has been moved back, so a relative path
 in a validator means the same thing it does in the prose.
 
 The filesystem is in memory and starts empty but for the standard library, the
-student's own source at `main.py`, the section's `file` blocks and an empty
-`/tmp`. **Nothing persists between runs**, so a step cannot leave a file for the
+student's own source at `main.py`, the section's `file` blocks, an empty `/tmp`
+and `/dev/null`. A `run: pytest` step runs its tests in a fresh directory under
+`/tmp` instead, so nothing they write is listed under the output. **Nothing persists between runs**, so a step cannot leave a file for the
 next one, and a validator that reads a file has to be written against the same
 run that wrote it. The standard library archive is read-only; everything else is
 fair game, up to a quota past which writes fail with `ENOSPC`.
@@ -1125,6 +1308,7 @@ fair game, up to a quota past which writes fail with `ENOSPC`.
 | `program.uses(construct)` | `True`/`False` for one construct, or one group, of the table below |
 | `program.allow_only(*constructs)` | Raises when anything **else** was written. See *Fencing off what a step has not taught* |
 | `program.disallow(*constructs)` | Raises when any of these **was** written |
+| `program.require_aaa()` | Raises unless every test marks `# Arrange`, `# Act` and `# Assert`. See *Arrange, Act, Assert* |
 
 A name is matched **whole**. `calls("math.sqrt")` finds `math.sqrt(x)` and
 `calls("sqrt")` finds the bare `sqrt(x)` that `from math import sqrt` leaves —

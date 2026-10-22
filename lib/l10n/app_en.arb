@@ -232,6 +232,43 @@
   "lessonScreen_constructComprehension": "a comprehension",
   "lessonScreen_constructFString": "an f-string",
   "lessonScreen_constructTypeAlias": "a type alias",
+  "lessonScreen_checkAaa": "Mark the three parts of `{test}` with the comments `# Arrange`, `# Act` and `# Assert`, once each and in that order.",
+  "@lessonScreen_checkAaa": {
+    "description": "Shown when a step's require_aaa check refused a test and the lesson author wrote no message. `test` is the name of the test function. The comments are code and stay in English.",
+    "placeholders": {
+      "test": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonScreen_testsNone": "pytest found no tests. A test is a function whose name starts with `test`.",
+  "@lessonScreen_testsNone": {
+    "description": "Shown when a step runs pytest and it collected no test at all."
+  },
+  "lessonScreen_testsFailing": "Not every test passes yet. Below is which one fails, and why.",
+  "@lessonScreen_testsFailing": {
+    "description": "Shown when a step runs pytest and at least one test failed. Neutral on purpose: in one kind of step the student wrote the tests, in the other the code they test."
+  },
+  "lessonScreen_tests": "Tests",
+  "@lessonScreen_tests": {
+    "description": "Label over the list of tests in a pytest run, one row each."
+  },
+  "lessonScreen_testPassed": "passed",
+  "@lessonScreen_testPassed": {
+    "description": "What a screen reader says for the icon of a test that passed."
+  },
+  "lessonScreen_testFailed": "failed",
+  "@lessonScreen_testFailed": {
+    "description": "What a screen reader says for the icon of a test that failed."
+  },
+  "lessonScreen_testError": "error before the test ran",
+  "@lessonScreen_testError": {
+    "description": "What a screen reader says for the icon of a test whose setup or fixture raised."
+  },
+  "lessonScreen_testSkipped": "skipped",
+  "@lessonScreen_testSkipped": {
+    "description": "What a screen reader says for the icon of a test pytest skipped."
+  },
   "@lessonScreen_crashed": {},
   "appHeader_hideBar": "Hide the bar",
   "@appHeader_hideBar": {
@@ -683,8 +720,25 @@
   },
   "catalogScreen_copyLink": "Copy link",
   "@catalogScreen_copyLink": {
-    "description": "The only item in the menu a right click opens on a lesson card or a group heading in the catalog. Puts the address on the clipboard that opens the catalog at that place."
+    "description": "An item in the menu a right click opens on a lesson card or a group heading in the catalog. Puts the address on the clipboard that opens the catalog at that place."
   },
+  "catalogScreen_restartLesson": "Start lesson over",
+  "@catalogScreen_restartLesson": {
+    "description": "The second item in the menu a right click opens on a lesson card. Greyed out when the lesson has no ticks and no code yet."
+  },
+  "catalogScreen_restartTitle": "Start \u201c{lesson}\u201d over?",
+  "@catalogScreen_restartTitle": {
+    "description": "Title of the dialog that asks before one lesson's progress and code are forgotten.",
+    "placeholders": {
+      "lesson": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogScreen_restartBody": "Your ticks and your code in this lesson disappear, and it starts again from the first step. This cannot be undone.",
+  "@catalogScreen_restartBody": {},
+  "catalogScreen_restartConfirm": "Start over",
+  "@catalogScreen_restartConfirm": {},
   "catalogScreen_linkCopied": "Copied",
   "@catalogScreen_linkCopied": {
     "description": "Stands in for 'Copy link' for a second once the link has been copied, and is announced to a screen reader."
@@ -710,25 +764,25 @@
     "description": "Under tkinterScreen_unavailableTitle on a project whose program runs on the machine, in a browser that cannot run the machine. Unlike tkinterScreen_unavailableBody it does not say the lessons work fine: this project is a lesson that does not work here."
   },
   "projectScreen_doneWhen": "Done when",
-  "projectScreen_requires": "Good to do first:",
-  "projectScreen_requirementFinished": "{lesson}: finished",
-  "@projectScreen_requirementFinished": {
+  "requirementsRow_title": "Good to do first:",
+  "requirementsRow_finished": "{lesson}: finished",
+  "@requirementsRow_finished": {
     "placeholders": {
       "lesson": {
         "type": "String"
       }
     }
   },
-  "projectScreen_requirementStarted": "{lesson}: started",
-  "@projectScreen_requirementStarted": {
+  "requirementsRow_started": "{lesson}: started",
+  "@requirementsRow_started": {
     "placeholders": {
       "lesson": {
         "type": "String"
       }
     }
   },
-  "projectScreen_requirementNotStarted": "{lesson}: not started",
-  "@projectScreen_requirementNotStarted": {
+  "requirementsRow_notStarted": "{lesson}: not started",
+  "@requirementsRow_notStarted": {
     "placeholders": {
       "lesson": {
         "type": "String"

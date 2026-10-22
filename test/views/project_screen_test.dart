@@ -17,6 +17,7 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
+import 'package:i_can_code/views/components/lesson/requirements_row.dart';
 import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/output_card.dart';

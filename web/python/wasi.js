@@ -112,6 +112,10 @@ class Node {
     // Set on the standard library: a program that truncates the zip it is
     // importing from breaks every later import with an unrelated EOFError.
     this.readOnly = false;
+    // /dev/null: writable, but whatever is written is gone.
+    this.sink = false;
+    // Set on /dev and /dev/null, which a program may not delete or rename.
+    this.pinned = false;
     this.openCount = 0;
     this.unlinked = false;
   }
@@ -262,6 +266,15 @@ export class Wasi {
     // the next os.listdir('/') in the same lesson finds it.
     this.makeDirectory('/tmp');
 
+    // pytest's logging plugin opens os.devnull at startup, and fails the whole
+    // run without it.
+    this.makeDirectory('/dev');
+    const dev = this.root.children.get('dev');
+    const devNull = new Node(this, FILETYPE_CHARACTER_DEVICE);
+    devNull.sink = true;
+    dev.pinned = devNull.pinned = true;
+    dev.link('null', devNull);
+
     // 0/1/2 are the standard streams; 3 is the single preopened directory that
     // everything else is resolved against.
     this.fds = new Map([
@@ -300,7 +313,7 @@ export class Wasi {
   /** Puts a file in the tree, making the way to it as it goes.
    *
    *  A read-only file shares the caller's array rather than copying it: nothing
-   *  can reach it to write to it, and the standard library is 13 MB that would
+   *  can reach it to write to it, and the standard library is 16 MB that would
    *  otherwise be copied again for every run. A writable one is copied, because
    *  a write within its current length would otherwise reach the caller's array
    *  and the next instance started from it. */
@@ -489,6 +502,10 @@ export class Wasi {
               this.view.setUint32(writtenPtr, 0, true);
               return ERRNO_SUCCESS;
             }
+            if (entry.node.sink) {
+              this.view.setUint32(writtenPtr, written, true);
+              return ERRNO_SUCCESS;
+            }
             // Refused whole rather than short: a partial write sends CPython's
             // buffered writer round again for the rest, and it would keep
             // coming back for a remainder that never fits.
@@ -500,6 +517,11 @@ export class Wasi {
         },
 
         fd_read: (fd, iovsPtr, iovsLen, readPtr) => {
+          // Without these, os.read on a closed fd or a directory answers with
+          // zero bytes, which every caller reads as the end of the file.
+          const entry = this.fds.get(fd);
+          if (!entry) return ERRNO_BADF;
+          if (entry.type === FILETYPE_DIRECTORY) return ERRNO_ISDIR;
           let read = 0;
           for (let i = 0; i < iovsLen; i++) {
             const ptr = this.view.getUint32(iovsPtr + i * 8, true);
@@ -523,6 +545,7 @@ export class Wasi {
         fd_pread: (fd, iovsPtr, iovsLen, offset, readPtr) => {
           const entry = this.fds.get(fd);
           if (!entry || !entry.node) return ERRNO_BADF;
+          if (entry.type === FILETYPE_DIRECTORY) return ERRNO_ISDIR;
           let read = 0;
           let at = Number(offset);
           for (let i = 0; i < iovsLen; i++) {
@@ -539,14 +562,18 @@ export class Wasi {
 
         fd_pwrite: (fd, iovsPtr, iovsLen, offset, writtenPtr) => {
           const entry = this.fds.get(fd);
+          // The same refusals as fd_write, in the same order: without the
+          // `writable` one, os.pwrite on an fd opened O_RDONLY wrote through.
           if (!entry || !entry.node) return ERRNO_BADF;
+          if (entry.type === FILETYPE_DIRECTORY) return ERRNO_ISDIR;
+          if (!entry.writable) return ERRNO_BADF;
           if (entry.node.readOnly) return ERRNO_PERM;
           let at = Number(offset);
           let written = 0;
           for (let i = 0; i < iovsLen; i++) {
             const ptr = this.view.getUint32(iovsPtr + i * 8, true);
             const len = this.view.getUint32(iovsPtr + i * 8 + 4, true);
-            if (!entry.node.writeAt(at, this.bytes.slice(ptr, ptr + len))) return ERRNO_NOSPC;
+            if (!entry.node.sink && !entry.node.writeAt(at, this.bytes.slice(ptr, ptr + len))) return ERRNO_NOSPC;
             at += len;
             written += len;
           }
@@ -557,6 +584,11 @@ export class Wasi {
         fd_seek: (fd, offset, whence, newOffsetPtr) => {
           const entry = this.fds.get(fd);
           if (!entry) return ERRNO_BADF;
+          // open(os.devnull, "a") seeks to the end, and raises if that fails.
+          if (entry.node?.sink) {
+            this.view.setBigUint64(newOffsetPtr, 0n, true);
+            return ERRNO_SUCCESS;
+          }
           if (!entry.node || entry.type !== FILETYPE_REGULAR_FILE) return ERRNO_INVAL;
           const delta = Number(offset);
           if (whence === 0) entry.offset = delta;
@@ -825,7 +857,7 @@ export class Wasi {
           if (spot.error) return spot.error;
           if (!spot.node) return ERRNO_NOENT;
           if (spot.node.type === FILETYPE_DIRECTORY) return ERRNO_ISDIR;
-          if (spot.node.readOnly) return ERRNO_PERM;
+          if (spot.node.readOnly || spot.node.pinned) return ERRNO_PERM;
           this.drop(spot.parent, spot.name, spot.node);
           return ERRNO_SUCCESS;
         },
@@ -837,7 +869,7 @@ export class Wasi {
           if (spot.error) return spot.error;
           if (!spot.node) return ERRNO_NOENT;
           if (spot.node.type !== FILETYPE_DIRECTORY) return ERRNO_NOTDIR;
-          if (!spot.parent) return ERRNO_PERM;
+          if (!spot.parent || spot.node.pinned) return ERRNO_PERM;
           if (spot.node.children.size > 0) return ERRNO_NOTEMPTY;
           this.drop(spot.parent, spot.name, spot.node);
           return ERRNO_SUCCESS;
@@ -853,7 +885,7 @@ export class Wasi {
           if (to.error) return to.error;
           if (!from.node || !from.parent) return ERRNO_NOENT;
           if (!to.parent) return ERRNO_EXIST;
-          if (from.node.readOnly) return ERRNO_PERM;
+          if (from.node.readOnly || from.node.pinned) return ERRNO_PERM;
           // POSIX makes renaming a path onto itself a successful no-op. Falling
           // through would drop the node and re-link it, crediting its bytes back
           // to the quota while they are still held — enough repetitions and the
@@ -870,7 +902,7 @@ export class Wasi {
             if (to.node.type === FILETYPE_DIRECTORY && !movingDirectory) return ERRNO_ISDIR;
             if (to.node.type !== FILETYPE_DIRECTORY && movingDirectory) return ERRNO_NOTDIR;
             if (to.node.type === FILETYPE_DIRECTORY && to.node.children.size > 0) return ERRNO_NOTEMPTY;
-            if (to.node.readOnly) return ERRNO_PERM;
+            if (to.node.readOnly || to.node.pinned) return ERRNO_PERM;
             this.drop(to.parent, to.name, to.node);
           }
           from.parent.unlink(from.name);

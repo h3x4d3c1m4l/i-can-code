@@ -9,6 +9,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen.dart';
@@ -23,27 +24,32 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// Where a stuck heading's text sits: under the bar, past the sliver's own gap.
 const double _pinned = AppHeader.height + StickyGroupHeading.topGap;
 
-/// The catalog as the address `/learn-python?group=…&lesson=…` opens it.
-Widget _catalog({String? group, String? lesson, bool lessMotion = false}) => FTheme(
-  data: buildAppTheme(),
-  child: Localizations(
-    locale: const Locale('nl'),
-    delegates: AppLocalizations.localizationsDelegates,
-    child: Directionality(
-      textDirection: TextDirection.ltr,
-      // The test surface's own size, so the gutters are worked out against the
-      // width the page actually has.
-      child: MediaQuery(
-        data: MediaQueryData(size: const Size(800, 600), disableAnimations: lessMotion),
-        // The router's navigator gives every screen an overlay, and the copy
-        // menu opens in it.
-        child: Overlay.wrap(
-          child: CatalogScreen(subjectSlug: 'learn-python', group: group, lesson: lesson),
+/// The catalog as the address `/learn-python?group=…&lesson=…` opens it. With
+/// [navigator], under a real [Navigator], which a dialog needs.
+Widget _catalog({String? group, String? lesson, bool lessMotion = false, bool navigator = false}) {
+  final screen = CatalogScreen(subjectSlug: 'learn-python', group: group, lesson: lesson);
+
+  return FTheme(
+    data: buildAppTheme(),
+    child: Localizations(
+      locale: const Locale('nl'),
+      delegates: AppLocalizations.localizationsDelegates,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        // The test surface's own size, so the gutters are worked out against the
+        // width the page actually has.
+        child: MediaQuery(
+          data: MediaQueryData(size: const Size(800, 600), disableAnimations: lessMotion),
+          // The router's navigator gives every screen an overlay, and the copy
+          // menu opens in it.
+          child: navigator
+              ? Navigator(onGenerateRoute: (_) => PageRouteBuilder<void>(pageBuilder: (_, _, _) => screen))
+              : Overlay.wrap(child: screen),
         ),
       ),
     ),
-  ),
-);
+  );
+}
 
 /// Lets an address take effect: the frame that starts the scroll, the scroll,
 /// and the first frames of the ring. Not `pumpAndSettle`, which would run the
@@ -119,7 +125,8 @@ void main() {
         ),
       )
       ..registerSingleton<FeatureToggles>(FeatureToggles())
-      ..registerSingleton<ProgressStore>(ProgressStore());
+      ..registerSingleton<ProgressStore>(ProgressStore())
+      ..registerSingleton<CodeDraftStore>(CodeDraftStore());
   });
 
   tearDown(GetIt.I.reset);
@@ -329,7 +336,7 @@ void main() {
 
       await tester.tap(find.text('lesson-2'), buttons: kSecondaryButton);
       await tester.pumpAndSettle();
-      final menu = tester.getSize(find.byType(FItem));
+      final menu = tester.getSize(find.byType(FItem).first);
 
       await tester.tap(find.text('Link kopiëren'));
       await tester.pump();
@@ -337,7 +344,7 @@ void main() {
       expect(copied.single, endsWith('#/learn-python?lesson=lesson-2'));
       expect(Uri.parse(copied.single).hasScheme, isTrue, reason: 'a whole address, to paste somewhere else');
       expect(find.text('Gekopieerd'), findsOneWidget, reason: 'a copy changes nothing else the reader can see');
-      expect(tester.getSize(find.byType(FItem)), menu, reason: 'the item says so without changing size');
+      expect(tester.getSize(find.byType(FItem).first), menu, reason: 'the item says so without changing size');
 
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
@@ -363,7 +370,60 @@ void main() {
       await tester.tap(find.text('lesson-1'), buttons: kSecondaryButton);
       await tester.pumpAndSettle();
       expect(find.byType(CatalogScreen), findsOneWidget);
-      expect(find.byType(FItem), findsOneWidget);
+      expect(find.byType(FItem), findsNWidgets(2), reason: 'copying the link, and starting the lesson over');
+    });
+
+    testWidgets('on a group\'s heading offers only the link', (tester) async {
+      await tester.pumpWidget(_catalog());
+      await tester.pumpAndSettle();
+
+      await tester.tap(_heading('WEEK 1'), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+      expect(find.text('Les opnieuw beginnen'), findsNothing);
+    });
+
+    testWidgets('greys out starting over a lesson that has nothing to forget', (tester) async {
+      await tester.pumpWidget(_catalog());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('lesson-2'), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+      expect(tester.widget<FItem>(find.widgetWithText(FItem, 'Les opnieuw beginnen')).enabled, isFalse);
+    });
+
+    testWidgets('starts a lesson over once asked, and only that lesson', (tester) async {
+      final lessons = GetIt.I<Course>().lessons;
+      final progress = GetIt.I<ProgressStore>();
+      final drafts = GetIt.I<CodeDraftStore>();
+      await progress.markFinished(lessons[0], 'a');
+      await progress.markFinished(lessons[1], 'a');
+      drafts.keep(lessons[0], 'b', 'print(1)');
+
+      // showFDialog looks up a Navigator, which the router would give.
+      await tester.pumpWidget(_catalog(navigator: true));
+      await tester.pumpAndSettle();
+
+      Future<void> askToRestart() async {
+        await tester.tap(find.text('lesson-1'), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+        expect(tester.widget<FItem>(find.widgetWithText(FItem, 'Les opnieuw beginnen')).enabled, isTrue);
+        await tester.tap(find.text('Les opnieuw beginnen'));
+        await tester.pumpAndSettle();
+        expect(find.text('“lesson-1” opnieuw beginnen?'), findsOneWidget);
+      }
+
+      await askToRestart();
+      await tester.tap(find.text('Annuleren'));
+      await tester.pumpAndSettle();
+      expect(progress.isStarted(lessons[0]), isTrue, reason: 'cancelling forgets nothing');
+
+      await askToRestart();
+      await tester.tap(find.text('Opnieuw beginnen'));
+      await tester.pumpAndSettle();
+      expect(progress.isStarted(lessons[0]), isFalse);
+      expect(drafts.hasCodeIn(lessons[0]), isFalse);
+      expect(progress.isStarted(lessons[1]), isTrue, reason: 'the lesson beside it keeps its tick');
+      expect(find.textContaining('1 / 2'), findsOneWidget, reason: 'the card shows it at once');
     });
 
     testWidgets('has a way in from the keyboard, on the card that has the focus', (tester) async {
@@ -390,7 +450,10 @@ void main() {
         tester.getSemantics(find.byType(CatalogCard).first),
         isSemantics(
           isButton: true,
-          customActions: [const CustomSemanticsAction(label: 'Link kopiëren')],
+          customActions: [
+            const CustomSemanticsAction(label: 'Link kopiëren'),
+            const CustomSemanticsAction(label: 'Les opnieuw beginnen'),
+          ],
         ),
       );
       handle.dispose();

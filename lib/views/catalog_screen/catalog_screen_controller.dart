@@ -4,6 +4,7 @@ import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen_view_model.dart';
+import 'package:i_can_code/views/catalog_screen/components/restart_lesson_dialog.dart';
 
 class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewModel> {
 
@@ -76,6 +77,19 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
   Future<void> openLesson(CourseLesson lesson) async {
     if (!contextAccessor.buildContext.mounted) return;
     await contextAccessor.buildContext.router.push(openingRoute(lesson, viewModel.progress));
+  }
+
+  /// Whether [lesson] has ticks or code to forget.
+  bool canRestart(CourseLesson lesson) => viewModel.progress.isStarted(lesson) || viewModel.drafts.hasCodeIn(lesson);
+
+  /// Forgets [lesson]'s ticks and code once the student confirms, so it opens
+  /// on its first step and its starter code again. [title] names it in the
+  /// question, in the reader's language.
+  Future<void> restartLesson(CourseLesson lesson, String title) async {
+    if (!canRestart(lesson) || !contextAccessor.buildContext.mounted) return;
+    if (!await showRestartLessonDialog(contextAccessor.buildContext, lesson: title)) return;
+
+    await (viewModel.progress.forget(lesson), viewModel.drafts.forgetLesson(lesson)).wait;
   }
 
 }

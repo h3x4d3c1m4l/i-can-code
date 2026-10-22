@@ -1,4 +1,5 @@
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/python/python_attempt_runner.dart';
 
 /// The constructs `kCheckLibrary` has no Python keyword to quote for.
 ///
@@ -27,6 +28,16 @@ extension AppLocalizationsExtension on AppLocalizations {
   /// construct degrades instead of throwing.
   String checkNotAllowed(String construct) =>
       lessonScreen_checkNotAllowed(_constructPhrase(construct) ?? '`$construct`');
+
+  /// What a step says when `require_aaa` refused [test] and the lesson author
+  /// wrote no message of their own.
+  String checkAaa(String test) => lessonScreen_checkAaa(test);
+
+  /// Why a pytest step stopped at its tests, before its own checks ran.
+  String testsProblem(TestsProblem problem) => switch (problem) {
+    TestsProblem.none => lessonScreen_testsNone,
+    TestsProblem.failing => lessonScreen_testsFailing,
+  };
 
   String? _constructPhrase(String construct) => switch (construct) {
     'call' => lessonScreen_constructCall,

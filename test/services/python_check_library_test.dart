@@ -12,7 +12,7 @@ import 'package:i_can_code/services/python/python_check_library.dart';
 ///
 /// The library is a plain module, so it can be asked about itself without the
 /// wrapper program or a browser around it.
-Object? _ask(String expression) {
+Object? _ask(String expression, {String prelude = ''}) {
   // Carried as base64 for the reason `buildProgram` does it: the source cannot
   // terminate the literal holding it.
   final payload = base64.encode(utf8.encode(kCheckLibrary));
@@ -20,6 +20,7 @@ Object? _ask(String expression) {
 import base64, json
 _lib = {}
 exec(compile(base64.b64decode("$payload").decode("utf-8"), "checks.py", "exec"), _lib)
+$prelude
 print(json.dumps($expression))
 ''';
   final run = Process.runSync('python3', ['-c', program]);
@@ -28,6 +29,26 @@ print(json.dumps($expression))
     fail('Could not ask the check library about itself:\n${run.stderr}');
   }
   return jsonDecode('${run.stdout}');
+}
+
+/// Runs `require_aaa` on [source]: null when it passes, else what it raised —
+/// the test it named for Dart to phrase, and its message.
+({String? test, String message})? _aaa(String source, {String? message}) {
+  final payload = base64.encode(utf8.encode(jsonEncode({'source': source, 'message': message})));
+  final answer = _ask(
+    '_probe(**json.loads(base64.b64decode("$payload")))',
+    prelude: '''
+def _probe(source, message):
+    try:
+        _lib["analyze"](source).require_aaa(message=message)
+    except Exception as e:
+        return {"test": getattr(e, "icc_aaa", None), "message": str(e)}
+    return None
+''',
+  );
+  if (answer == null) return null;
+  final raised = answer as Map<String, dynamic>;
+  return (test: raised['test'] as String?, message: raised['message'] as String);
 }
 
 bool get _hasPython3 {
@@ -74,7 +95,69 @@ void main() {
     });
   }, skip: _hasPython3 ? false : 'python3 is not on PATH');
 
+  group('require_aaa', () {
+    String aTest(String name, List<String> markers) =>
+        'def $name():\n${markers.map((marker) => '    $marker\n    x = 1\n').join()}    pass\n';
+
+    test('passes a test that marks its three parts in order', () {
+      expect(_aaa(aTest('test_a', ['# Arrange', '# Act', '# Assert'])), isNull);
+    });
+
+    test('reads the word, not its case or what follows it', () {
+      expect(_aaa(aTest('test_a', ['# ARRANGE', '#act: roep aan', '# Assert dat het klopt'])), isNull);
+    });
+
+    test('lets one comment mark the call and its check together', () {
+      expect(_aaa(aTest('test_a', ['# Arrange', '# Act / Assert'])), isNull);
+      expect(_aaa(aTest('test_a', ['# Arrange', '# Act en assert'])), isNull);
+    });
+
+    test('names the test that is missing a part', () {
+      final raised = _aaa('${aTest('test_a', ['# Arrange', '# Act', '# Assert'])}\n${aTest('test_b', ['# Arrange', '# Assert'])}');
+
+      expect(raised?.test, 'test_b');
+      expect(raised?.message, contains('test_b'));
+    });
+
+    test('refuses a part twice, or out of order', () {
+      expect(_aaa(aTest('test_a', ['# Arrange', '# Act', '# Act', '# Assert']))?.test, 'test_a');
+      expect(_aaa(aTest('test_a', ['# Act', '# Arrange', '# Assert']))?.test, 'test_a');
+    });
+
+    test('does not count a word that only starts like a marker', () {
+      expect(_aaa(aTest('test_a', ['# Arrange', '# Actually', '# Assert']))?.test, 'test_a');
+    });
+
+    test('does not count markers outside the test', () {
+      expect(_aaa('# Arrange\n# Act\n# Assert\n${aTest('test_a', [])}')?.test, 'test_a');
+    });
+
+    test('checks the methods of a Test class, and nothing that is no test', () {
+      const source = '''
+def helper():
+    return 1
+
+class TestKassa:
+    def test_a(self):
+        x = 1
+''';
+      expect(_aaa(source)?.test, 'test_a');
+    });
+
+    test("the author's own message replaces the placeholder and carries no name", () {
+      final raised = _aaa(aTest('test_a', []), message: 'Zet de drie commentaren erin.');
+
+      expect(raised?.message, 'Zet de drie commentaren erin.');
+      expect(raised?.test, isNull);
+    });
+  }, skip: _hasPython3 ? false : 'python3 is not on PATH');
+
   group('the refusal a student reads', () {
+    test('names the test that is missing its parts, in either language', () {
+      expect(AppLocalizationsNl().checkAaa('test_deel'), contains('`test_deel`'));
+      expect(AppLocalizationsEn().checkAaa('test_deel'), contains('`test_deel`'));
+    });
+
     test('sets a keyword as code and leaves it untranslated', () {
       expect(AppLocalizationsNl().checkNotAllowed('if'), contains('`if`'));
       expect(AppLocalizationsEn().checkNotAllowed('if'), contains('`if`'));

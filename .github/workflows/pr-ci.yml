@@ -33,6 +33,20 @@ jobs:
             exit 1
           fi
 
+      # Runs pytest on the committed python.wasm and stdlib zip through the
+      # browser's own WASI shim, so a zip baked wrong fails here and not in a
+      # lesson.
+      #
+      # Node 22.7+ because web/python/wasi.js is an ES module without a
+      # package.json saying so, and older Node reads it as CommonJS.
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Smoke-test pytest on python.wasm
+        run: node tool/smoke_pytest.mjs assets/python
+
       - name: Detect Flutter version
         uses: kuhnroyal/flutter-fvm-config-action@v3
 
@@ -181,6 +195,17 @@ jobs:
 
       - name: Flutter analyze
         run: flutter analyze
+
+      # The harness tests run on the host python, and those for `run: pytest`
+      # skip without pytest. The versions are tool/bake_pytest.py's, which is
+      # what the app ships.
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install pytest
+        run: pip install pytest==9.1.1 pluggy==1.7.0 iniconfig==2.3.1 packaging==26.3 pygments==2.21.0
 
       # Not optional: `dart analyze` stays green while every build and test
       # fails when a generator emits syntax the language version rejects.

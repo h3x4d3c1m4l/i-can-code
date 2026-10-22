@@ -139,8 +139,9 @@ rm -rf "$STAGE_DIR"
 cp -R "$SRC_DIR/Lib" "$STAGE_DIR"
 
 # Not shipped. Lib/test also holds files that are invalid Python on purpose,
-# and compileall exits non-zero on them.
-for dir in test idlelib tkinter turtledemo lib2to3; do
+# and compileall exits non-zero on them. ensurepip is a 1.8 MB pip wheel, and
+# pip cannot install anything in the sandbox.
+for dir in test idlelib tkinter turtledemo ensurepip; do
   rm -rf "${STAGE_DIR:?}/$dir"
 done
 
@@ -187,6 +188,14 @@ fi
 # behind. See docs/licenses.md.
 echo "==> fetching licence texts"
 "$(dirname "$0")/fetch_python_licenses.sh" "$PYTHON_VERSION" "$WASI_SDK_VERSION" "$OUT_DIR/licenses"
+
+# ------------------------------------------------------------------- pytest
+#
+# After the licences, not before: fetch_python_licenses.sh empties the licence
+# directory, and this adds pytest's texts to it. Needs a host python of the
+# same minor version, because the packages go in as bytecode.
+echo "==> baking pytest into the stdlib"
+WORK_DIR="$WORK_DIR" "python${MAJOR_MINOR}" "$(dirname "$0")/bake_pytest.py" "$OUT_DIR"
 
 echo
 echo "==> done"

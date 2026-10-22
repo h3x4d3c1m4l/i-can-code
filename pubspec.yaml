@@ -1,23 +1,17 @@
 name: i_can_code
 description: "I Can Code - learn to code, in the browser."
-publish_to: 'none'
+publish_to: none
 
 version: 0.12.2+1
 
 environment:
-  # The package's *language version*, which is what the compiler allows generated
-  # code to use. freezed and theme_tailor both floor at 3.13.0.
   sdk: ^3.13.0
 
 dependencies:
   flutter: { sdk: flutter }
   flutter_localizations: { sdk: flutter }
-  # Not used by this app's own code. forui's FTextField reaches for Cupertino's
-  # text-selection toolbar and magnifier on Apple platforms, and without this the
-  # glyphs it names have no font — a missing box in the selection toolbar on iOS
-  # Safari, and a build warning on every `flutter build web`. Tree-shaken to a
-  # few bytes, since only those glyphs are referenced.
-  cupertino_icons: ^2.0.0
+
+  cupertino_icons: ^2.0.0 # Used by forui's FTextField reaches for on Apple (web) platforms.
   intl: any
 
   forui: 0.27.6
@@ -44,9 +38,10 @@ dependencies:
   sentry_flutter: 10.1.0
 
 dev_dependencies:
+  flutter_test: { sdk: flutter }
+
   shared_preferences_platform_interface: 2.4.2
   url_launcher_platform_interface: 2.3.2
-  flutter_test: { sdk: flutter }
 
   flutter_lints: ^6.0.0
   build_runner: 2.16.1
@@ -91,18 +86,14 @@ flutter:
     - assets/fonts/OFL-NotoColorEmoji.txt
 
   fonts:
-    # Variable fonts, one file per family: a `FontWeight` sets the `wght` axis.
-    # Neither entry states a weight, because a weight here would pin the file
-    # to that one. Fredoka's own default is 300, and no style asks for it.
+    # Variable fonts.
     - family: Fredoka
       fonts:
         - asset: assets/fonts/Fredoka-Variable.ttf
     - family: Lexend
       fonts:
         - asset: assets/fonts/Lexend-Variable.ttf
-    # Not a font the app draws with. Flutter's web engine downloads Roboto from
-    # fonts.gstatic.com unless a family of that name is bundled, and uses it for
-    # text that names no family. This points that name at the body face.
+    # Redirect Roboto usage to Lexend.
     - family: Roboto
       fonts:
         - asset: assets/fonts/Lexend-Variable.ttf
@@ -116,9 +107,6 @@ flutter:
         - asset: assets/fonts/JetBrainsMonoNL-500.ttf
           weight: 500
 
-# Read by sentry_dart_plugin, which the course repository's deploy runs after
-# `flutter build web --source-maps`. The token, org and project come from that
-# workflow's environment; see "Error reporting" in CLAUDE.md.
 sentry:
   upload_source_maps: true
   # A web build has no native debug files. Left on, the plugin scans the whole

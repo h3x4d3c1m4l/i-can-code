@@ -7,12 +7,13 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/views/catalog_screen/components/browser_menu_suppressor.dart';
 
-/// Gives [child] a menu of one item, "Link kopiëren", that puts an address on
-/// the clipboard. It opens where a right click lands, and from the keyboard on
-/// Shift+F10 or the menu key while [child] has the focus.
+/// Gives [child] a menu with "Link kopiëren", that puts an address on the
+/// clipboard, and on a lesson's card also "Les opnieuw beginnen". It opens
+/// where a right click lands, and from the keyboard on Shift+F10 or the menu
+/// key while [child] has the focus.
 ///
-/// The item says "Gekopieerd" for a moment before the menu closes, because a
-/// copy changes nothing else the reader can see.
+/// The copy item says "Gekopieerd" for a moment before the menu closes, because
+/// a copy changes nothing else the reader can see.
 ///
 /// MUST be below an [Overlay], which every screen is: the menu is drawn in it.
 ///
@@ -33,9 +34,14 @@ class CopyLinkMenu extends StatefulWidget {
   /// The address to copy. Asked for at the press and not before.
   final Uri Function() address;
 
+  /// The "Les opnieuw beginnen" item, for a lesson's card. Null on anything
+  /// else. [enabled] is asked each time the menu opens, so the item is greyed
+  /// out exactly while there is nothing to forget.
+  final ({bool Function() enabled, VoidCallback onPress})? restart;
+
   final Widget child;
 
-  const CopyLinkMenu({required this.address, required this.child, super.key});
+  const CopyLinkMenu({required this.address, required this.child, this.restart, super.key});
 
   @override
   State<CopyLinkMenu> createState() => _CopyLinkMenuState();
@@ -96,6 +102,11 @@ class _CopyLinkMenuState extends State<CopyLinkMenu> with SingleTickerProviderSt
     _close = Timer(_confirmation, () => unawaited(_controller.hide()));
   }
 
+  void _restart() {
+    unawaited(_controller.hide());
+    widget.restart?.onPress();
+  }
+
   /// [Visibility] rather than `Visibility.maintain`, which would hand a screen
   /// reader the hidden label as well. `RunButton` swaps its two the same way.
   static Widget _label(String text, {required bool visible}) => Visibility(
@@ -109,6 +120,8 @@ class _CopyLinkMenuState extends State<CopyLinkMenu> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final localizations = context.localizations;
+    final restart = widget.restart;
+    final canRestart = restart?.enabled() ?? false;
 
     return Stack(
       // Whatever [widget.child] was given, it still gets: a card is stretched
@@ -125,6 +138,10 @@ class _CopyLinkMenuState extends State<CopyLinkMenu> with SingleTickerProviderSt
               child: Semantics(
                 customSemanticsActions: {
                   CustomSemanticsAction(label: localizations.catalogScreen_copyLink): () => unawaited(_copy()),
+                  // Always listed: this node is not rebuilt when a lesson is
+                  // started, so `onPress` decides whether there is anything.
+                  if (restart != null)
+                    CustomSemanticsAction(label: localizations.catalogScreen_restartLesson): restart.onPress,
                 },
                 child: GestureDetector(
                   excludeFromSemantics: true,
@@ -158,6 +175,13 @@ class _CopyLinkMenuState extends State<CopyLinkMenu> with SingleTickerProviderSt
                     ),
                     onPress: () => unawaited(_copy()),
                   ),
+                  if (restart != null)
+                    FItem(
+                      prefix: const Icon(FLucideIcons.rotateCcw),
+                      title: Text(localizations.catalogScreen_restartLesson),
+                      enabled: canRestart,
+                      onPress: _restart,
+                    ),
                 ],
               ),
             ],

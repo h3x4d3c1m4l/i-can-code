@@ -22,6 +22,7 @@ fvm dart run tool/try_lesson.dart docs/samples/predict-output.md 0   # see the a
 | [tkinter-project.md](tkinter-project.md) | `info`, `task` | A `layout: project` on `runtime: tkinter`, behind `feature: tkinter`: a window, then a button in it, each task waiting for the program to show a window |
 | [stdin.md](stdin.md) | `exercise`, `predict-output` | A `stdin` block on each: what the program reads when it calls `input()` |
 | [file.md](file.md) | `exercise`, `predict-output` | A `file` block on each: a CSV beside the program, read with `csv`, and a step that writes one |
+| [pytest.md](pytest.md) | `exercise` | `run: pytest` with `file:` and `file` blocks holding modules: the student writes tests that catch mutants, and code that passes given tests |
 
 **These are documentation, not content.** They live here rather than under
 `assets/lessons/`, which is the only directory the app discovers, so nothing here

@@ -19,6 +19,7 @@ import 'package:i_can_code/services/lessons/includes.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
+import 'package:i_can_code/services/python/section_attempt.dart';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty) {
@@ -67,6 +68,12 @@ Future<void> main(List<String> args) async {
   // proves the intended answer actually passes the validator beside it.
   if (!section.kind.runsCode) {
     _bail('Section $index ("${section.title}") is ${section.kind.name} — there is nothing to run.');
+    return;
+  }
+
+  if (section.run == SectionRun.pytest &&
+      Process.runSync('python3', ['-c', 'import pytest']).exitCode != 0) {
+    _bail('Section $index runs pytest, which python3 cannot import. Install it with: pip install pytest==9.1.1');
     return;
   }
 
@@ -121,7 +128,13 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
   // traceback here quotes the same lines the student will see.
   final dir = Directory.systemTemp.createTempSync('try_lesson_');
   File('${dir.path}/main.py').writeAsStringSync(
-    PythonAttemptRunner.buildProgram(code: code, validator: section.validator, files: section.files),
+    PythonAttemptRunner.buildProgram(
+      code: code,
+      validator: section.validator,
+      files: section.files,
+      mode: section.runMode,
+      fileName: section.fileName,
+    ),
   );
   final process = await Process.start('python3', ['main.py'], workingDirectory: dir.path);
   process.stdin.write(section.stdin ?? '');
@@ -176,10 +189,20 @@ Future<void> _report(LessonSection section, String code, List<String> args) asyn
   }
   if (result.filesCut) stdout.writeln('(more files were written than are listed)\n');
 
+  if (result.tests.isNotEmpty) {
+    stdout.writeln('tests:');
+    for (final test in result.tests) {
+      stdout.writeln('  ${test.kind.name.padRight(8)} ${test.name}${test.message == null ? '' : '  — ${test.message}'}');
+    }
+    stdout.writeln();
+  }
+
   if (result.programError case final String error) {
     stdout
       ..writeln('CRASHED — the student sees their own traceback:')
       ..writeln(_indent(error.trimRight()));
+  } else if (result.testsProblem case final TestsProblem problem) {
+    stdout.writeln('FAILED  — ${problem == TestsProblem.none ? 'pytest collected no tests' : 'not every test passes'}');
   } else if (result.checkMessage case final String message) {
     stdout.writeln('FAILED  — "$message"');
   } else if (section.kind == SectionKind.orderLines && _readCode(args) == null) {

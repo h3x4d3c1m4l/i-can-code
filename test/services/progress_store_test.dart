@@ -140,6 +140,22 @@ void main() {
     expect(reloaded.hasProgress, isFalse, reason: 'the clear has to reach storage, not just memory');
   });
 
+  test('forgetting one lesson leaves the others, and outlives the store', () async {
+    final intro = _lesson(id: 'intro', sectionIds: ['a']);
+    final loops = _lesson(id: 'loops', sectionIds: ['a']);
+    await store.markFinished(intro, 'a');
+    await store.markFinished(loops, 'a');
+
+    await store.forget(intro);
+    expect(store.isStarted(intro), isFalse);
+    expect(store.isFinished(loops), isTrue);
+
+    final reloaded = ProgressStore();
+    await reloaded.load(Course(lessons: [intro, loops]));
+    expect(reloaded.isStarted(intro), isFalse, reason: 'the forget has to reach storage, not just memory');
+    expect(reloaded.isFinished(loops), isTrue);
+  });
+
   test('progress of a lesson that is gone still counts, and clearing reaches it', () async {
     // Finished under the lesson's old id, which a rename leaves behind.
     await store.markFinished(_lesson(id: 'input-and-output', sectionIds: ['a']), 'a');

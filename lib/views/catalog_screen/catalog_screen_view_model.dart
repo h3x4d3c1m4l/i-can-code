@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
@@ -23,6 +24,9 @@ abstract class CatalogScreenViewModelBase extends ScreenViewModelBase with Store
 
   /// Observed by the view, so a tick appears the moment a lesson is finished.
   final ProgressStore progress = GetIt.I<ProgressStore>();
+
+  /// Read so a lesson's menu knows whether there is code to forget.
+  final CodeDraftStore drafts = GetIt.I<CodeDraftStore>();
 
   CatalogScreenViewModelBase({required super.contextAccessor, required String subjectSlug})
     : subject = subjectFromSlug(subjectSlug) ?? '';

@@ -61,6 +61,8 @@ class ShownFile {
 /// step one button and never pushes Run out of view.
 Future<void> showFileDialog(BuildContext context, ShownFile file) => showFDialog<void>(
   context: context,
+  // OverlayHost's Navigator, so the barrier covers the bar as well as the page.
+  useRootNavigator: true,
   builder: (context, style, animation) => FDialog(
     animation: animation,
     // Wider than a question: this one holds a file, and a CSV's rows are long.

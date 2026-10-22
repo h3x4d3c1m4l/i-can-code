@@ -19,6 +19,7 @@ import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/components/lesson/lesson_tour_part.dart';
+import 'package:i_can_code/views/components/lesson/requirements_row.dart';
 import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/output_card.dart';
@@ -79,24 +80,29 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// drift from the block they are written in.
   static Widget? _buildInput(BuildContext context, LessonSection section) {
     final stdin = section.stdin;
-    if (stdin == null && section.files.isEmpty) return null;
+    final files = section.files.entries.where((file) => !_isModule(section, file.key)).toList();
+    if (stdin == null && files.isEmpty) return null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (section.files.isNotEmpty)
+        if (files.isNotEmpty)
           FilesCard(
             label: context.localizations.lessonScreen_files,
-            files: [for (final MapEntry(:key, :value) in section.files.entries) ShownFile.given(key, value)],
+            files: [for (final MapEntry(:key, :value) in files) ShownFile.given(key, value)],
           ),
-        if (stdin != null && section.files.isNotEmpty) const SizedBox(height: 16),
+        if (stdin != null && files.isNotEmpty) const SizedBox(height: 16),
         // Trimmed for the reason the output card is: the stored text ends in a
         // newline, which would draw an empty line inside the card.
         if (stdin != null) OutputCard(label: context.localizations.lessonScreen_input, text: stdin.trimRight()),
       ],
     );
   }
+
+  /// A Python file a pytest step gives. Shown as code above the editor rather
+  /// than behind a button: it is half of what the student works on.
+  static bool _isModule(LessonSection section, String name) => section.run == SectionRun.pytest && name.endsWith('.py');
 
   /// How long a quick exercise's answer may run. The editor is sized to it and
   /// the controller is held to it, so the two cannot come apart.
@@ -600,11 +606,31 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   }) {
     final editor = _editorFor(viewModel.step, section);
     final attempt = viewModel.attempt;
+    final tokens = context.appTheme;
+    final pytest = section.run == SectionRun.pytest;
 
     return [
+      // Read-only and above the editor: the student reads what they test, or
+      // the tests they write for, before writing their half.
+      for (final MapEntry(key: name, value: source) in section.files.entries)
+        if (_isModule(section, name)) ...[
+          CodeSample(
+            // The stored text ends in a newline, which would draw an empty line.
+            source: source.trimRight(),
+            language: viewModel.lesson.entry.subject,
+            label: name,
+            copyable: true,
+            style: tokens.text.code.copyWith(color: tokens.colors.codeForeground),
+            labelStyle: tokens.text.codeSmall.copyWith(color: tokens.colors.codeMuted),
+            surface: tokens.colors.codeBackground,
+          ),
+          const SizedBox(height: 16),
+        ],
       CodeEditorCard(
         controller: editor,
-        status: _statusLabel(context),
+        // With more than one file on screen, which one this is matters more
+        // than the interpreter it runs on.
+        status: pytest && !viewModel.running ? section.fileName : _statusLabel(context),
         height: editorHeight,
         maxLines: maxLines,
         starterCode: section.starter ?? '',
@@ -635,11 +661,28 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   }
 
   /// The step's title, with the "Verdieping" banner above it when the section
-  /// may be skipped.
-  Widget _buildHeading(Lesson lesson, LessonSection section) => SectionHeading(
-    section: section,
-    onSkip: section.optional ? () => controller.skip(lesson.stepCount) : null,
-  );
+  /// may be skipped. On the first step, the lessons worth doing before this one
+  /// follow it: one place, so it lands under the title whatever kind of step
+  /// the lesson opens with.
+  Widget _buildHeading(Lesson lesson, LessonSection section) {
+    final heading = SectionHeading(
+      section: section,
+      onSkip: section.optional ? () => controller.skip(lesson.stepCount) : null,
+    );
+    if (viewModel.step != 0) return heading;
+    final requirements = controller.requirementsOf(lesson, Localizations.localeOf(context).languageCode);
+    if (requirements.isEmpty) return heading;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        heading,
+        const SizedBox(height: 18),
+        RequirementsRow(requirements: requirements, onOpen: controller.openRequirement),
+      ],
+    );
+  }
 
   Widget _buildContinue(BuildContext context, Lesson lesson) {
     return AppButtonRow(

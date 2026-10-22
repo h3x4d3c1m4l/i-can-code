@@ -2,7 +2,7 @@
 
 The app is under the Mozilla Public License 2.0, the `LICENSE` at the repository
 root. It ships a good deal that is not its own: Dart packages and the Flutter
-engine, a CPython build, the Rust core's crates, four fonts, a firmware image
+engine, a CPython build with pytest baked in, the Rust core's crates, four fonts, a firmware image
 and one vendored script, and in a build with the Tkinter page a Linux image. The licence screen (`/licenses`, under *Licenties* in
 the cog) shows the licence of the app and of every one of those.
 
@@ -50,7 +50,7 @@ build time; see *Rust* below.
 | Shown under | Files | Source | Rewritten by |
 |---|---|---|---|
 | The app | `LICENSE` | MPL 2.0, verbatim from mozilla.org | by hand |
-| Python | `assets/python/licenses/` | CPython, wasi-libc and LLVM, at the versions the build used | `tool/fetch_python_licenses.sh` |
+| Python | `assets/python/licenses/` | CPython, wasi-libc and LLVM, at the versions the build used; pytest and its dependencies, from their wheels | `tool/fetch_python_licenses.sh`, then `tool/bake_pytest.py` |
 | Rust | `assets/licenses/rust-*.txt` | the crates in `rust/Cargo.lock`, and the standard library of the pinned toolchain | `just gen-rust-licenses` |
 | micro:bit | `assets/microbit/licenses/` | the parts of the MicroPython firmware | by hand, see below |
 | Fonts | `assets/fonts/OFL-*.txt` | each family's own OFL text | by hand, with the font |
@@ -135,6 +135,17 @@ them without the build.
 wasi-sdk pins wasi-libc and LLVM as submodules. The script reads their commits
 from the SDK release, so neither is written down anywhere.
 
+`fetch_python_licenses.sh` empties the directory before it writes, so
+`tool/bake_pytest.py` runs after it and adds the texts of what it bakes into the
+stdlib zip. They come from each wheel's own `dist-info/licenses/`, at the pinned
+versions:
+
+- `pytest.txt`, `pluggy.txt` and `iniconfig.txt` are MIT.
+- `packaging.txt` says packaging is under either of the other two,
+  `packaging-apache.txt` (Apache-2.0) and `packaging-bsd.txt` (BSD-2-Clause).
+- `pygments.txt` is BSD-2-Clause, and `pygments-authors.txt` is the list of
+  authors that licence refers to.
+
 ## The micro:bit firmware
 
 `assets/microbit/` holds the MicroPython hex a program is written to a board on
@@ -181,6 +192,8 @@ below. The Dart packages are BSD-3-Clause, MIT
 and Apache-2.0. The engine's own notices name no GPL, LGPL or MPL component.
 The crates are MIT, Apache-2.0, Zlib, Unlicense and Unicode-3.0. CPython is
 PSF-2.0, wasi-libc is Apache-2.0 with the LLVM exception, MIT and BSD-2-Clause.
+pytest, pluggy and iniconfig are MIT, packaging is Apache-2.0 or BSD-2-Clause,
+and Pygments is BSD-2-Clause.
 MPL 2.0 lets its code be combined with code under other terms (section 3.3, a
 "Larger Work"), and every one of these allows it from its side.
 

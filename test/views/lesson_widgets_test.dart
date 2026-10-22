@@ -782,6 +782,47 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Goed!'), findsOneWidget);
     });
+
+    testWidgets('a pytest run lists its tests between the verdict and the output', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const OutputPanel(
+            result: AttemptResult(
+              passed: false,
+              output: '1 failed, 1 passed\n',
+              testsProblem: TestsProblem.failing,
+              tests: [
+                TestOutcome(name: 'test_deel', kind: TestOutcomeKind.passed),
+                TestOutcome(name: 'test_nul', kind: TestOutcomeKind.failed, message: 'assert 4 == 5'),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final verdict = tester.getTopLeft(find.textContaining('Nog niet elke test slaagt')).dy;
+      final list = tester.getTopLeft(find.text('test_deel')).dy;
+      final output = tester.getTopLeft(find.text('1 failed, 1 passed')).dy;
+      expect(verdict, lessThan(list));
+      expect(list, lessThan(output));
+      expect(find.text('assert 4 == 5'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('mislukt')), findsOneWidget);
+    });
+
+    testWidgets('an unmessaged require_aaa is said in the reader\'s language', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const OutputPanel(
+            result: AttemptResult(passed: false, output: '', checkMessage: 'English placeholder', aaaTest: 'test_deel'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Geef in'), findsOneWidget);
+      expect(find.textContaining('English placeholder'), findsNothing);
+    });
   });
 
   group('PredictionField', () {
