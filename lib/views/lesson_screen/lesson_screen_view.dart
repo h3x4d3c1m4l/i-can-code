@@ -105,10 +105,6 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   /// than behind a button: it is half of what the student works on.
   static bool _isModule(LessonSection section, String name) => section.run == SectionRun.pytest && name.endsWith('.py');
 
-  /// How long a quick exercise's answer may run. The editor is sized to it and
-  /// the controller is held to it, so the two cannot come apart.
-  static const int _quickExerciseLines = 2;
-
   /// Prose in the narrower of the two columns.
   static const double _taskProseSize = 19;
 
@@ -323,15 +319,14 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
           const SizedBox(height: 30),
           LessonProse(markdown: section.prose, fontSize: _readingProseSize, hangingGutter: true),
           const SizedBox(height: 20),
-          // A quick exercise is a short answer, and two lines is what "short"
-          // turns out to mean: storing something and then showing it is the
-          // smallest exercise worth setting, and it does not fit in one.
+          // One number for both, so the editor's size and its limit cannot come
+          // apart.
           ..._buildWorkspace(
             context,
             lesson,
             section,
-            editorHeight: CodeEditorCard.heightForLines(_quickExerciseLines),
-            maxLines: _quickExerciseLines,
+            editorHeight: CodeEditorCard.heightForLines(section.maxLines!),
+            maxLines: section.maxLines,
           ).map(_pastGutter),
         ],
       ),

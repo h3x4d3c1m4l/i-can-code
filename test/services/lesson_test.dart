@@ -993,5 +993,46 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    group('the lines a quick exercise allows', () {
+      String step(String starter, {String type = 'quick-exercise', String meta = ''}) =>
+          '# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: $type\nid: s\n$meta```\n\n'
+          '```python-assignment\n$starter```\n\n```python-validator\npass\n```\n';
+
+      test('are one past the starter, and at least two', () {
+        for (final (starter, lines) in [('', 2), ('print(2.5)\n', 2), ('def f():\n    pass\n', 3)]) {
+          expect(Lesson.parse(step(starter)).sections.single.maxLines, lines, reason: starter);
+        }
+      });
+
+      test('are what `lines` says, when it says so', () {
+        expect(Lesson.parse(step('x = 1\n', meta: 'lines: 3\n')).sections.single.maxLines, 3);
+      });
+
+      test('are no concern of an exercise, which is not held to a length', () {
+        expect(Lesson.parse(step('x = 1\n', type: 'exercise')).sections.single.maxLines, isNull);
+        expect(
+          () => Lesson.parse(step('x = 1\n', type: 'exercise', meta: 'lines: 3\n')),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('reject a `lines` that is not a whole number above 0', () {
+        for (final lines in ['0', '-1', '2.5', 'three']) {
+          expect(
+            () => Lesson.parse(step('', meta: 'lines: $lines\n')),
+            throwsA(isA<FormatException>()),
+            reason: lines,
+          );
+        }
+      });
+
+      test('reject a `lines` the starter does not fit in', () {
+        expect(
+          () => Lesson.parse(step('a = 1\nb = 2\nprint(a + b)\n', meta: 'lines: 2\n')),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    });
   });
 }

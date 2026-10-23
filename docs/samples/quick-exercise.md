@@ -1,6 +1,6 @@
 # Sample: a quick exercise
 
-One `quick-exercise` section: prose and a one-line editor, stacked.
+One `quick-exercise` section: prose and a two-line editor, stacked.
 
 ```metadata
 id: sample-quick-exercise
@@ -15,12 +15,13 @@ id: print-yourself
 emoji: "✍️"
 ```
 
-A `quick-exercise` is a question of a sentence or two whose answer runs to at
-most two lines, so the prose and the editor stack in a single column and the
-editor is sized to exactly that. Two rather than one because storing something
-and then showing it is the smallest exercise worth setting. An answer that needs
-a third line belongs in an `exercise`: the editor holds the student to the limit,
-so the extra line is joined onto the second rather than accepted.
+A `quick-exercise` is a question of a sentence or two whose answer runs one line
+past its starter, so the prose and the editor stack in a single column and the
+editor is sized to exactly that. An empty starter counts as one line, so the
+least is two: storing something and then showing it is the smallest exercise
+worth setting. A step that needs more says `lines:` in its metadata. The editor
+holds the student to the limit, so a line past it is joined onto the last one
+rather than accepted.
 
 Write a line of code that prints a piece of text.
 

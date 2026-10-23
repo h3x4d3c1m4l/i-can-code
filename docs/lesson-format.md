@@ -251,7 +251,7 @@ a position survives none of that.
 | `type` | Layout |
 | --- | --- |
 | `info` | Prose only. No editor, nothing to run. |
-| `quick-exercise` | Prose and editor stacked in **one column** — a sentence or two, answered in at most 2 lines. |
+| `quick-exercise` | Prose and editor stacked in **one column** — a sentence or two, answered in a line or two. See `lines:` below. |
 | `exercise` | The design's **two columns**: prose left, editor and output right. |
 | `match-pairs` | Prose, then a board of tiles to pair up. No editor, nothing to run — see below. |
 | `predict-output` | Prose, a program, and a box to say what it prints before it runs. No editor — see below. |
@@ -286,6 +286,26 @@ is broken.
 
 An exercise with `run: pytest` changes two cells of its row: the validator
 becomes optional and `stdin` is refused. See *`run: pytest` — unit tests* below.
+
+### `lines:` — how long a quick exercise's answer may run
+
+A quick exercise's editor is as tall as the answer may be long, and Enter stops
+working on its last line. By default that is **one line past the starter**,
+counting an empty starter as one line. So a blank start or a one-line starter
+gets two lines, and a two-line `def` gets a third for the call below it.
+
+When the answer needs more, the step says how many lines the whole editor holds:
+
+```metadata
+type: quick-exercise
+id: module-met-as
+lines: 3
+```
+
+`lines` MUST be a whole number above 0, and at least as long as the assignment
+block, or the editor would join the starter's last lines into one. Any other
+type that declares it is a `FormatException`: an `exercise` is not held to a
+length.
 
 ### `optional: true` — a "Verdieping"
 

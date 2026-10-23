@@ -302,6 +302,13 @@ class LessonSection {
   /// step names it, which it MUST.
   final String fileName;
 
+  /// How many lines a [SectionKind.quickExercise] answer may run. The editor is
+  /// sized to it and holds the student to it. Null on every other kind.
+  ///
+  /// The section's `lines` when it declares one, and otherwise one line past
+  /// the starter.
+  final int? maxLines;
+
   const LessonSection({
     required this.id,
     required this.title,
@@ -322,6 +329,7 @@ class LessonSection {
     this.requires = const [],
     this.run = SectionRun.script,
     this.fileName = 'main.py',
+    this.maxLines,
   });
 
 }
@@ -449,6 +457,7 @@ class Lesson {
     List<String>? requires;
     SectionRun? sectionRun;
     String? sectionFile;
+    int? sectionMaxLines;
 
     void clearSection() {
       sectionKind = null;
@@ -470,6 +479,7 @@ class Lesson {
       requires = null;
       sectionRun = null;
       sectionFile = null;
+      sectionMaxLines = null;
     }
 
     void flush() {
@@ -596,6 +606,25 @@ class Lesson {
           'Section "$sectionTitle" is a ${sectionKind!.name} step but carries a `done-when` or `requires`.',
         );
       }
+      int? maxLines;
+      if (sectionKind == SectionKind.quickExercise) {
+        // Counted the way the editor counts: an empty starter is one empty line,
+        // so an answer gets at least two. Storing something and then showing it
+        // is the smallest exercise worth setting, and it does not fit in one.
+        final starterLines = starter!.split('\n').length;
+        maxLines = sectionMaxLines ?? starterLines + 1;
+        // The editor would join the starter's last lines into one.
+        if (maxLines < starterLines) {
+          throw FormatException(
+            'Section "$sectionTitle" declares `lines: $maxLines`, but its assignment block is $starterLines lines.',
+          );
+        }
+      } else if (sectionMaxLines != null) {
+        throw FormatException(
+          'Section "$sectionTitle" is a ${sectionKind!.name} step but declares `lines`; only a quick-exercise has a '
+          'line limit.',
+        );
+      }
       sections.add(
         LessonSection(
           id: sectionId!,
@@ -617,6 +646,7 @@ class Lesson {
           requires: requires ?? const [],
           run: sectionRun ?? SectionRun.script,
           fileName: sectionFile ?? 'main.py',
+          maxLines: maxLines,
         ),
       );
       clearSection();
@@ -718,6 +748,11 @@ class Lesson {
                 throw FormatException('Section "$sectionTitle" declares a `file` that is not text.');
               }
               sectionFile = (file as String?)?.trim();
+              final maxLines = meta['lines'];
+              if (maxLines != null && (maxLines is! int || maxLines < 1)) {
+                throw FormatException('Section "$sectionTitle" declares `lines` that is not a whole number above 0.');
+              }
+              sectionMaxLines = maxLines as int?;
             }
           case _BlockRole.assignment:
             starter = body.join('\n');
