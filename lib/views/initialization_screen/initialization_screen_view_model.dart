@@ -29,6 +29,11 @@ abstract class InitializationScreenViewModelBase extends ScreenViewModelBase wit
   @readonly
   String? _error;
 
+  /// Set once everything is in. The logo winks, and the screen goes on when it
+  /// has.
+  @readonly
+  bool _loaded = false;
+
   /// Set once everything is loaded in a mobile browser whose reader has not
   /// chosen to go on yet. Holds the screen until they do.
   @readonly
@@ -47,6 +52,9 @@ abstract class InitializationScreenViewModelBase extends ScreenViewModelBase wit
   void setError(String error) => _error = error;
 
   @action
+  void setLoaded() => _loaded = true;
+
+  @action
   void showMobileWarning() => _mobileWarning = true;
 
   @action
@@ -54,6 +62,7 @@ abstract class InitializationScreenViewModelBase extends ScreenViewModelBase wit
     _step = null;
     _retries = 0;
     _error = null;
+    _loaded = false;
     _mobileWarning = false;
   }
 

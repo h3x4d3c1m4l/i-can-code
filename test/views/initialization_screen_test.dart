@@ -19,7 +19,9 @@ import 'package:i_can_code/services/startup_progress/startup_progress.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/components/app_logo.dart';
 import 'package:i_can_code/views/components/progress_ring.dart';
+import 'package:i_can_code/views/initialization_screen/components/winking_app_logo.dart';
 import 'package:i_can_code/views/subjects_screen/subjects_screen.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -101,6 +103,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(continueLabel), findsNothing);
+    expect(find.byType(SubjectsScreen), findsOneWidget);
+  });
+
+  testWidgets('the app opens once the logo has winked, and not before', (tester) async {
+    _register(applies: false);
+
+    await tester.pumpWidget(_app());
+
+    final logo = find.descendant(of: find.byType(WinkingAppLogo), matching: find.byType(AppLogo));
+    var winking = false;
+    for (var frame = 0; frame < 100 && !winking; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      winking = tester.widget<AppLogo>(logo).pose.rightEye < 1;
+    }
+
+    expect(winking, isTrue, reason: 'the logo winks once everything is in');
+    expect(find.byType(SubjectsScreen), findsNothing, reason: 'the screen waits for the eye to open again');
+
+    await tester.pumpAndSettle();
     expect(find.byType(SubjectsScreen), findsOneWidget);
   });
 

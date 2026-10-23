@@ -7,10 +7,12 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/locale_controller.dart';
+import 'package:i_can_code/services/splash/splash.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
 import 'package:i_can_code/views/components/color_vision_filter.dart';
+import 'package:i_can_code/views/components/startup_curtain.dart';
 
 /// The app shell.
 ///
@@ -79,7 +81,14 @@ class _ThemedBody extends StatelessWidget {
           // navigating cannot take it with it. Screens fill it through
           // AppHeaderPublisher. The filter goes round the host and not the
           // router, so the bar, the dialogs and the introduction are simulated too.
-          child: ColorVisionFilter(child: AppHeaderHost(child: child ?? const SizedBox.shrink())),
+          // The curtain goes round the host, so the bar opens with the page. The
+          // page's splash stays under the app until the curtain has opened.
+          child: ColorVisionFilter(
+            child: StartupCurtain(
+              onOpened: removeSplash,
+              child: AppHeaderHost(child: child ?? const SizedBox.shrink()),
+            ),
+          ),
         );
       },
     );

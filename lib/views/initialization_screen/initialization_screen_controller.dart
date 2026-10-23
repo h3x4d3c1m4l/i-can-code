@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:get_it/get_it.dart';
+import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/services/bootstrap_status.dart';
 import 'package:i_can_code/services/editor_settings.dart';
@@ -13,6 +14,7 @@ import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
+import 'package:i_can_code/views/components/startup_curtain.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_view_model.dart';
 
 class InitializationScreenController extends ScreenControllerBase<InitializationScreenViewModel> {
@@ -66,6 +68,15 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
       return;
     }
 
+    // The view winks the logo and calls [proceed] once it has.
+    viewModel.setLoaded();
+  }
+
+  /// Goes on once everything is in and the logo has winked: to the
+  /// mobile-browser warning when it is due, and otherwise into the app.
+  Future<void> proceed() async {
+    if (_disposed) return;
+
     // Asked here, with the guard still shut, so no address gets past the
     // warning before the reader has answered it.
     if (GetIt.I<MobileBrowserWarning>().due) {
@@ -114,13 +125,22 @@ class InitializationScreenController extends ScreenControllerBase<Initialization
     }
   }
 
-  /// Resets the navigation stack to [routes], unless the screen is already gone.
+  /// Resets the navigation stack to [routes], unless the screen is already gone,
+  /// behind the [StartupCurtain] when there is one.
   ///
   /// Guarded on [_disposed] first: [BuildContextAccessor.buildContext] is only
   /// assigned once the screen has built, so it MUST NOT be touched before then.
   Future<void> _replaceAll(List<PageRouteInfo<dynamic>> routes) async {
     if (_disposed || !contextAccessor.buildContext.mounted) return;
-    await contextAccessor.buildContext.router.replaceAll(routes);
+    final context = contextAccessor.buildContext;
+    final router = context.router;
+    Future<void> navigate() => router.replaceAll(routes);
+
+    final curtain = StartupCurtain.maybeOf(context);
+    if (curtain == null) return navigate();
+    // The curtain is the transition, so the first page brings none of its own.
+    final root = router.root;
+    await curtain.lift(() => root is AppRouter ? root.withoutTransition(navigate) : navigate());
   }
 
   @override

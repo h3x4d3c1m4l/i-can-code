@@ -145,6 +145,9 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
   @override
   bool _zen = true;
 
+  /// Whether the bar had a header to show when it was last built.
+  bool _barFilled = false;
+
   @override
   void publish(Object owner, AppHeaderBuilder builder) {
     if (!mounted) return;
@@ -201,7 +204,11 @@ class _AppHeaderHostState extends State<AppHeaderHost> with _HostTour implements
               // A hidden bar's shadow still hangs below it, into the top of the
               // window it has left.
               final edge = visible && _scrolledUnder.contains(_claims.keys.lastOrNull);
-              final motion = context.motion(_slide);
+              // A bar that had nothing to show takes its place at once. It
+              // arrives with the first page, under the StartupCurtain, and a
+              // slide would play on through the curtain as it opens.
+              final motion = _barFilled ? context.motion(_slide) : Duration.zero;
+              _barFilled = config != null;
               _followTour(context, config);
 
               // Inside the host's Navigator, which its dialog needs.

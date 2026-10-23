@@ -1,10 +1,40 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.dart';
+import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
+import 'package:i_can_code/services/bootstrap_status.dart';
 
 void main() {
   // `config()` builds a router delegate, which needs a binding.
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('withoutTransition', () {
+    setUp(() => GetIt.I.registerSingleton<BootstrapStatus>(BootstrapStatus()..markCompleted()));
+    tearDown(GetIt.I.reset);
+
+    test('opens its pages without a transition, and leaves the next one its own', () async {
+      final router = AppRouter();
+
+      await router.withoutTransition(() => router.replaceAll([const LicensesRoute()]));
+      final opened = router.topRoute.type;
+      expect(opened, isA<CustomRouteType>());
+      expect((opened as CustomRouteType).duration, Duration.zero);
+
+      await router.replaceAll([const AboutRoute()]);
+      expect(router.topRoute.type, isA<MaterialRouteType>());
+    });
+
+    test('lets go of the default when the navigation fails', () async {
+      final router = AppRouter();
+
+      await expectLater(router.withoutTransition(() async => throw StateError('lost')), throwsStateError);
+      await router.replaceAll([const LicensesRoute()]);
+
+      expect(router.topRoute.type, isA<MaterialRouteType>());
+    });
+  });
 
   test('the route table is valid', () {
     // auto_route validates the table when the router is first built, not at

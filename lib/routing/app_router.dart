@@ -98,9 +98,34 @@ PageRouteInfo<void> openingRoute(CourseLesson lesson, ProgressStore progress) {
 @AutoRouterConfig()
 class AppRouter extends RootStackRouter {
 
+  /// What [withoutTransition] gives a page: no transition in either direction.
+  static final RouteType _instant = RouteType.custom(duration: Duration.zero, reverseDuration: Duration.zero);
+
+  bool _instantly = false;
+
   /// There is no login, so the only gate is whether startup has finished.
   @override
   List<AutoRouteGuard> get guards => [BootstrapGuard()];
+
+  /// Read once per page, when navigation creates its route. That is what lets
+  /// [withoutTransition] reach the pages one navigation opens and no others.
+  @override
+  RouteType get defaultRouteType => _instantly ? _instant : const RouteType.material();
+
+  /// Runs [navigate] with every page it opens arriving at once, for a caller
+  /// that draws the transition itself.
+  ///
+  /// auto_route takes no transition per navigation, so this switches the
+  /// default type for as long as [navigate] runs. The type stays with the page:
+  /// it also leaves without one, and a page pushed over it does not move it.
+  Future<void> withoutTransition(Future<void> Function() navigate) async {
+    _instantly = true;
+    try {
+      await navigate();
+    } finally {
+      _instantly = false;
+    }
+  }
 
   @override
   List<AutoRoute> get routes => [

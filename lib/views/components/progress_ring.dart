@@ -12,8 +12,11 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 /// the app. Both states take the same box, so a value arriving moves nothing.
 class ProgressRing extends StatelessWidget {
 
-  static const double _size = 22;
-  static const double _stroke = 3;
+  static const double _size = 40;
+  static const double _stroke = 5;
+
+  /// forui's spinner, grown with the ring rather than left at forui's own 16.
+  static const double _spinnerSize = 29;
 
   /// How long the arc takes to catch up with a new [value]. Short: values
   /// arrive many times a second, and a slow ring would lag the download.
@@ -32,7 +35,11 @@ class ProgressRing extends StatelessWidget {
     return SizedBox.square(
       dimension: _size,
       child: value == null
-          ? const Center(child: FCircularProgress())
+          ? const Center(
+              child: FCircularProgress(
+                style: FCircularProgressStyleDelta.delta(iconStyle: IconThemeDataDelta.delta(size: _spinnerSize)),
+              ),
+            )
           : Semantics(
               value: '${(value.clamp(0, 1) * 100).round()}%',
               child: TweenAnimationBuilder<double>(

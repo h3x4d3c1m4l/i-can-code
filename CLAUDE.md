@@ -143,7 +143,7 @@ Three rules behind that shape:
 
 `HeaderIconButton` is the icon button all three are — the cog, and the two that hide and show the bar. Not `AppButton.icon`, which is padded `19 × 19` to stand beside a line of text and is far too big for a 76px bar.
 
-**The mark in the bar is an easter egg.** Pressed, `PlayfulAppLogo` plays a random `LogoTrick`, so a new trick is a new case of that enum and nothing else. It gives nothing away: no pointer cursor, no tab stop, no semantics. Every trick MUST start and end on `LogoPose.rest`, and `test/views/playful_app_logo_test.dart` holds that for every case. The mark everywhere else stays still.
+**The mark in the bar is an easter egg.** Pressed, `PlayfulAppLogo` plays a random `LogoTrick`, so a new trick is a new case of that enum and nothing else. It gives nothing away: no pointer cursor, no tab stop, no semantics. Every trick MUST start and end on `LogoPose.rest`, and `test/views/playful_app_logo_test.dart` holds that for every case. The initialization screen's mark winks once, when everything is in, and the screen goes on only once the eye is open again (`WinkingAppLogo`, which calls `InitializationScreenController.proceed`; see *Three loading states*). The splash in `web/index.html` stays still, so the wink is the first thing the face does. The mark everywhere else stays still.
 
 ### Introductions
 
@@ -489,6 +489,24 @@ They cover three different windows and are not interchangeable:
 1. **`web/index.html`** — before Flutter exists at all. Cannot reach the theme, so it restates the neutral preset's colours in CSS by hand, light and dark; changing the preset means changing that block too. An inline script reads `localStorage['theme.mode']` — `SharedPreferencesAsync` stores web keys **verbatim, no `flutter.` prefix**, JSON-encoded — and falls back to `prefers-color-scheme`, so a student who forced light on a dark machine gets no flash. That literal key is coupled to `ThemeModeControllerBase.storageKey`.
 2. **`InitializationScreen`** — work the app does once it is running: reading the course bundle, and nothing else. It shows which step is in flight, retries a bounded number of times, then offers a retry button. The bound matters: everything it waits on is a bundled asset, so a failure means a broken build rather than a server that might come back.
 3. **`LoadingOverlay`** — anything a screen waits on afterwards.
+
+**The splash is the initialization screen, drawn before Flutter exists**, so the hand-over moves nothing. Same column, same measurements, the same `LoadingOverlay` card with the same `ProgressRing`, and the title in Fredoka from the bundled file. Measured in Chrome, the mark, the title, the card and its text land on the same pixels in both. Three things it restates and MUST be changed alongside:
+
+- **The layout and the type**, from `InitializationScreenView`, `LoadingOverlay`, `ProgressRing` and the error notice. The squircles are drawn by a script, from the path `ContinuousRectangleBorder` draws at the box's own size, because CSS has no squircle.
+- **The words**, in the app's language: the one stored under `locale.language` (`LocaleControllerBase.storageKey`), else the browser's first that the app speaks, else Dutch. Each is an ARB string but the error card's body, which only the splash says. The splash says "Laden…" throughout; the engine's own steps are not words a student needs.
+- **The font file.** CSS fetches Fredoka as the splash first draws, and the engine's own request for it is then answered from the HTTP cache. Measured on a cold load: the second request is a revalidation, not a download. Lexend is fetched by CSS only for the error card's body.
+
+**The splash stays under the app until the curtain has opened.** `appRunner.runApp()` settles as soon as Dart's `main()` starts, and the first frame reaches the screen later: measured, ~70 ms later on a warm start and ~430 ms on a cold one, most of it the GPU after the engine's `flutter-first-frame` event, so waiting for that event is not enough either. Removing the splash at `runApp()` showed the bare page for that long. Now the page only takes it out of the accessibility tree (`aria-hidden`) and out of reach (`inert`) there. The Flutter view lies over it and is transparent until its first frame is on screen, so the splash shows through exactly until the app does. `StartupCurtain.onOpened` calls `removeSplash()` (`lib/services/splash/`) once the curtain is gone, more than a second after the app first drew. With reduced motion there is no curtain and the splash stays for good: still, unseen and unread. Measured on the home screen, idle and while a card animated, it adds no style, layout, paint or raster work.
+
+**The way into the app is `StartupCurtain`** (`lib/views/components/`), around `AppHeaderHost` in the shell. Once everything is in, the initialization screen's logo winks, and only then does the screen leave: `InitializationScreenController._replaceAll` asks the curtain to `lift`. The curtain snapshots the window, shows the snapshot on top, has the router replace the screen under it, and then plays the way in: the snapshot zooms towards the reader, blurs and fades, while the app comes up out of a blur underneath. Things it leans on:
+
+- **The first page brings no transition of its own.** auto_route takes none per navigation, so `AppRouter.withoutTransition` switches `defaultRouteType` while the navigation runs. A page reads it once, when its route is created, so the switch reaches the first page and nothing after it. Without it the platform's own slide (Cupertino on a Mac) played under the curtain as it opened.
+- **The bar takes its place at once the first time it has something to show**, rather than sliding in. It arrives with the first page, under the curtain.
+- **At rest it composites nothing.** It is a render object of its own (`_CurtainLayers`) rather than `Opacity`, `Transform` and `ImageFiltered` left at their resting values: `Opacity` keeps an opacity layer at 1, and the web engine draws every opacity layer through a `saveLayer`, which around the whole app is a window-sized buffer on every frame. And it is always in the tree and only switched, for the reason `ColorVisionFilter` gives.
+- **The snapshot is `toImageSync`**, so the widget tests can run it under the fake clock. Below no curtain, which is every widget test of a screen, `lift` is not called and the router replaces the screen the old way.
+- **Less motion means no curtain**: the page is swapped in one frame. The wink is skipped too.
+
+Check a change to it in a browser: the tests draw on the CPU and say nothing about how the blur looks or whether it holds 60 frames a second.
 
 ### What a cold start downloads
 

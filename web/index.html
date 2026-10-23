@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
@@ -101,11 +101,13 @@
     */
     :root {
       --foreground: #0A0A0A;
+      --muted: #6B6250;
       --primary: #FFDC58;
       --primary-foreground: #0A0A0A;
       --page: #FFF4E0;
-      --border: rgba(10, 10, 10, 0.15);
-      --error: #E11D48;
+      --card: #FFFFFF;
+      --border: #E0D6C2;
+      --error-surface: #FFD4D9;
     }
 
     /*
@@ -117,41 +119,68 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --foreground: #EEEFE9;
-        --primary: #FFDC58;
-        --primary-foreground: #0A0A0A;
+        --muted: #A8AAB8;
         --page: #232332;
-        --border: rgba(238, 239, 233, 0.2);
-        --error: #FF7A8F;
+        --card: #2E2F42;
+        --border: #43445C;
+        --error-surface: #3E1C24;
       }
     }
 
     :root[data-theme="dark"] {
       --foreground: #EEEFE9;
-      --primary: #FFDC58;
-      --primary-foreground: #0A0A0A;
+      --muted: #A8AAB8;
       --page: #232332;
-      --border: rgba(238, 239, 233, 0.2);
-      --error: #FF7A8F;
+      --card: #2E2F42;
+      --border: #43445C;
+      --error-surface: #3E1C24;
+    }
+
+    /*
+      The files the engine downloads too, so the splash and the initialization
+      screen set their words in one face. The loading screen uses only Fredoka;
+      a browser fetches a face when text first uses it, so Lexend is fetched
+      only for the error card. Blocked rather than swapped: a title that
+      changes face halfway through the wait reads as a fault.
+    */
+    @font-face {
+      font-family: Fredoka;
+      src: url("assets/assets/fonts/Fredoka-Variable.ttf") format("truetype");
+      font-weight: 300 700;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: Lexend;
+      src: url("assets/assets/fonts/Lexend-Variable.ttf") format("truetype");
+      font-weight: 100 900;
+      font-display: swap;
     }
 
     body {
       margin: 0;
       background: var(--page);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--foreground);
     }
 
-    #loading-container,
-    #error-container {
+    /*
+      InitializationScreenView's column, measure for measure, and MUST be
+      changed alongside it: centred in the window, 48 around it and 24 below
+      the `sm` breakpoint.
+    */
+    .scene {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      gap: 20px;
-      padding: 24px;
+      padding: 48px;
       box-sizing: border-box;
       text-align: center;
+    }
+
+    @media (max-width: 639.98px) {
+      .scene { padding: 24px; }
     }
 
     #error-container {
@@ -160,8 +189,11 @@
 
     /* The app's mark at the size the initialization screen hands over to. The
        SVG restates AppLogo's drawing and its tile, which is Flutter's
-       ContinuousRectangleBorder path, and MUST be changed alongside it. */
+       ContinuousRectangleBorder path, and MUST be changed alongside it.
+       Still on purpose: the initialization screen winks once, when everything
+       is in, and a splash that blinks on a timer would say it first. */
     .mark {
+      flex: none;
       width: 118px;
       height: 118px;
     }
@@ -169,52 +201,83 @@
     .mark .tile { fill: var(--primary); }
     .mark .face { stroke: var(--primary-foreground); }
 
-    .mark .eyes {
-      transform-box: fill-box;
-      transform-origin: center;
-      animation: blink 4s infinite;
+    /* AppTextStyles.display. */
+    .title {
+      margin: 34px 0 40px;
+      font: 600 58px/1 Fredoka, sans-serif;
+      letter-spacing: -0.58px;
     }
 
-    @keyframes blink {
-      0%, 92%, 100% { transform: scaleY(1); }
-      96% { transform: scaleY(0.15); }
+    /* A box the script below gives a squircle of its own size. */
+    .squircle {
+      position: relative;
+      isolation: isolate;
     }
 
-    #loading-message,
-    #error-message {
+    .squircle > .shape {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* LoadingOverlay. */
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      max-width: 420px;
+      box-sizing: border-box;
+      padding: 24px 28px;
+    }
+
+    .card > .shape .surface {
+      fill: var(--card);
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+
+    .message {
+      min-width: 0;
       margin: 0;
-      font-size: 17px;
-      font-weight: 600;
-    }
-
-    #error-message {
-      color: var(--error);
+      font: 600 20px/1.2 Fredoka, sans-serif;
+      text-align: start;
     }
 
     /*
-      One ring, two states. Without `aria-valuenow` it is a quarter arc that
-      turns. With one, the script below sets the arc's length and the ring
-      stands still and fills. 94.25 is the circumference at r = 15.
+      ProgressRing, drawn the same way: a track in the border colour and an arc
+      from twelve o'clock in the muted ink, 5 wide in a 40 box. 109.96 is the
+      circumference at r = 17.5. Without `aria-valuenow` it is forui's spinner
+      instead, Lucide's loader-circle at 29 turning once a second.
     */
     .ring {
-      width: 34px;
-      height: 34px;
-    }
-
-    .ring circle {
+      flex: none;
+      width: 40px;
+      height: 40px;
       fill: none;
-      stroke-width: 4;
     }
 
+    .ring circle { stroke-width: 5; }
     .ring .track { stroke: var(--border); }
 
     .ring .value {
-      stroke: var(--primary);
-      stroke-dasharray: 23.56 94.25;
-      /* An arc is drawn from three o'clock. This starts it at the top. */
+      stroke: var(--muted);
+      stroke-dasharray: 0 109.96;
       transform: rotate(-90deg);
       transform-origin: center;
     }
+
+    .ring .spinner {
+      display: none;
+      stroke: var(--muted);
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .ring:not([aria-valuenow]) circle { display: none; }
+    .ring:not([aria-valuenow]) .spinner { display: inline; }
 
     .ring:not([aria-valuenow]) {
       animation: spin 1s linear infinite;
@@ -232,22 +295,59 @@
     @media (prefers-reduced-motion: reduce) {
       .ring:not([aria-valuenow]) { animation: none; opacity: 0.5; }
       .ring[aria-valuenow] .value { transition: none; }
-      .mark .eyes { animation: none; }
     }
 
+    /* The initialization screen's notice: a tinted card and one button. */
+    .notice-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 520px;
+    }
+
+    .notice {
+      box-sizing: border-box;
+      padding: 22px 26px;
+    }
+
+    .notice > .shape .surface { fill: var(--error-surface); }
+
+    .notice h2 {
+      margin: 0;
+      font: 600 20px/1.2 Fredoka, sans-serif;
+    }
+
+    .notice p {
+      margin: 8px 0 0;
+      font: 15px/1.6 Lexend, sans-serif;
+      color: var(--muted);
+    }
+
+    /* AppButton's primary tone, at rest. The edge and the collar are the
+       accent darkened by 0.28 and 0.18 in lightness, as AppButton does. */
     #retry-button {
-      padding: 14px 30px;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
+      margin-top: 20px;
+      padding: 16px 38px;
       border: 0;
-      border-radius: 21px;
-      background: var(--primary);
+      background: none;
+      cursor: pointer;
+      font: 600 19px Fredoka, sans-serif;
       color: var(--primary-foreground);
     }
 
-    #retry-button:hover {
-      opacity: 0.85;
+    #retry-button > .shape { filter: drop-shadow(0 4px 0 #FBC700); }
+
+    #retry-button > .shape .surface {
+      fill: var(--primary);
+      stroke: #C89E00;
+      stroke-width: 3;
+    }
+
+    #retry-button > .shape .gloss { fill: url(#gloss); }
+
+    #retry-button:focus-visible {
+      outline: 2px solid var(--foreground);
+      outline-offset: 6px;
     }
   </style>
 
@@ -255,33 +355,137 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div id="loading-container">
+  <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </svg>
+  <div id="loading-container" class="scene">
     <svg class="mark" viewBox="0 0 256 256" aria-hidden="true">
       <path class="tile" d="M0 128C0 0 0 0 128 0C256 0 256 0 256 128C256 256 256 256 128 256C0 256 0 256 0 128Z"/>
       <g class="face" fill="none" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"
          transform="translate(128 128) scale(0.66) translate(-128 -128)">
-        <path class="eyes" d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
+        <path d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
         <path d="M72 153Q128 205 184 153"/>
       </g>
     </svg>
-    <svg id="loading-ring" class="ring" viewBox="0 0 34 34" role="progressbar" aria-label="Loading">
-      <circle class="track" cx="17" cy="17" r="15"/>
-      <circle class="value" cx="17" cy="17" r="15"/>
-    </svg>
-    <p id="loading-message">Loading…</p>
+    <p class="title">I Can Code</p>
+    <div class="card squircle" data-radius="39">
+      <svg id="loading-ring" class="ring" viewBox="0 0 40 40" role="progressbar" aria-label="Laden">
+        <circle class="track" cx="20" cy="20" r="17.5"/>
+        <circle class="value" cx="20" cy="20" r="17.5"/>
+        <path class="spinner" transform="translate(5.5 5.5) scale(1.2083)" d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      <p id="loading-message" class="message" data-text="loading">Laden…</p>
+    </div>
   </div>
-  <div id="error-container">
+  <div id="error-container" class="scene">
     <svg class="mark" viewBox="0 0 256 256" aria-hidden="true">
       <path class="tile" d="M0 128C0 0 0 0 128 0C256 0 256 0 256 128C256 256 256 256 128 256C0 256 0 256 0 128Z"/>
       <g class="face" fill="none" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"
          transform="translate(128 128) scale(0.66) translate(-128 -128)">
-        <path class="eyes" d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
+        <path d="M44 109L76 77L108 109M148 109L180 77L212 109"/>
         <path d="M72 153Q128 205 184 153"/>
       </g>
     </svg>
-    <p id="error-message">I Can Code could not be loaded.</p>
-    <button id="retry-button" onclick="window.location.reload()">Try again</button>
+    <p class="title">I Can Code</p>
+    <div class="notice-group">
+      <div class="notice squircle" data-radius="39">
+        <h2 data-text="failed">De app kon niet starten</h2>
+        <p data-text="failedBody">Controleer je internetverbinding en probeer het opnieuw.</p>
+      </div>
+      <button id="retry-button" class="squircle" data-radius="31.5" data-parts="surface gloss"
+              onclick="window.location.reload()"><span data-text="retry">Opnieuw proberen</span></button>
+    </div>
   </div>
+  <script>
+    /*
+      The splash's words, in the language the app is about to open in: the one
+      picked in the cog, else the browser's first that the app speaks, else
+      Dutch, which is how LocaleController resolves it. "locale.language" MUST
+      be changed alongside LocaleControllerBase.storageKey, and every word but
+      `failedBody`, which only the splash says, alongside the ARB files.
+    */
+    (function () {
+      const words = {
+        nl: {
+          loading: 'Laden…',
+          failed: 'De app kon niet starten',
+          failedBody: 'Controleer je internetverbinding en probeer het opnieuw.',
+          retry: 'Opnieuw proberen',
+        },
+        en: {
+          loading: 'Loading…',
+          failed: 'Could not start the app',
+          failedBody: 'Check your internet connection and try again.',
+          retry: 'Try again',
+        },
+      };
+
+      let language = null;
+      try {
+        const stored = JSON.parse(localStorage.getItem('locale.language') || 'null');
+        if (words[stored]) language = stored;
+      } catch (e) {
+        /* Private mode, or storage disabled. The browser decides. */
+      }
+      for (const tag of language ? [] : navigator.languages || [navigator.language]) {
+        const code = String(tag).split('-')[0].toLowerCase();
+        if (words[code]) {
+          language = code;
+          break;
+        }
+      }
+      language = language || 'nl';
+
+      document.documentElement.lang = language;
+      for (const element of document.querySelectorAll('[data-text]')) {
+        element.textContent = words[language][element.dataset.text];
+      }
+      document.getElementById('loading-ring').setAttribute('aria-label', words[language].loading.replace('…', ''));
+    })();
+
+    /*
+      Gives every `.squircle` box the shape squircle() draws in the app, at the
+      box's own size: ContinuousRectangleBorder's path, a curve into each corner
+      with both control points on the corner itself and the radius clamped to
+      the shortest side. Redrawn on every resize, because the text inside
+      decides the width.
+    */
+    (function () {
+      const svg = 'http://www.w3.org/2000/svg';
+
+      function outline(w, h, r) {
+        r = Math.min(r, w, h);
+        return 'M0 ' + r + 'C0 0 0 0 ' + r + ' 0' +
+          'L' + (w - r) + ' 0C' + w + ' 0 ' + w + ' 0 ' + w + ' ' + r +
+          'L' + w + ' ' + (h - r) + 'C' + w + ' ' + h + ' ' + w + ' ' + h + ' ' + (w - r) + ' ' + h +
+          'L' + r + ' ' + h + 'C0 ' + h + ' 0 ' + h + ' 0 ' + (h - r) + 'Z';
+      }
+
+      const observer = new ResizeObserver(function (entries) {
+        for (const entry of entries) {
+          const size = entry.borderBoxSize[0];
+          const d = outline(size.inlineSize, size.blockSize, Number(entry.target.dataset.radius));
+          for (const path of entry.target.querySelectorAll(':scope > .shape > path')) path.setAttribute('d', d);
+        }
+      });
+
+      for (const box of document.querySelectorAll('.squircle')) {
+        const shape = document.createElementNS(svg, 'svg');
+        shape.setAttribute('class', 'shape');
+        shape.setAttribute('aria-hidden', 'true');
+        for (const part of (box.dataset.parts || 'surface').split(' ')) {
+          const path = document.createElementNS(svg, 'path');
+          path.setAttribute('class', part);
+          shape.appendChild(path);
+        }
+        box.prepend(shape);
+        observer.observe(box, { box: 'border-box' });
+      }
+    })();
+  </script>
   <script>
     /*
       Download progress, for the ring above and for the initialization screen.
@@ -349,7 +553,7 @@
         const ring = document.getElementById('loading-ring');
         if (ring) {
           ring.setAttribute('aria-valuenow', Math.round(value * 100));
-          ring.querySelector('.value').style.strokeDasharray = (value * 94.25) + ' 94.25';
+          ring.querySelector('.value').style.strokeDasharray = (value * 109.96) + ' 109.96';
         }
         window.dispatchEvent(new CustomEvent('icc-startup-progress'));
       }
@@ -440,7 +644,6 @@
 
     // Adapted from https://docs.flutter.dev/platform-integration/web/initialization
     const loadingContainer = document.getElementById('loading-container');
-    const loadingMessage = document.getElementById('loading-message');
     const errorContainer = document.getElementById('error-container');
 
     function showError() {
@@ -452,13 +655,17 @@
       _flutter.loader.load({
         onEntrypointLoaded: async function (engineInitializer) {
           try {
-            loadingMessage.textContent = 'Starting the engine…';
             const appRunner = await engineInitializer.initializeEngine();
-
-            loadingMessage.textContent = 'Starting the app…';
             await appRunner.runApp();
 
-            loadingContainer.remove();
+            // Left standing, under a Flutter view that stays transparent until
+            // its first frame is on screen: measured, that is ~70 ms after this
+            // line on a warm start and ~430 ms on a cold one, and removing the
+            // splash here showed the bare page for that long. The app removes
+            // it once its curtain has opened (removeSplash), and with reduced
+            // motion leaves it, still and unseen, under the app for good.
+            loadingContainer.setAttribute('aria-hidden', 'true');
+            loadingContainer.inert = true;
           } catch (e) {
             showError();
           }

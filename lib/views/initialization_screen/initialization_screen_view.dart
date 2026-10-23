@@ -6,8 +6,8 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
-import 'package:i_can_code/views/components/app_logo.dart';
 import 'package:i_can_code/views/components/loading_overlay.dart';
+import 'package:i_can_code/views/initialization_screen/components/winking_app_logo.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_controller.dart';
 import 'package:i_can_code/views/initialization_screen/initialization_screen_view_model.dart';
 
@@ -28,7 +28,7 @@ class InitializationScreenView extends ScreenViewBase<InitializationScreenViewMo
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const AppLogo(size: 118),
+                WinkingAppLogo(size: 118, wink: viewModel.loaded, onWinked: controller.proceed),
                 const SizedBox(height: 34),
                 Text(context.localizations.app_title, style: context.appTheme.text.display, textAlign: TextAlign.center),
                 const SizedBox(height: 40),
