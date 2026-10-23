@@ -668,13 +668,14 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     );
     if ((target - now).abs() < 1) return;
 
-    unawaited(
-      position.animateTo(
-        target,
-        duration: context.motion(const Duration(milliseconds: 350)),
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    final duration = context.motion(const Duration(milliseconds: 350));
+
+    // `animateTo` asserts a duration above zero, which reduced motion is not.
+    if (duration == Duration.zero) {
+      position.jumpTo(target);
+    } else {
+      unawaited(position.animateTo(target, duration: duration, curve: Curves.easeOutCubic));
+    }
   }
 
   Future<void> _openSnapshot(BuildContext context, LessonSection section, String code) async {

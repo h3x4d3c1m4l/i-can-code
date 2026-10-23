@@ -30,6 +30,7 @@ import 'package:i_can_code/views/components/lesson/optional_step_banner.dart';
 import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
 import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
 import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
@@ -1592,6 +1593,74 @@ void main() {
       expect(cannons.single.options!.angle, 90);
 
       await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    group('from a target', () {
+      /// A 700 × 400 layer, the host's own width, with an 80 × 40 button at
+      /// (100, 300) when [withButton].
+      Widget layer(ConfettiBurst burst, {bool withButton = true, bool lessMotion = false}) => _host(
+        SizedBox(
+          height: 400,
+          child: TourTargetScope(
+            registry: TourTargetRegistry(),
+            child: Stack(
+              children: [
+                if (withButton)
+                  const Positioned(
+                    left: 100,
+                    top: 300,
+                    width: 80,
+                    height: 40,
+                    child: TourTarget(id: 'run', child: SizedBox.expand()),
+                  ),
+                Positioned.fill(
+                  // Inside the host, whose own MediaQuery would replace this one.
+                  child: Builder(
+                    builder: (context) => MediaQuery(
+                      data: MediaQuery.of(context).copyWith(disableAnimations: lessMotion),
+                      child: burst,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      testWidgets('comes out of the middle of it', (tester) async {
+        await tester.pumpWidget(layer(const ConfettiBurst.small(from: 'run')));
+        // The first frame lays the layer out, the second aims from it.
+        await tester.pump();
+        await tester.pump();
+
+        final cannon = tester.widget<Confetti>(find.byType(Confetti));
+        expect(cannon.options!.x, closeTo(140 / 700, 1e-9));
+        expect(cannon.options!.y, closeTo(320 / 400, 1e-9));
+        expect(cannon.options!.angle, 90);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+
+      testWidgets('comes from the bottom centre when it is not there', (tester) async {
+        await tester.pumpWidget(layer(const ConfettiBurst.small(from: 'run'), withButton: false));
+        await tester.pump();
+        await tester.pump();
+
+        final cannon = tester.widget<Confetti>(find.byType(Confetti));
+        expect(cannon.options!.x, 0.5);
+        expect(cannon.options!.y, 0.82);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+
+      testWidgets('draws nothing for a reader who asked for less motion', (tester) async {
+        await tester.pumpWidget(layer(const ConfettiBurst.small(from: 'run'), lessMotion: true));
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byType(Confetti), findsNothing);
+      });
     });
   });
 

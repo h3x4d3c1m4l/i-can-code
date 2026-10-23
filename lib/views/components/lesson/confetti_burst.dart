@@ -2,9 +2,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
 
 /// Confetti fired once when this widget appears: two cannons in the bottom
-/// corners, or one small puff from the bottom centre for a passed exercise.
+/// corners, or one small puff for a step done right, out of [from] when that
+/// is on screen and from the bottom centre otherwise.
 ///
 /// A widget rather than `Confetti.launch`, which is the package's headline API:
 /// that one inserts an [OverlayEntry] into the enclosing [Navigator], so the
@@ -25,9 +27,13 @@ class ConfettiBurst extends StatefulWidget {
   /// finishing the lesson gets.
   final bool small;
 
-  const ConfettiBurst({super.key}) : small = false;
+  /// The [TourTarget] a small burst comes out of: the Run button whose run
+  /// earned it.
+  final Object? from;
 
-  const ConfettiBurst.small({super.key}) : small = true;
+  const ConfettiBurst({super.key}) : small = false, from = null;
+
+  const ConfettiBurst.small({this.from, super.key}) : small = true;
 
   @override
   State<ConfettiBurst> createState() => _ConfettiBurstState();
@@ -41,6 +47,39 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
   final ConfettiController _left = ConfettiController();
   final ConfettiController _right = ConfettiController();
 
+  /// How far down the box a cannon at the bottom stands, as a fraction.
+  static const double _low = 0.82;
+
+  /// Where the small burst comes out of, as fractions of this widget's box.
+  /// Null while [ConfettiBurst.from] waits to be measured against that box,
+  /// which exists only once the first frame has laid it out.
+  Offset? _origin;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.from == null) {
+      _origin = const Offset(0.5, _low);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _origin = _measure() ?? const Offset(0.5, _low));
+      });
+    }
+  }
+
+  /// The centre of [ConfettiBurst.from] in this box, or null when it is not on
+  /// screen: a burst from past the edge would only be seen falling back in.
+  Offset? _measure() {
+    final target = TourTargetScope.maybeOf(context)?.rectOf(widget.from!);
+    final box = context.findRenderObject();
+    if (target == null || box is! RenderBox || !box.hasSize || box.size.isEmpty) return null;
+
+    final centre = box.globalToLocal(target.center);
+    if (!(Offset.zero & box.size).contains(centre)) return null;
+
+    return Offset(centre.dx / box.size.width, centre.dy / box.size.height);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (MediaQuery.disableAnimationsOf(context)) return const SizedBox.shrink();
@@ -48,9 +87,14 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
     final colors = _palette(context);
 
     if (widget.small) {
+      // The whole box while it waits, which is what [_measure] measures against.
+      final origin = _origin;
+      if (origin == null) return const SizedBox.expand();
+
       return _buildCannon(
         controller: _left,
-        x: 0.5,
+        x: origin.dx,
+        y: origin.dy,
         angle: 90,
         colors: colors,
         particleCount: 36,
@@ -74,6 +118,7 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
     required ConfettiController controller,
     required double x,
     required double angle,
+    double y = _low,
     required List<Color> colors,
     int particleCount = 60,
     double spread = 62,
@@ -92,7 +137,7 @@ class _ConfettiBurstState extends State<ConfettiBurst> {
         startVelocity: startVelocity,
         scalar: 1.1,
         x: x,
-        y: 0.82,
+        y: y,
       ),
     );
   }

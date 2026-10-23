@@ -24,6 +24,7 @@ import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/components/tour_target.dart';
 import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
 import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/line_ordering_board.dart';
@@ -140,7 +141,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
               builder: (context) => Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (viewModel.passBursts > 0) ConfettiBurst.small(key: ValueKey(('pass', viewModel.passBursts))),
+                  if (viewModel.passBursts > 0) ConfettiBurst.small(from: LessonTourPart.run, key: ValueKey(('pass', viewModel.passBursts))),
                   if (viewModel.completed && viewModel.earnedCelebration) const ConfettiBurst(),
                   // The last few rather than only the newest, so a press while
                   // the previous burst is in the air adds to it instead of
@@ -457,16 +458,19 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             AppButtonRow(
               children: [
                 _buildBack(context, lesson),
-                RunButton(
-                  running: viewModel.running,
-                  runLabel: context.localizations.lessonScreen_predictCheck,
-                  stopLabel: context.localizations.lessonScreen_stop,
-                  // Predicting *is* the exercise, so there is nothing to ask for
-                  // until something has been predicted.
-                  onRun: viewModel.typedPrediction.trim().isEmpty || attempt != null
-                      ? null
-                      : () => controller.predict(section, prediction.text),
-                  onStop: controller.stop,
+                TourTarget(
+                  id: LessonTourPart.run,
+                  child: RunButton(
+                    running: viewModel.running,
+                    runLabel: context.localizations.lessonScreen_predictCheck,
+                    stopLabel: context.localizations.lessonScreen_stop,
+                    // Predicting *is* the exercise, so there is nothing to ask for
+                    // until something has been predicted.
+                    onRun: viewModel.typedPrediction.trim().isEmpty || attempt != null
+                        ? null
+                        : () => controller.predict(section, prediction.text),
+                    onStop: controller.stop,
+                  ),
                 ),
                 if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
               ],
@@ -525,15 +529,18 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
             AppButtonRow(
               children: [
                 _buildBack(context, lesson),
-                RunButton(
-                  running: viewModel.running,
-                  runLabel: context.localizations.lessonScreen_run,
-                  stopLabel: context.localizations.lessonScreen_stop,
-                  // An empty program runs cleanly and prints nothing, which a
-                  // validator would report as a mistake the student has not
-                  // made yet.
-                  onRun: viewModel.arranged.isEmpty ? null : () => controller.run(section, assembled),
-                  onStop: controller.stop,
+                TourTarget(
+                  id: LessonTourPart.run,
+                  child: RunButton(
+                    running: viewModel.running,
+                    runLabel: context.localizations.lessonScreen_run,
+                    stopLabel: context.localizations.lessonScreen_stop,
+                    // An empty program runs cleanly and prints nothing, which a
+                    // validator would report as a mistake the student has not
+                    // made yet.
+                    onRun: viewModel.arranged.isEmpty ? null : () => controller.run(section, assembled),
+                    onStop: controller.stop,
+                  ),
                 ),
                 if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
               ],
@@ -643,12 +650,15 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       AppButtonRow(
         children: [
           _buildBack(context, lesson),
-          RunButton(
-            running: viewModel.running,
-            runLabel: context.localizations.lessonScreen_run,
-            stopLabel: context.localizations.lessonScreen_stop,
-            onRun: () => controller.run(section, editor.text),
-            onStop: controller.stop,
+          TourTarget(
+            id: LessonTourPart.run,
+            child: RunButton(
+              running: viewModel.running,
+              runLabel: context.localizations.lessonScreen_run,
+              stopLabel: context.localizations.lessonScreen_stop,
+              onRun: () => controller.run(section, editor.text),
+              onStop: controller.stop,
+            ),
           ),
           if (viewModel.passed.contains(viewModel.step)) _buildNext(context, lesson),
         ],

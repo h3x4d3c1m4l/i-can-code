@@ -4,4 +4,8 @@ enum LessonTourPart {
 
   /// The whole `OptionalStepBanner` row: badge, question mark and Skip.
   deepDive,
+
+  /// The step's Run button. No introduction points at it yet; a passed run's
+  /// confetti comes out of it (`ConfettiBurst.from`).
+  run,
 }

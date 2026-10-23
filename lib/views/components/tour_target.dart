@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-/// Where an introduction finds the things it points at, by what they are.
+/// Where an introduction finds the things it points at, by what they are. A
+/// `ConfettiBurst` finds where it comes out of the same way.
 ///
 /// Not a [GlobalKey] per target. A key may be mounted only once, and the bar's
 /// trail is swapped by a `FadeThrough` that keeps the outgoing copy mounted
