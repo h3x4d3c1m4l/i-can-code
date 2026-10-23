@@ -7,6 +7,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -116,7 +117,7 @@ void main() {
                 'nl': const Lesson(
                   id: 'window',
                   title: 'Een venster',
-                  emoji: '🪟',
+                  icon: CourseIcon.window,
                   layout: LessonLayout.project,
                   runtime: LessonRuntime.tkinter,
                   sections: _windowSections,
@@ -129,7 +130,7 @@ void main() {
                 'nl': const Lesson(
                   id: 'dice',
                   title: 'Dobbelsteen',
-                  emoji: '🎲',
+                  icon: CourseIcon.dice,
                   layout: LessonLayout.project,
                   runtime: LessonRuntime.microbit,
                   sections: _sections,

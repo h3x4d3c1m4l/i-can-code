@@ -720,11 +720,11 @@
   },
   "catalogScreen_copyLink": "Copy link",
   "@catalogScreen_copyLink": {
-    "description": "An item in the menu a right click opens on a lesson card or a group heading in the catalog. Puts the address on the clipboard that opens the catalog at that place."
+    "description": "An item in the menu a right click opens on a lesson tile or a group heading in the catalog. Puts the address on the clipboard that opens the catalog at that place."
   },
   "catalogScreen_restartLesson": "Start lesson over",
   "@catalogScreen_restartLesson": {
-    "description": "The second item in the menu a right click opens on a lesson card. Greyed out when the lesson has no ticks and no code yet."
+    "description": "The second item in the menu a right click opens on a lesson tile. Greyed out when the lesson has no ticks and no code yet."
   },
   "catalogScreen_restartTitle": "Start \u201c{lesson}\u201d over?",
   "@catalogScreen_restartTitle": {

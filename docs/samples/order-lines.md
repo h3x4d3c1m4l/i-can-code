@@ -5,7 +5,7 @@ arrange.
 
 ```metadata
 id: sample-order-lines
-emoji: "🔀"
+icon: list
 ```
 
 ## Build the countdown

@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/lessons/subject_contents.dart';
 import 'package:i_can_code/services/vm/vm_image.dart';
@@ -354,14 +355,14 @@ String subjectLabel(String subject) => switch (subject) {
   _ => subject.isEmpty ? subject : subject[0].toUpperCase() + subject.substring(1),
 };
 
-/// The emoji on a subject's card, or null for one this table does not name.
+/// The icon on a subject's card, or null for one this table does not name.
 ///
 /// A subject's contents files list its lessons and say nothing about the
 /// subject, so unlike a lesson it has no file to carry its own. A new subject
 /// MAY be added without touching this — the card falls back to the initial
 /// [subjectLabel] gives it.
-String? subjectEmoji(String subject) => switch (subject) {
-  'python' => '🐍',
+CourseIcon? subjectIcon(String subject) => switch (subject) {
+  'python' => CourseIcon.snake,
   _ => null,
 };
 

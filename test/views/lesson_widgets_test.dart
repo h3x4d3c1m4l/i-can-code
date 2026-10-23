@@ -10,6 +10,7 @@ import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
@@ -18,8 +19,8 @@ import 'package:i_can_code/theme/squircle_input_border.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
-import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/duotone_icon.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
@@ -38,6 +39,7 @@ import 'package:i_can_code/views/lesson_screen/components/prediction_field.dart'
 import 'package:i_can_code/views/lesson_screen/components/prediction_verdict.dart';
 import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
+import 'package:i_can_code/views/subjects_screen/components/subject_card.dart';
 import 'package:material_ui/material_ui.dart' show InputBorder, InputDecorator;
 import 'package:re_editor/re_editor.dart';
 
@@ -1265,44 +1267,48 @@ void main() {
     });
   });
 
-  group('CatalogCard', () {
-    testWidgets('an emoji fills the tile in place of the label', (tester) async {
+  group('SubjectCard', () {
+    testWidgets('an icon fills the tile in place of the label', (tester) async {
       await tester.pumpWidget(
-        _host(
-          const CatalogCard(label: '2', emoji: '\u{2328}\u{FE0F}', title: 'Invoer en uitvoer', meta: '0 / 3'),
-        ),
+        _host(const SubjectCard(label: 'P', icon: CourseIcon.snake, title: 'Python', meta: '0 / 3')),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('\u{2328}\u{FE0F}'), findsOneWidget);
-      expect(find.text('2'), findsNothing);
+      expect(tester.widget<DuotoneIcon>(find.byType(DuotoneIcon)).icon, CourseIcon.snake);
+      expect(find.text('P'), findsNothing);
     });
 
-    testWidgets('without one the tile keeps its number', (tester) async {
+    testWidgets('without one the tile keeps its initial', (tester) async {
       await tester.pumpWidget(
-        _host(const CatalogCard(label: '2', title: 'Invoer en uitvoer', meta: '0 / 3')),
+        _host(const SubjectCard(label: 'P', title: 'Python', meta: '0 / 3')),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('2'), findsOneWidget);
+      expect(find.text('P'), findsOneWidget);
+      expect(find.byType(DuotoneIcon), findsNothing);
     });
 
-    testWidgets('the tile label is legible on its own fill', (tester) async {
+    testWidgets('the tile is a window onto the page, never the accent', (tester) async {
       await tester.pumpWidget(
-        _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', onTap: () {})),
+        _host(SubjectCard(label: 'P', title: 'Python', meta: '0 / 3', onTap: () {})),
       );
       await tester.pumpAndSettle();
 
-      // The page's `foreground` is near-black, and so is the `primary` the tile
-      // is filled with.
+      // An icon's outline is the accent itself in a dark scheme, so the tile
+      // it stands on cannot be.
       final colors = buildAppTheme().colors;
-      expect(tester.widget<Text>(find.text('1')).style?.color, colors.primaryForeground);
-      expect(tester.widget<Text>(find.text('1')).style?.color, isNot(colors.primary));
+      final tile =
+          tester.widget<DecoratedBox>(
+                find.ancestor(of: find.text('P'), matching: find.byType(DecoratedBox)).first,
+              ).decoration
+              as ShapeDecoration;
+      expect(tile.color, colors.background);
+      expect(tester.widget<Text>(find.text('P')).style?.color, colors.foreground);
     });
 
     testWidgets('a finished row is marked with a filled badge, not a bare tick', (tester) async {
       await tester.pumpWidget(
-        _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', finished: true, onTap: () {})),
+        _host(SubjectCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', finished: true, onTap: () {})),
       );
       await tester.pumpAndSettle();
 
@@ -1349,7 +1355,7 @@ void main() {
 
     testWidgets('an unavailable tile keeps the page colour on its grey fill', (tester) async {
       await tester.pumpWidget(
-        _host(const CatalogCard(label: '2', title: 'Condities', meta: 'binnenkort', onTap: null)),
+        _host(const SubjectCard(label: '2', title: 'Condities', meta: 'binnenkort', onTap: null)),
       );
       await tester.pumpAndSettle();
 
@@ -1357,14 +1363,14 @@ void main() {
     });
 
     group('pressed', () {
-      final face = find.descendant(of: find.byType(CatalogCard), matching: find.byType(DecoratedBox)).first;
+      final face = find.descendant(of: find.byType(SubjectCard), matching: find.byType(DecoratedBox)).first;
 
       Future<TestGesture> press(WidgetTester tester) async {
         await tester.pumpWidget(
-          _host(CatalogCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', onTap: () {})),
+          _host(SubjectCard(label: '1', title: 'Invoer en uitvoer', meta: '0 / 3', onTap: () {})),
         );
         await tester.pumpAndSettle();
-        return tester.startGesture(tester.getCenter(find.byType(CatalogCard)));
+        return tester.startGesture(tester.getCenter(find.byType(SubjectCard)));
       }
 
       testWidgets('starts sinking into its collar at once, and comes back up', (tester) async {
@@ -1390,7 +1396,7 @@ void main() {
         // furthest from done.
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 50));
-        expect(find.byType(CatalogCard), isNot(paints..transform()));
+        expect(find.byType(SubjectCard), isNot(paints..transform()));
 
         await gesture.up();
         await tester.pumpAndSettle();
@@ -1407,7 +1413,7 @@ void main() {
       VoidCallback? onMoreConfetti,
     }) =>
         LessonCompletePanel(
-      emoji: '\u{2328}\u{FE0F}',
+      icon: CourseIcon.keyboard,
       title: 'Invoer en uitvoer',
       completedSteps: completedSteps,
       stepCount: 3,
@@ -1422,7 +1428,12 @@ void main() {
       leaveLabel: 'Terug naar Python',
     );
 
-    const loops = Lesson(id: 'for', title: 'Herhalen met for', emoji: '🔁', sections: []);
+    const loops = Lesson(id: 'for', title: 'Herhalen met for', icon: CourseIcon.loop, sections: []);
+
+    // The icon is a placeholder in the line's plain text, not a character.
+    Finder line(String text) => find.byWidgetPredicate(
+      (widget) => widget is RichText && widget.text.toPlainText(includePlaceholders: false) == text,
+    );
     const week = 'Week 2 · Herhalen';
 
     testWidgets('names the lesson that comes next, after the group it is in', (tester) async {
@@ -1431,17 +1442,18 @@ void main() {
       await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: loops, nextGroup: week)));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Hierna: Week 2 · Herhalen › 🔁 Herhalen met for', findRichText: true),
-        findsOneWidget,
-      );
+      final next = line('Hierna: Week 2 · Herhalen › Herhalen met for');
+      expect(next, findsOneWidget);
+      // In front of its name, the icon its catalog tile carries.
+      final icon = find.descendant(of: next, matching: find.byType(DuotoneIcon));
+      expect(tester.widget<DuotoneIcon>(icon).icon, CourseIcon.loop);
     });
 
     testWidgets('a next lesson in no group is named on its own', (tester) async {
       await tester.pumpWidget(_host(panel(onNextLesson: () {}, nextLesson: loops)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hierna: 🔁 Herhalen met for', findRichText: true), findsOneWidget);
+      expect(line('Hierna: Herhalen met for'), findsOneWidget);
     });
 
     testWidgets('says nothing about a next lesson on the last one', (tester) async {

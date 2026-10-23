@@ -4,7 +4,7 @@ What Python is, and why you would want to learn it.
 
 ```metadata
 id: introduction
-emoji: "🧠"
+icon: lightbulb
 ```
 
 ## What coding is

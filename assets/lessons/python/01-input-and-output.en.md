@@ -4,7 +4,7 @@ Enable user interaction through text input and output.
 
 ```metadata
 id: input-and-output
-emoji: "⌨️"
+icon: keyboard
 ```
 
 ## Introduction

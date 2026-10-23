@@ -4,7 +4,7 @@ Wat Python is en waarom je het zou willen leren.
 
 ```metadata
 id: introduction
-emoji: "🧠"
+icon: lightbulb
 ```
 
 ## Wat programmeren is

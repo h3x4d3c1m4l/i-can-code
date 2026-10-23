@@ -4,7 +4,7 @@ Zet je eerste programma op een micro:bit en laat hem hallo zeggen.
 
 ```metadata
 id: first-light
-emoji: "💡"
+icon: microbit
 layout: project
 runtime: microbit
 ```

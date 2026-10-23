@@ -179,7 +179,7 @@ Laat je programma iets op het scherm zetten.
 
 ```metadata
 id: uitvoer
-emoji: "⌨️"
+icon: output
 ```
 
 ## Introductie
@@ -217,7 +217,7 @@ if "print(" not in code:
 | --- | --- |
 | `#` heading | The lesson title, shown on its catalog card. |
 | The paragraph under it | The lesson subtitle. Optional. |
-| First `metadata` block | Document level. Carries `id` and `emoji`, both shared by every locale, and optionally `optional`, `runtime`, `layout`, `feature` and `requires`. |
+| First `metadata` block | Document level. Carries `id` and `icon`, both shared by every locale, and optionally `optional`, `runtime`, `layout`, `feature` and `requires`. |
 | `##` heading | Starts a **section** — one step, one progress dot. |
 | `metadata` under a `##` | That section's `type` and `id`. Both required. Plus its `emoji`. |
 | `<lang>-assignment` | What the editor opens with. May be empty. |
@@ -314,7 +314,7 @@ steps are checked and its ticks are recorded the normal way.
 
 ```metadata
 id: kommagetallen
-emoji: "🔬"
+icon: magnifier
 optional: true
 ```
 
@@ -330,7 +330,7 @@ shipped before students see it.
 
 ```metadata
 id: bestanden-lezen
-emoji: "📂"
+icon: table
 feature: bestanden
 ```
 
@@ -368,7 +368,7 @@ A lesson that builds on another may say so, by lesson id, as a YAML list:
 
 ```metadata
 id: mocking
-emoji: "🎭"
+icon: function
 optional: true
 requires: [je-code-testen]
 ```
@@ -422,11 +422,8 @@ author's mistake and a `FormatException`.
 ### `emoji:` — the step's own mark
 
 Every step carries one emoji, shown before its title and nowhere else. A
-breadcrumb and the progress bar stay text.
-
-The **lesson** carries one too, in its document-level `metadata`. That one fills
-the tile on the lesson's catalog card, in place of the order number. The two are
-independent: a lesson's emoji is not its first step's.
+breadcrumb and the progress bar stay text. A lesson has an [`icon`](#icon--the-lessons-own-picture)
+instead, and an `emoji` in its document-level `metadata` is a `FormatException`.
 
 ```metadata
 type: info
@@ -445,18 +442,77 @@ emoji: "💡"
 - An `emoji` that is empty, or that YAML reads as something other than text
   (`emoji: 3`), is a `FormatException`.
 
-Both fields are **optional in the parser** — a lesson missing one still opens,
-with a plain title or a numbered tile — but **required of every lesson that
-ships**, which is a rule the test holds rather than the format.
-
-A **subject**'s contents files say nothing about the subject itself, so its
-emoji is a case in `subjectEmoji()` in `lib/services/lessons/course.dart`. A subject the table
-does not name falls back to the initial on its card, so adding a subject
-directory does not require touching it.
+It is **optional in the parser** — a step missing one still opens, with a plain
+title — but **required of every step that ships**, which is a rule the test
+holds rather than the format.
 
 It renders in **Noto Color Emoji**, bundled under `assets/fonts/`. That is what
 makes a step look the same on every platform instead of borrowing Apple's emoji
 on a Mac and Google's on the web; see *Theming* in `CLAUDE.md`.
+
+### `icon:` — the lesson's own picture
+
+The lesson names one picture from the app's own set, in its document-level
+`metadata`. It fills the lesson's tile in the catalog, the tile on its end page,
+and stands in front of its title on a project page and in the "Hierna:" line of
+the lesson before it.
+
+```metadata
+id: herhalen-met-for
+icon: loop
+```
+
+| Icon | Drawn as |
+| --- | --- |
+| `bar-chart` | three bars on a baseline |
+| `branch` | a decision diamond with two ways out |
+| `click` | a pointer clicking a button |
+| `cube` | a box in three faces |
+| `dice` | a die showing five |
+| `form` | a form with two fields and a button |
+| `format` | braces around a placeholder |
+| `function` | a box with an arrow in and an arrow out |
+| `gear` | a cog |
+| `hierarchy` | one box over two that share its band |
+| `hourglass` | an hourglass running |
+| `index` | three boxes counted from 0 |
+| `keyboard` | a keyboard on its cable |
+| `label` | a tag |
+| `led-scanner` | a row of lights, one lit with a trail |
+| `lifebuoy` | a lifebuoy |
+| `lightbulb` | a lit bulb |
+| `list` | a card of bulleted rows |
+| `lock` | a padlock |
+| `loop` | two arrows chasing each other round |
+| `magnifier` | a magnifying glass over a decimal |
+| `microbit` | a micro:bit with a smile on its lights |
+| `mirror` | a hand mirror |
+| `operators` | plus, minus, times and divide |
+| `output` | a screen with a prompt |
+| `package` | a taped box |
+| `scale` | a balance |
+| `snake` | a snake |
+| `sparkles` | three sparkles |
+| `table` | a grid with a header row |
+| `text` | an A and an a |
+| `true-false` | a tick beside a cross |
+| `window` | a window with its title bar |
+
+- **Any icon may stand on more than one lesson.** Two lessons on lists can share
+  `list`.
+- **The same in every translation**, which `test/content/lessons_test.dart`
+  holds, as it holds the ids.
+- **A name the app does not have is a `FormatException`**, and so is an `icon`
+  on a step. The set belongs to the app: a picture a course needs and the set
+  lacks is a change to the app.
+- Like a step's emoji, it is **optional in the parser** — a lesson without one
+  still opens, with its order number on its tile — and **required of every
+  lesson that ships**.
+
+A **subject**'s contents files say nothing about the subject itself, so its
+icon is a case in `subjectIcon()` in `lib/services/lessons/course.dart`. A
+subject the table does not name falls back to the initial on its card, so adding
+a subject directory does not require touching it.
 
 ## `layout: project` — one program, built up over tasks
 
@@ -474,7 +530,7 @@ Schud de micro:bit en gooi een getal van 1 tot en met 6.
 
 ```metadata
 id: dobbelsteen
-emoji: "🎲"
+icon: dice
 layout: project
 runtime: microbit
 ```

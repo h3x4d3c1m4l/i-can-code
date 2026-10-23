@@ -15,9 +15,9 @@ import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/catalog_screen/catalog_screen.dart';
 import 'package:i_can_code/views/catalog_screen/components/anchor_target.dart';
 import 'package:i_can_code/views/catalog_screen/components/catalog_anchor_scope.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_tile.dart';
 import 'package:i_can_code/views/catalog_screen/components/sticky_group_heading.dart';
 import 'package:i_can_code/views/components/app_header.dart';
-import 'package:i_can_code/views/components/catalog_card.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -70,6 +70,12 @@ bool _lit(WidgetTester tester, String label) {
 
   return tester.widget<CustomPaint>(ring).foregroundPainter != null;
 }
+
+/// A point on [label]'s tile near its top. The title sits under a picture,
+/// below where a test window ends.
+Offset _onTile(WidgetTester tester, String label) =>
+    tester.getTopLeft(find.ancestor(of: find.text(label), matching: find.byType(CatalogTile)).first) +
+    const Offset(40, 40);
 
 /// Past the end of a ring. An animation is done only once its time is over,
 /// not as it runs out.
@@ -199,6 +205,12 @@ void main() {
     expect(tester.getTopLeft(_heading('WEEK 1')).dy, closeTo(_pinned, 0.5));
     expect(_surfaceOpacity(tester, 'WEEK 1'), 1, reason: 'stuck, it floats as a label of its own');
 
+    // Past the cache extent a heading is laid out but not placed, so where it
+    // reads on screen is stale. Bring week 2 into the window before reading it.
+    _scroll(tester).jumpTo(_scroll(tester).pixels + 500);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(_heading('WEEK 1')).dy, closeTo(_pinned, 0.5), reason: 'week 1 is still passing');
+
     final week2 = tester.getTopLeft(_heading('WEEK 2')).dy;
     _scroll(tester).jumpTo(_scroll(tester).pixels + week2 - _pinned + 100);
     await tester.pumpAndSettle();
@@ -231,19 +243,27 @@ void main() {
       expect(tester.hasRunningAnimations, isFalse, reason: 'it lights up for a moment, not for good');
     });
 
-    testWidgets('brings a lesson\'s card to just under its group\'s stuck heading, and lights only that card', (
+    testWidgets('brings a lesson\'s tile to just under its group\'s stuck heading, and lights only that tile', (
       tester,
     ) async {
-      await tester.pumpWidget(_catalog(lesson: 'lesson-2'));
+      // In the second row: a tile in the first comes to rest with its heading
+      // where the list put it, which is the tile's clearance below the pin.
+      await tester.pumpWidget(_catalog(lesson: 'lesson-3'));
       await _arrive(tester);
 
+      final tile = find.ancestor(of: find.text('lesson-3'), matching: find.byType(AnchorTarget)).first;
+      expect(
+        tester.getTopLeft(tile).dy,
+        greaterThan(tester.getTopLeft(find.ancestor(of: find.text('lesson-1'), matching: find.byType(AnchorTarget)).first).dy),
+        reason: 'the lesson is in a lower row than the first',
+      );
       expect(tester.getTopLeft(_heading('WEEK 1')).dy, closeTo(_pinned, 0.5), reason: 'the heading stuck on the way');
-      final gap = tester.getTopLeft(find.text('lesson-2')).dy - tester.getBottomLeft(_heading('WEEK 1')).dy;
-      expect(gap, greaterThan(0), reason: 'the card is clear of the heading, not behind it');
+      final gap = tester.getTopLeft(tile).dy - tester.getBottomLeft(_heading('WEEK 1')).dy;
+      expect(gap, greaterThan(0), reason: 'the tile is clear of the heading, not behind it');
       expect(gap, lessThan(80), reason: 'and right under it, not somewhere down the page');
 
-      expect(_lit(tester, 'lesson-2'), isTrue);
-      for (final label in ['WEEK 1', 'lesson-1', 'lesson-3']) {
+      expect(_lit(tester, 'lesson-3'), isTrue);
+      for (final label in ['WEEK 1', 'lesson-1', 'lesson-2']) {
         expect(_lit(tester, label), isFalse, reason: label);
       }
     });
@@ -334,7 +354,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Link kopiëren'), findsNothing);
 
-      await tester.tap(find.text('lesson-2'), buttons: kSecondaryButton);
+      await tester.tapAt(_onTile(tester, 'lesson-2'), buttons: kSecondaryButton);
       await tester.pumpAndSettle();
       final menu = tester.getSize(find.byType(FItem).first);
 
@@ -367,7 +387,7 @@ void main() {
       await tester.pumpWidget(_catalog());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('lesson-1'), buttons: kSecondaryButton);
+      await tester.tapAt(_onTile(tester, 'lesson-1'), buttons: kSecondaryButton);
       await tester.pumpAndSettle();
       expect(find.byType(CatalogScreen), findsOneWidget);
       expect(find.byType(FItem), findsNWidgets(2), reason: 'copying the link, and starting the lesson over');
@@ -386,7 +406,7 @@ void main() {
       await tester.pumpWidget(_catalog());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('lesson-2'), buttons: kSecondaryButton);
+      await tester.tapAt(_onTile(tester, 'lesson-2'), buttons: kSecondaryButton);
       await tester.pumpAndSettle();
       expect(tester.widget<FItem>(find.widgetWithText(FItem, 'Les opnieuw beginnen')).enabled, isFalse);
     });
@@ -404,7 +424,7 @@ void main() {
       await tester.pumpAndSettle();
 
       Future<void> askToRestart() async {
-        await tester.tap(find.text('lesson-1'), buttons: kSecondaryButton);
+        await tester.tapAt(_onTile(tester, 'lesson-1'), buttons: kSecondaryButton);
         await tester.pumpAndSettle();
         expect(tester.widget<FItem>(find.widgetWithText(FItem, 'Les opnieuw beginnen')).enabled, isTrue);
         await tester.tap(find.text('Les opnieuw beginnen'));
@@ -441,13 +461,13 @@ void main() {
       expect(find.text('Link kopiëren'), findsOneWidget);
     });
 
-    testWidgets('has a way in for a screen reader, on the card\'s own node', (tester) async {
+    testWidgets('has a way in for a screen reader, on the tile\'s own node', (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_catalog());
       await tester.pumpAndSettle();
 
       expect(
-        tester.getSemantics(find.byType(CatalogCard).first),
+        tester.getSemantics(find.byType(CatalogTile).first),
         isSemantics(
           isButton: true,
           customActions: [

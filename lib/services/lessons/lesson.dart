@@ -1,3 +1,4 @@
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:yaml/yaml.dart';
 
 /// What a section asks of the student.
@@ -340,12 +341,13 @@ class Lesson {
   /// when the lesson does not have one.
   final String? subtitle;
 
-  /// The lesson's own emoji, from the document-level `metadata`. It fills the
-  /// tile on its catalog card, in place of the order number.
+  /// The lesson's own picture, from the document-level `metadata`. It stands
+  /// for the lesson on its catalog tile, on its end page and wherever another
+  /// screen names it.
   ///
   /// Nullable for the same reason [LessonSection.emoji] is: a lesson missing one
-  /// still opens, and the card falls back to the number.
-  final String? emoji;
+  /// still opens, and its tile falls back to the number.
+  final CourseIcon? icon;
 
   /// A "Verdieping": a whole lesson that is worth reading and that nothing else
   /// depends on. The catalog lists these under a heading of their own instead of
@@ -383,7 +385,7 @@ class Lesson {
     required this.id,
     required this.title,
     this.subtitle,
-    this.emoji,
+    this.icon,
     this.optional = false,
     this.runtime = LessonRuntime.python,
     this.layout = LessonLayout.steps,
@@ -409,7 +411,7 @@ class Lesson {
     String? id;
     String? title;
     String? subtitle;
-    String? emoji;
+    CourseIcon? icon;
     var optional = false;
     var runtime = LessonRuntime.python;
     var layout = LessonLayout.steps;
@@ -643,7 +645,14 @@ class Lesson {
             if (meta is! YamlMap) throw const FormatException('A `metadata` block is not a YAML mapping.');
             if (sectionTitle == null) {
               id = meta['id'] as String? ?? id;
-              emoji = _readEmoji(meta, 'The lesson') ?? emoji;
+              // A lesson carried an emoji once. Left in, it would be read by
+              // nothing while its author waits for it to show.
+              if (meta.containsKey('emoji')) {
+                throw const FormatException(
+                  'The lesson declares an `emoji`. A lesson names an `icon` now; only its steps carry an emoji.',
+                );
+              }
+              icon = _readIcon(meta) ?? icon;
               final lessonOptional = meta['optional'];
               if (lessonOptional != null && lessonOptional is! bool) {
                 throw const FormatException('The lesson declares an `optional` that is not true or false.');
@@ -666,6 +675,11 @@ class Lesson {
               if (meta.containsKey('feature')) {
                 throw FormatException(
                   'Section "$sectionTitle" declares a `feature`. Only a lesson or the group it is listed under can.',
+                );
+              }
+              if (meta.containsKey('icon')) {
+                throw FormatException(
+                  'Section "$sectionTitle" declares an `icon`. Only a lesson has one; a step carries an `emoji`.',
                 );
               }
               // Every task shares one program, so a project runs on one runtime.
@@ -798,7 +812,7 @@ class Lesson {
       id: id,
       title: title,
       subtitle: subtitle,
-      emoji: emoji,
+      icon: icon,
       optional: optional,
       runtime: runtime,
       layout: layout,
@@ -977,14 +991,13 @@ class Lesson {
   static List<String> _codeLines(List<String> body) =>
       body.map((line) => line.trimRight()).where((line) => line.isNotEmpty).toList();
 
-  static String? _readEmoji(YamlMap meta, String owner) {
-    final emoji = meta['emoji'];
-    if (emoji == null) return null;
-    if (emoji is! String) throw FormatException('$owner declares an `emoji` that is not text.');
+  /// The [CourseIcon] [meta] names, or null where it names none.
+  static CourseIcon? _readIcon(YamlMap meta) {
+    final icon = meta['icon'];
+    if (icon == null) return null;
+    if (icon is! String) throw const FormatException('The lesson declares an `icon` that is not text.');
 
-    final trimmed = emoji.trim();
-    if (trimmed.isEmpty) throw FormatException('$owner declares an empty `emoji`.');
-    return trimmed;
+    return CourseIcon.parse(icon.trim());
   }
 
   /// The `layout` [meta] declares, or null where it declares none.

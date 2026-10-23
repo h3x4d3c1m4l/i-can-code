@@ -214,7 +214,7 @@ Set<String> _reachedFrom(Directory root, Iterable<String> starts) {
 void _holdsTheRules(Lesson lesson) {
   expect(lesson.id, isNotEmpty);
   expect(lesson.title, isNotEmpty);
-  expect(lesson.emoji, isNotNull, reason: 'every lesson that ships carries an `emoji` for its card');
+  expect(lesson.icon, isNotNull, reason: 'every lesson that ships carries an `icon` for its tile');
   // A lesson for a runtime this version cannot run in its layout parses to no
   // steps, and `Course.load` leaves it out of the catalog.
   if (lesson.runtime.readyIn(lesson.layout)) expect(lesson.sections, isNotEmpty);
@@ -290,11 +290,11 @@ void _holdsTheRules(Lesson lesson) {
   }
 }
 
-/// Holds one translation to another. Progress, starters and emoji are shared
-/// across languages; only what a reader reads may differ.
+/// Holds one translation to another. Progress, starters, icons and emoji are
+/// shared across languages; only what a reader reads may differ.
 void _describesTheSameLesson(Lesson lesson, Lesson first, {required String why}) {
   expect(lesson.id, first.id, reason: why);
-  expect(lesson.emoji, first.emoji, reason: why);
+  expect(lesson.icon, first.icon, reason: why);
   expect(lesson.stepCount, first.stepCount, reason: why);
   expect(lesson.sections.map((s) => s.kind), first.sections.map((s) => s.kind), reason: why);
   // Progress is keyed on ids, so a tick earned in Dutch has to count in

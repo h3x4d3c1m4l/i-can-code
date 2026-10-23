@@ -4,7 +4,7 @@ Een CSV-bestand lezen, en er een schrijven.
 
 ```metadata
 id: files
-emoji: "📄"
+icon: table
 ```
 
 ## Het gemiddelde cijfer

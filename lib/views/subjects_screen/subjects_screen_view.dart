@@ -7,7 +7,7 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
-import 'package:i_can_code/views/components/catalog_card.dart';
+import 'package:i_can_code/views/subjects_screen/components/subject_card.dart';
 import 'package:i_can_code/views/subjects_screen/subjects_screen_controller.dart';
 import 'package:i_can_code/views/subjects_screen/subjects_screen_view_model.dart';
 
@@ -52,7 +52,7 @@ class SubjectsScreenView extends ScreenViewBase<SubjectsScreenViewModel, Subject
                   ),
                   const SizedBox(height: 40),
                   for (final (index, subject) in subjects.indexed) ...[
-                    if (index > 0) const SizedBox(height: CatalogCard.spacing),
+                    if (index > 0) const SizedBox(height: SubjectCard.spacing),
                     // An Observer of its own rather than a Builder: a Builder's
                     // callback runs after the Observer above has stopped
                     // listening, so a reset left the count where it was.
@@ -61,11 +61,11 @@ class SubjectsScreenView extends ScreenViewBase<SubjectsScreenViewModel, Subject
                         final lessons = viewModel.course.lessonsFor(subject);
                         final done = lessons.where(viewModel.progress.isFinished).length;
 
-                        return CatalogCard(
+                        return SubjectCard(
                           // The subject's own initial, rather than its
                           // position in the list.
                           label: subjectLabel(subject).substring(0, 1),
-                          emoji: subjectEmoji(subject),
+                          icon: subjectIcon(subject),
                           title: subjectLabel(subject),
                           finished: done == lessons.length,
                           // The fraction from the first visit on, for the

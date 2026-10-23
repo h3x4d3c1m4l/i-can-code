@@ -5,7 +5,7 @@ before it runs.
 
 ```metadata
 id: sample-predict-output
-emoji: "🔮"
+icon: output
 ```
 
 ## What comes out?

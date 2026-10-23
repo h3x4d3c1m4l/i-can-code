@@ -4,7 +4,7 @@ Een programma dat een CSV-bestand leest en er een schrijft.
 
 ```metadata
 id: file-sample
-emoji: "📄"
+icon: table
 ```
 
 ## Het gemiddelde cijfer

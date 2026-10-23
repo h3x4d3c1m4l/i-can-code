@@ -4,7 +4,7 @@ A lesson the test suite owns. It is not course material, and it changes only whe
 
 ```metadata
 id: fixture-output
-emoji: "🖨️"
+icon: output
 ```
 
 ## Showing text

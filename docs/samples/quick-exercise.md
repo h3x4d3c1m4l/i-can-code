@@ -4,7 +4,7 @@ One `quick-exercise` section: prose and a one-line editor, stacked.
 
 ```metadata
 id: sample-quick-exercise
-emoji: "✍️"
+icon: keyboard
 ```
 
 ## Print something yourself

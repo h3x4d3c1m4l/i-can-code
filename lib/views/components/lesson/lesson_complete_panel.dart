@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
+import 'package:i_can_code/views/components/duotone_icon.dart';
 
 /// The page a lesson ends on: what was just finished, and the two ways out of
 /// it.
@@ -22,9 +24,9 @@ class LessonCompletePanel extends StatelessWidget {
   /// Stands between a group and a lesson the way the trail's chevron does.
   static const String _separator = ' › ';
 
-  /// The lesson's own emoji, drawn in the tile. Null falls back to a tick, for
+  /// The lesson's own icon, drawn in the tile. Null falls back to a tick, for
   /// a lesson whose file declares none.
-  final String? emoji;
+  final CourseIcon? icon;
 
   final String title;
 
@@ -77,7 +79,7 @@ class LessonCompletePanel extends StatelessWidget {
     required this.onBack,
     required this.backLabel,
     this.backTip,
-    this.emoji,
+    this.icon,
     this.onNextLesson,
     this.nextLesson,
     this.nextGroup,
@@ -86,9 +88,6 @@ class LessonCompletePanel extends StatelessWidget {
   });
 
   bool get _finished => completedSteps >= stepCount;
-
-  /// The next lesson by name, with the emoji its catalog card carries.
-  static String _nameOf(Lesson lesson) => [?lesson.emoji, lesson.title].join(' ');
 
   @override
   Widget build(BuildContext context) {
@@ -168,22 +167,24 @@ class LessonCompletePanel extends StatelessWidget {
   }
 
   /// Which lesson comes next: its group in the muted ink the trail sets a
-  /// group in, then its name in the page's own.
+  /// group in, then its icon and its name in the page's own.
   Widget _buildUpNext(BuildContext context, Lesson next) {
     final colors = context.theme.colors;
+    final style = context.appTheme.text.body.copyWith(fontSize: 17, color: colors.mutedForeground);
 
     return Text.rich(
       TextSpan(
         children: [
           TextSpan(text: '${context.localizations.lessonScreen_upNext} '),
           if (nextGroup case final String group) TextSpan(text: '$group$_separator'),
+          if (next.icon case final CourseIcon icon) DuotoneIcon.span(context, icon, style: style),
           TextSpan(
-            text: _nameOf(next),
+            text: next.title,
             style: TextStyle(color: colors.foreground, fontWeight: FontWeight.w600),
           ),
         ],
       ),
-      style: context.appTheme.text.body.copyWith(fontSize: 17, color: colors.mutedForeground),
+      style: style,
       textAlign: TextAlign.center,
     );
   }
@@ -207,26 +208,25 @@ class LessonCompletePanel extends StatelessWidget {
     );
   }
 
-  /// The lesson's tile, the same one its catalog card carries, at the size an
-  /// end page can give it.
+  /// The window its catalog tile shows the lesson's icon in, at the size an
+  /// end page can give it. Outlined, because here it stands on the page it is
+  /// a window onto.
   Widget _buildTile(BuildContext context) {
     const double size = 108;
-    final theme = context.theme;
+    final colors = context.theme.colors;
 
     return SizedBox.square(
       dimension: size,
       child: DecoratedBox(
         decoration: ShapeDecoration(
-          color: theme.colors.primary,
-          shape: squircleOf(kCardCornerRadius, size: size),
+          color: colors.background,
+          shape: squircleOf(kCardCornerRadius, size: size, side: BorderSide(color: colors.border, width: 2.5)),
         ),
         child: Center(
-          child: emoji != null
-              ? Text(
-                  emoji!,
-                  style: const TextStyle(fontFamilyFallback: kEmojiFontFallback, fontSize: 56, height: 1),
-                )
-              : Icon(FLucideIcons.check, size: 56, color: theme.colors.primaryForeground),
+          child: switch (icon) {
+            final CourseIcon icon => DuotoneIcon(icon, size: 72),
+            null => Icon(FLucideIcons.check, size: 56, color: colors.foreground),
+          },
         ),
       ),
     );

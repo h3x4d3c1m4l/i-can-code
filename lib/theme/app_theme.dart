@@ -111,6 +111,8 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
     required this.progressComplete,
     required this.progressCompleteForeground,
     required this.progressCurrent,
+    required this.illustrationLine,
+    required this.illustrationFill,
   });
 
   /// A passed assignment.
@@ -207,6 +209,20 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> with _$AppSema
   /// The step being worked on now.
   @override
   final Color progressCurrent;
+
+  /// The outline of a `CourseIcon`, which is drawn in two colours.
+  ///
+  /// An icon sits on the page or on a card, never on `primary`: in a dark
+  /// scheme this is the accent itself, because a light line laid over a full
+  /// accent fill barely parts from it. So it MUST reach 3:1, the floor for
+  /// graphics, against [illustrationFill], the page and a card.
+  @override
+  final Color illustrationLine;
+
+  /// The shapes inside a `CourseIcon`'s outline. Needs no contrast with the
+  /// surface under it: [illustrationLine] draws its edge.
+  @override
+  final Color illustrationFill;
 
 }
 

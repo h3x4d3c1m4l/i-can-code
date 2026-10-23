@@ -47,7 +47,7 @@ class _SelectableCodeState extends State<SelectableCode> {
     return SelectableRegion(
       // The region wraps itself in the browser-menu shim only while
       // BrowserContextMenu is on, and rebuilding it across a switch of that
-      // trips Flutter's "one selectable" assertion. A catalog card switches it
+      // trips Flutter's "one selectable" assertion. A catalog tile switches it
       // off under the pointer, so a lesson opened from one meets the switch on
       // its first rebuild. A new key builds a new region instead.
       key: ValueKey(BrowserContextMenu.enabled),

@@ -14,8 +14,8 @@ abstract final class NeobrutalismPalette {
 
   // ------------------------------------------------------------------ accent
 
-  /// The main accent, in both modes. Fills the catalog's number tiles and every
-  /// primary button.
+  /// The main accent, in both modes. Fills every primary button, and draws
+  /// the icons: their shapes in light, their outline in dark.
   ///
   /// A fill only: 1.2:1 on [pageLight], so it can never carry text. Anything
   /// drawn on it MUST use [inkLight], which reaches 14.74:1. Prose links use
@@ -139,6 +139,10 @@ abstract final class NeobrutalismPalette {
 
   /// The quiet fill behind an error message. Takes [inkDark] at 13.00:1.
   static const Color errorSurfaceDark = Color(0xFF3E1C24);
+
+  /// [accent] at 20% over [pageDark] — the shapes inside an icon whose outline
+  /// is the accent itself. [accent] reaches 6.74:1 on it.
+  static const Color accentDimDark = Color(0xFF4F483A);
 
   // ------------------------------------------------------------------- code
 

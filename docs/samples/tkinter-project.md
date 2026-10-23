@@ -4,7 +4,7 @@ One program with a window, built up over its tasks and run on the machine behind
 
 ```metadata
 id: sample-tkinter-project
-emoji: "🪟"
+icon: window
 layout: project
 runtime: tkinter
 feature: tkinter

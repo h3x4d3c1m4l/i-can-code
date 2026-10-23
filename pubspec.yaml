@@ -36,6 +36,10 @@ dependencies:
   flutter_rust_bridge: 2.13.0
   url_launcher: 6.3.3
   sentry_flutter: 10.1.0
+  vector_graphics: 1.2.4
+  # Imported by bin/bundle_icons.dart, the transformer that writes
+  # assets/icons.bin, and by nothing the app itself ships.
+  vector_graphics_compiler: 1.3.2
 
 dev_dependencies:
   flutter_test: { sdk: flutter }
@@ -66,6 +70,12 @@ flutter:
     - path: assets/course.json
       transformers:
         - package: i_can_code:bundle_lessons
+    # Every icon under assets/icons/, compiled and in one file, so the app
+    # fetches one file for all of them. The committed file is an empty
+    # placeholder: the transformer (bin/bundle_icons.dart) writes the real one.
+    - path: assets/icons.bin
+      transformers:
+        - package: i_can_code:bundle_icons
 
     # Flutter's asset globbing is NOT recursive: every directory below must be
     # listed.

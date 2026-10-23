@@ -4,7 +4,7 @@ Een programma dat iets aan de gebruiker vraagt.
 
 ```metadata
 id: stdin-sample
-emoji: "⌨️"
+icon: keyboard
 ```
 
 ## Vraag een naam

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/vm/vm_image.dart';
 
@@ -355,10 +356,10 @@ void main() {
     expect(subjectLabel(''), '');
   });
 
-  test('a subject the table does not name has no emoji, and its card falls back', () {
-    expect(subjectEmoji('python'), '\u{1F40D}');
+  test('a subject the table does not name has no icon, and its card falls back', () {
+    expect(subjectIcon('python'), CourseIcon.snake);
     // A subject directory may be added without touching the table.
-    expect(subjectEmoji('javascript'), isNull);
+    expect(subjectIcon('javascript'), isNull);
   });
 
   test('Python indents by four spaces, and a subject the table does not name by two', () {

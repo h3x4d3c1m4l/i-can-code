@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 
 void main() {
@@ -23,7 +24,7 @@ void main() {
 
           expect(lesson.id, isNotEmpty);
           expect(lesson.title, isNotEmpty);
-          expect(lesson.emoji, isNotNull);
+          expect(lesson.icon, isNotNull);
           expect(lesson.sections, isNotEmpty);
           for (final section in lesson.sections) {
             expect(section.id, isNotEmpty, reason: 'every section needs a stable id');
@@ -389,22 +390,50 @@ void main() {
       expect(lesson.sections.map((section) => section.optional), [true, false]);
     });
 
-    test('reads the lesson\'s own `emoji` off the document metadata', () {
+    test('reads the lesson\'s own `icon` off the document metadata', () {
       final lesson = Lesson.parse(
-        '# T\n\n```metadata\nid: x\nemoji: "\u{2328}\u{FE0F}"\n```\n\n'
-        '## S\n\n```metadata\ntype: info\nid: s\n```\n\nprose\n',
+        '# T\n\n```metadata\nid: x\nicon: bar-chart\n```\n\n'
+        '## S\n\n```metadata\ntype: info\nid: s\nemoji: "\u{1F4A1}"\n```\n\nprose\n',
       );
 
-      expect(lesson.emoji, '\u{2328}\u{FE0F}');
-      // The document's emoji is the card's, not the first step's.
-      expect(lesson.sections.single.emoji, isNull);
+      expect(lesson.icon, CourseIcon.barChart);
+      // A step keeps its own emoji.
+      expect(lesson.sections.single.emoji, '\u{1F4A1}');
     });
 
-    test('rejects a lesson `emoji` that is not text', () {
+    test('rejects an `icon` the app does not have, or one that is not text', () {
+      for (final icon in ['rocket', '3']) {
+        expect(
+          () => Lesson.parse(
+            '# T\n\n```metadata\nid: x\nicon: $icon\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n',
+          ),
+          throwsA(isA<FormatException>()),
+          reason: icon,
+        );
+      }
+    });
+
+    test('rejects a lesson `emoji`, pointing at `icon`', () {
       expect(
-        () => Lesson.parse('# T\n\n```metadata\nid: x\nemoji: 3\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n'),
+        () => Lesson.parse(
+          '# T\n\n```metadata\nid: x\nemoji: "\u{1F4A1}"\n```\n\n## S\n\n```metadata\ntype: info\nid: s\n```\n',
+        ),
+        throwsA(isA<FormatException>().having((error) => error.message, 'message', contains('`icon`'))),
+      );
+    });
+
+    test('rejects an `icon` on a section', () {
+      expect(
+        () => Lesson.parse('# T\n\n```metadata\nid: x\n```\n\n## S\n\n```metadata\ntype: info\nid: s\nicon: loop\n```\n'),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('every icon is named by a key that parses back to it', () {
+      for (final icon in CourseIcon.values) {
+        expect(icon.key, matches(RegExp(r'^[a-z]+(-[a-z]+)*$')));
+        expect(CourseIcon.parse(icon.key), icon);
+      }
     });
 
     test('reads an `emoji` off a section', () {

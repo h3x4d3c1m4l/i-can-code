@@ -5,7 +5,7 @@ right.
 
 ```metadata
 id: sample-exercise
-emoji: "📦"
+icon: package
 ```
 
 ## Printing numbers

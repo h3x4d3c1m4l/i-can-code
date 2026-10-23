@@ -24,10 +24,15 @@ class HoverTip extends StatelessWidget {
   /// to keep the tip shut on a hover that has nothing to say.
   final FTooltipControl control;
 
+  /// The widest the tip gets before its text wraps. Null leaves forui's cap,
+  /// which is the viewport.
+  final double? maxWidth;
+
   const HoverTip({
     required this.message,
     required this.child,
     this.control = const FTooltipControl.managed(),
+    this.maxWidth,
     super.key,
   });
 
@@ -37,7 +42,10 @@ class HoverTip extends StatelessWidget {
       control: control,
       // No dwell time: forui waits out half a second, and on a control that is
       // about to be pressed that reads as the hover doing nothing at all.
-      style: FTooltipStyleDelta.delta(hoverEnterDuration: Duration.zero),
+      style: FTooltipStyleDelta.delta(
+        hoverEnterDuration: Duration.zero,
+        constraints: maxWidth == null ? null : BoxConstraints(maxWidth: maxWidth!),
+      ),
       // forui's long press is a recogniser around the child. It wins the arena
       // from the child's own tap after half a second, so a button held down a
       // moment too long would show its tip and never fire.

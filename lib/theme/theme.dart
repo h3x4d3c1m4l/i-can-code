@@ -61,7 +61,7 @@ FThemeData buildAppTheme({
       hapticFeedback: const FHapticFeedback(),
       touch: _touch,
     ).copyWith(
-      // The bevel `CatalogCard` wears, standing still: a dialog is not pressed.
+      // The bevel `BevelledCard` wears, standing still: a dialog is not pressed.
       decoration: DecorationDelta.shapeDelta(
         shape: squircle(
           kHeroTileCornerRadius,
@@ -140,7 +140,7 @@ const double _tipCornerRadius = 8;
 /// The quiet outline forui gives its floating surfaces.
 BorderSide _surfaceEdge(FColors colors, FStyle style) => BorderSide(color: colors.border, width: style.borderWidth);
 
-/// The dialog's bevel, in the same numbers as `CatalogCard`'s so the two read
+/// The dialog's bevel, in the same numbers as `BevelledCard`'s so the two read
 /// as one material.
 const double _dialogEdgeWidth = 2.5;
 const double _dialogCollarHeight = 6;

@@ -4,7 +4,7 @@ One `match-pairs` section: a board of tiles instead of an editor.
 
 ```metadata
 id: sample-match-pairs
-emoji: "🧩"
+icon: label
 ```
 
 ## What belongs together?

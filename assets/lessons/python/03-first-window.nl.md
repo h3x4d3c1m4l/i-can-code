@@ -4,7 +4,7 @@ Een programma met een eigen venster, gemaakt met Tkinter.
 
 ```metadata
 id: first-window
-emoji: "🪟"
+icon: window
 runtime: tkinter
 feature: tkinter
 ```

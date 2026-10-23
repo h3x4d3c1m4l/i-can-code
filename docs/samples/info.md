@@ -4,7 +4,7 @@ One `info` section, and what it may carry.
 
 ```metadata
 id: sample-info
-emoji: "📖"
+icon: text
 ```
 
 ## Reading a step

@@ -4,7 +4,7 @@ One program for a micro:bit, built up over its tasks.
 
 ```metadata
 id: sample-project
-emoji: "💡"
+icon: microbit
 layout: project
 runtime: microbit
 ```

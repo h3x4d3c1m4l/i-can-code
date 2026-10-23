@@ -40,7 +40,7 @@ const String _root = 'assets/lessons/python';
 
 /// A lesson of one reading step, with [id] as its title too.
 String _lesson(String id) =>
-    '# $id\n\n```metadata\nid: $id\nemoji: "🧪"\n```\n\n'
+    '# $id\n\n```metadata\nid: $id\nicon: list\n```\n\n'
     '## Stap\n\n```metadata\ntype: info\nid: stap\nemoji: "🧪"\n```\n\nTekst.\n';
 
 /// Two weeks of four, which is more than a window of 600 shows at once.
@@ -150,8 +150,10 @@ void main() {
   });
 
   testWidgets('a cold start on an address with an anchor arrives at it, past the bootstrap', (tester) async {
-    // The guard parks the address while the course loads, query and all.
-    await start(tester, openedAt: '/learn-python?lesson=b3');
+    // The guard parks the address while the course loads, query and all. A
+    // lesson past the first row of its week: one in the first comes to rest
+    // with the heading in its own spot, a tile's clearance below the pin.
+    await start(tester, openedAt: '/learn-python?lesson=b4');
 
     expect(find.byType(CatalogScreen), findsOneWidget);
     expect(_scroll(tester).pixels, greaterThan(0));

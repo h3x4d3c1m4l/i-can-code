@@ -4,7 +4,7 @@ Read a CSV file, and write one.
 
 ```metadata
 id: files
-emoji: "📄"
+icon: table
 ```
 
 ## The average grade

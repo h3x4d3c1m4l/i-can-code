@@ -7,6 +7,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
@@ -15,6 +16,7 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/duotone_icon.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
@@ -243,13 +245,19 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
 
   Widget _buildTitle(BuildContext context, Lesson lesson) {
     final subtitle = lesson.subtitle;
+    final titleStyle = context.appTheme.text.h1.copyWith(fontSize: 42);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          [?lesson.emoji, lesson.title].join(' '),
-          style: context.appTheme.text.h1.copyWith(fontSize: 42),
+        Text.rich(
+          TextSpan(
+            children: [
+              if (lesson.icon case final CourseIcon icon) DuotoneIcon.span(context, icon, style: titleStyle),
+              TextSpan(text: lesson.title),
+            ],
+          ),
+          style: titleStyle,
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 8),
@@ -381,7 +389,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     final next = viewModel.nextLesson?.forLocale(locale);
 
     return LessonCompletePanel(
-      emoji: lesson.emoji,
+      icon: lesson.icon,
       title: lesson.title,
       completedSteps: viewModel.passed.length,
       stepCount: lesson.stepCount,

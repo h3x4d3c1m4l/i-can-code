@@ -5,10 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/catalog_screen/components/anchor_target.dart';
 import 'package:i_can_code/views/catalog_screen/components/catalog_anchor_scope.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_tile.dart';
+import 'package:i_can_code/views/catalog_screen/components/tile_grid.dart';
 import 'package:i_can_code/views/components/catalog_group_heading.dart';
+import 'package:i_can_code/views/components/completed_badge.dart';
+import 'package:i_can_code/views/components/duotone_icon.dart';
 import 'package:i_can_code/views/components/hint_mark.dart';
 
 /// What the catalog's widgets need: the app theme, the localizations, and an
@@ -244,6 +249,153 @@ void main() {
       );
 
       handle.dispose();
+    });
+  });
+
+  group('TileGrid', () {
+    // Wider than the four columns the grid is given, so it is not squeezed.
+    void widen(WidgetTester tester) {
+      tester.view
+        ..physicalSize = const Size(1400, 1000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    test('fits as many tiles to a row as stay 240 wide, and never more than four', () {
+      expect(TileGrid.columnsFor(1120), 4);
+      expect(TileGrid.columnsFor(1019), 3);
+      expect(TileGrid.columnsFor(759), 2);
+      expect(TileGrid.columnsFor(499), 1);
+      expect(TileGrid.columnsFor(2000), 4);
+    });
+
+    Widget grid({double width = 1120, TextScaler scaler = TextScaler.noScaling, int tiles = 5}) => MediaQuery(
+      data: MediaQueryData(size: const Size(1200, 800), textScaler: scaler),
+      child: SingleChildScrollView(
+        child: SizedBox(
+          width: width,
+          child: TileGrid(
+            width: width,
+            children: [
+              for (var tile = 1; tile <= tiles; tile++)
+                CatalogTile(
+                  label: '$tile',
+                  title: 'Les $tile',
+                  subtitle: 'Een regel uitleg.',
+                  meta: '0 / 3',
+                  onTap: () {},
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('lays a tile out at 3:4, the last row short and left-aligned', (tester) async {
+      widen(tester);
+      await tester.pumpWidget(_host(grid()));
+      await tester.pumpAndSettle();
+
+      final first = tester.getRect(find.byType(CatalogTile).first);
+      expect(first.width, closeTo((1120 - 3 * TileGrid.columnGap) / 4, 0.01));
+      expect(first.height, closeTo(first.width * 4 / 3, 0.01));
+      expect(tester.getTopLeft(find.byType(CatalogTile).at(4)).dx, first.left, reason: 'the fifth starts a row');
+    });
+
+    testWidgets('grows taller than 3:4 for larger text rather than cutting a line', (tester) async {
+      widen(tester);
+      await tester.pumpWidget(_host(grid(scaler: const TextScaler.linear(2))));
+      await tester.pumpAndSettle();
+
+      final tile = tester.getRect(find.byType(CatalogTile).first);
+      expect(tile.height, greaterThan(tile.width * 4 / 3));
+      expect(tester.takeException(), isNull, reason: 'nothing overflows');
+    });
+  });
+
+  group('CatalogTile', () {
+    Widget tile({String title = 'Lijsten', CourseIcon? icon, bool finished = false}) => SizedBox(
+      width: 265,
+      height: 353,
+      child: CatalogTile(
+        label: '7',
+        icon: icon,
+        title: title,
+        subtitle: 'Bewaar meer dan een waarde in een variabele.',
+        meta: '3 / 3',
+        finished: finished,
+        onTap: () {},
+      ),
+    );
+
+    testWidgets('shows its icon in place of the label, out of the semantics tree', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(tile(icon: CourseIcon.list)));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<DuotoneIcon>(find.byType(DuotoneIcon)).icon, CourseIcon.list);
+      expect(find.text('7'), findsNothing);
+      expect(
+        find.ancestor(of: find.byType(DuotoneIcon), matching: find.byType(ExcludeSemantics)),
+        findsWidgets,
+        reason: 'the title says what the tile is',
+      );
+      handle.dispose();
+    });
+
+    testWidgets('without an icon shows its label', (tester) async {
+      await tester.pumpWidget(_host(tile()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('7'), findsOneWidget);
+      expect(find.byType(DuotoneIcon), findsNothing);
+    });
+
+    testWidgets('a finished tile keeps its count beside the badge', (tester) async {
+      await tester.pumpWidget(_host(tile(finished: true)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3 / 3'), findsOneWidget);
+      expect(find.byType(CompletedBadge), findsOneWidget);
+    });
+
+    Future<TestGesture> hover(WidgetTester tester) async {
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      await mouse.moveTo(tester.getCenter(find.byType(CatalogTile)));
+      // forui's zero dwell is still a `Future.delayed`.
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pumpAndSettle();
+
+      return mouse;
+    }
+
+    testWidgets('says nothing on hover while its text fits', (tester) async {
+      await tester.pumpWidget(_host(tile()));
+      await tester.pumpAndSettle();
+      await hover(tester);
+
+      expect(find.text('Lijsten'), findsOneWidget);
+    });
+
+    testWidgets('says a title its two lines cut short in full, on hover and on focus', (tester) async {
+      const title = 'Een titel die veel te lang is voor twee regels van deze tegel, hoe je het ook draait';
+      await tester.pumpWidget(_host(tile(title: title)));
+      await tester.pumpAndSettle();
+
+      final mouse = await hover(tester);
+      expect(find.textContaining(title), findsNWidgets(2), reason: 'the title, and the tip saying it in full');
+
+      await mouse.moveTo(Offset.zero);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(title), findsOneWidget);
+
+      Focus.of(tester.element(find.text(title))).requestFocus();
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(title), findsNWidgets(2), reason: 'a keyboard on the tile reads it too');
     });
   });
 }

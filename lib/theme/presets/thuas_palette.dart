@@ -119,6 +119,11 @@ abstract final class ThuasPalette {
   /// [corporateGreen] over the page. Takes [grey08] text at 6.90:1.
   static const Color greenSurfaceDark = Color(0xFF47562F);
 
+  /// [corporateGreen] at 20% over [corporateGrey] — the shapes inside an icon
+  /// whose outline is the green itself, which reaches 3.60:1 on it. Lighter
+  /// than [greenSurfaceDark], which the green would barely part from.
+  static const Color greenOn20Dark = Color(0xFF3B4A36);
+
   /// [red] over the page. Takes [grey08] text at 9.02:1.
   static const Color redSurfaceDark = Color(0xFF543841);
 

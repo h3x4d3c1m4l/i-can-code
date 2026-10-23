@@ -4,9 +4,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:i_can_code/services/lessons/course_icon.dart';
 import 'package:i_can_code/theme/presets/app_color_preset.dart';
 import 'package:i_can_code/theme/theme.dart';
-import 'package:i_can_code/views/components/catalog_card.dart';
+import 'package:i_can_code/views/catalog_screen/components/catalog_tile.dart';
 
 /// How far apart a pixel's channels must be before it counts as coloured
 /// rather than as a grey. Small, because a tint is still colour.
@@ -38,11 +39,11 @@ void main() {
   }
 }
 
-/// Renders a [CatalogCard] on its page and returns the fraction of pixels whose
+/// Renders a [CatalogTile] on its page and returns the fraction of pixels whose
 /// channels are more than [_chromaThreshold] apart.
 ///
-/// A catalog card is used because it exercises the tokens a student meets
-/// first: the page, a card, the `primary` tile and its foreground.
+/// A catalog tile is used because it exercises the tokens a student meets
+/// first: the page, a card, and the icon drawn in the illustration colours.
 Future<double> _chromaticShare(
   WidgetTester tester, {
   required AppColorPreset preset,
@@ -62,14 +63,17 @@ Future<double> _chromaticShare(
             data: const MediaQueryData(size: Size(800, 400)),
             child: ColoredBox(
               color: theme.colors.background,
-              child: const Center(
+              child: Center(
                 child: SizedBox(
-                  width: 700,
-                  child: CatalogCard(
+                  width: 265,
+                  height: 353,
+                  child: CatalogTile(
                     label: '1',
+                    icon: CourseIcon.list,
                     title: 'Invoer en uitvoer',
                     subtitle: 'Lezen en schrijven',
                     meta: '0 / 5',
+                    onTap: () {},
                   ),
                 ),
               ),

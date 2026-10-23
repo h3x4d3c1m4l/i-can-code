@@ -5,7 +5,7 @@ tests; in the second, the code the tests are for.
 
 ```metadata
 id: sample-pytest
-emoji: "🧪"
+icon: magnifier
 ```
 
 ## Tests that catch a bug

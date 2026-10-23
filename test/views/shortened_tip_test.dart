@@ -100,4 +100,38 @@ void main() {
 
     expect(find.text(_label), findsOneWidget);
   });
+
+  group('a text that wraps', () {
+    const sentence = 'Reken met gehele getallen en kommagetallen, en ontdek waar Python anders rekent dan je verwacht.';
+
+    Widget clamped(double width) => SizedBox(
+      width: width,
+      child: const ShortenedTip(
+        message: sentence,
+        child: Text(sentence, maxLines: 3, overflow: TextOverflow.ellipsis),
+      ),
+    );
+
+    testWidgets('says nothing while every line fits under its clamp', (tester) async {
+      // Wrapped, it is always narrower than its one long line, which is all
+      // the test for a one-line text asks.
+      await tester.pumpWidget(_host(clamped(700)));
+      await tester.pumpAndSettle();
+      final mouse = await _mouse(tester);
+
+      await _hover(tester, mouse, find.byType(ShortenedTip));
+
+      expect(find.text(sentence), findsOneWidget);
+    });
+
+    testWidgets('says the whole of it once the clamp cuts it', (tester) async {
+      await tester.pumpWidget(_host(clamped(120)));
+      await tester.pumpAndSettle();
+      final mouse = await _mouse(tester);
+
+      await _hover(tester, mouse, find.byType(ShortenedTip));
+
+      expect(find.text(sentence), findsNWidgets(2));
+    });
+  });
 }

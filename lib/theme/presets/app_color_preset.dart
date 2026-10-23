@@ -84,6 +84,8 @@ AppColorPresetData _neutralLight() {
       progressComplete: NeobrutalismPalette.complete,
       progressCompleteForeground: NeobrutalismPalette.inkLight,
       progressCurrent: NeobrutalismPalette.inkLight,
+      illustrationLine: NeobrutalismPalette.inkLight,
+      illustrationFill: NeobrutalismPalette.accent,
     ),
   );
 }
@@ -130,6 +132,9 @@ AppColorPresetData _neutralDark() {
       progressComplete: NeobrutalismPalette.complete,
       progressCompleteForeground: NeobrutalismPalette.inkLight,
       progressCurrent: NeobrutalismPalette.inkDark,
+      // The accent stays as loud as it is in light, so it draws the line here.
+      illustrationLine: NeobrutalismPalette.accent,
+      illustrationFill: NeobrutalismPalette.accentDimDark,
     ),
   );
 }
@@ -182,6 +187,8 @@ AppColorPresetData _thuasLight() {
       progressComplete: ThuasPalette.corporateGreen,
       progressCompleteForeground: ThuasPalette.corporateGrey,
       progressCurrent: ThuasPalette.corporateGrey,
+      illustrationLine: ThuasPalette.corporateGrey,
+      illustrationFill: ThuasPalette.corporateGreen,
     ),
   );
 }
@@ -231,6 +238,8 @@ AppColorPresetData _thuasDark() {
       progressComplete: ThuasPalette.corporateGreen,
       progressCompleteForeground: ThuasPalette.corporateGrey,
       progressCurrent: ThuasPalette.grey08,
+      illustrationLine: ThuasPalette.corporateGreen,
+      illustrationFill: ThuasPalette.greenOn20Dark,
     ),
   );
 }

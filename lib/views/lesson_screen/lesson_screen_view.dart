@@ -264,7 +264,7 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
       padding: _readingPadding,
       child: _pastGutter(
         LessonCompletePanel(
-          emoji: lesson.emoji,
+          icon: lesson.icon,
           title: lesson.title,
           // Read off the view model rather than the store, so a step passed a
           // moment ago is already counted.

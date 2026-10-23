@@ -69,6 +69,18 @@ void main() {
         for (final MapEntry(key: name, value: pair) in pairs.entries) {
           test('$name clears WCAG AA', () => expect(_contrast(pair.$1, pair.$2), greaterThanOrEqualTo(4.5)));
         }
+
+        // Graphics, not text, so the floor is 3:1 (WCAG 1.4.11). The fill
+        // needs no pair with the surface: the line draws its edge.
+        final graphics = <String, (Color, Color)>{
+          'an icon outline on its fill': (semantic.illustrationLine, semantic.illustrationFill),
+          'an icon outline on the page': (semantic.illustrationLine, colors.background),
+          'an icon outline on a card': (semantic.illustrationLine, colors.card),
+        };
+
+        for (final MapEntry(key: name, value: pair) in graphics.entries) {
+          test('$name reaches 3:1', () => expect(_contrast(pair.$1, pair.$2), greaterThanOrEqualTo(3)));
+        }
       });
     }
   }
