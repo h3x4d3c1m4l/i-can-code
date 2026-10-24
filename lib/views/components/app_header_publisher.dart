@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -34,6 +35,16 @@ class AppHeaderPublisher extends StatefulWidget {
   final Widget child;
 
   const AppHeaderPublisher({required this.builder, required this.child, super.key});
+
+  /// How far down from its top the bar covers [scrollable]: the bar's height
+  /// for a scroll view at the top of the page, nothing for one that starts
+  /// below the bar or that is on no page a bar is over.
+  static double clearanceOf(BuildContext scrollable) {
+    final state = scrollable.findAncestorStateOfType<_AppHeaderPublisherState>();
+    if (state == null || state._slot == null) return 0;
+
+    return math.max(0.0, AppHeader.height - (state._topOf(scrollable) ?? AppHeader.height));
+  }
 
   @override
   State<AppHeaderPublisher> createState() => _AppHeaderPublisherState();
@@ -105,11 +116,17 @@ class _AppHeaderPublisherState extends State<AppHeaderPublisher> {
   }
 
   bool _startsUnderBar(BuildContext scrollable) {
+    final top = _topOf(scrollable);
+    return top != null && top < AppHeader.height;
+  }
+
+  /// Where [scrollable]'s top is on this page, or null before it is laid out.
+  double? _topOf(BuildContext scrollable) {
     final box = scrollable.findRenderObject();
     final page = context.findRenderObject();
-    if (box is! RenderBox || !box.hasSize || page == null) return false;
+    if (box is! RenderBox || !box.hasSize || page == null) return null;
 
-    return box.localToGlobal(Offset.zero, ancestor: page).dy < AppHeader.height;
+    return box.localToGlobal(Offset.zero, ancestor: page).dy;
   }
 
   /// Drops a scroll view that has gone, once per frame for as long as any is

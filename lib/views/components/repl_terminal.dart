@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/theme/terminal_palette.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:xterm/xterm.dart';
 
 /// The terminal, dressed as one of this app's surfaces.
@@ -38,15 +39,20 @@ class ReplTerminal extends StatelessWidget {
       clipper: ShapeBorderClipper(shape: shape),
       child: DecoratedBox(
         decoration: ShapeDecoration(color: appTheme.colors.codeBackground, shape: shape),
-        child: TerminalView(
-          terminal,
-          autofocus: autofocus,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          theme: buildTerminalTheme(appTheme.colors, cursor: context.theme.colors.primary),
-          // Straight from the app's code style, so a line here and a line in a
-          // lesson's code block are the same type at the same size. Carries the
-          // bundled emoji fallback with it.
-          textStyle: TerminalStyle.fromTextStyle(appTheme.text.code),
+        // No gutter: xterm fits as many columns as its whole width holds, so
+        // its scrollbar is drawn over the last one whatever it is padded with.
+        child: ScrollConfiguration(
+          behavior: const AppScrollBehavior(surface: ScrollSurface.code),
+          child: TerminalView(
+            terminal,
+            autofocus: autofocus,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            theme: buildTerminalTheme(appTheme.colors, cursor: context.theme.colors.primary),
+            // Straight from the app's code style, so a line here and a line in
+            // a lesson's code block are the same type at the same size. Carries
+            // the bundled emoji fallback with it.
+            textStyle: TerminalStyle.fromTextStyle(appTheme.text.code),
+          ),
         ),
       ),
     );

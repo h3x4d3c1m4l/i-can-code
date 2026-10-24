@@ -4,6 +4,7 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 
 /// Shows the program as it stood when a task was said to work, and answers
@@ -32,7 +33,7 @@ Future<bool> showSnapshotDialog(
           // A long program scrolls inside the card rather than pushing the
           // buttons off the screen.
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
-          child: SingleChildScrollView(
+          child: GutteredScrollView(
             child: CodeSample(
               source: code,
               language: language,

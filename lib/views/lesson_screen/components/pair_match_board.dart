@@ -6,6 +6,8 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/lesson_prose.dart';
 import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.dart';
 import 'package:i_can_code/views/lesson_screen/components/verdict_banner.dart';
@@ -227,7 +229,12 @@ class _Tile extends StatelessWidget {
   static const Duration _settle = Duration(milliseconds: 150);
 
   /// Air between the square's edge and the words in it.
-  static const EdgeInsets _padding = EdgeInsets.all(18);
+  static const double _inset = 18;
+
+  /// Less than [_inset] at the sides, where the scroll view's own padding
+  /// makes up the rest: room for its scrollbar at the end, and the same at the
+  /// start so the words stay centred.
+  static const EdgeInsets _padding = EdgeInsets.symmetric(vertical: _inset, horizontal: _inset - AppScrollbar.gutter);
 
   /// Inline markdown, the way a section's prose is — a tile may name a function
   /// in `code` spans.
@@ -289,7 +296,8 @@ class _Tile extends StatelessWidget {
             // [Center] hands the scroll view loose constraints, so it takes its
             // content's height until there is no more room.
             child: Center(
-              child: SingleChildScrollView(
+              child: GutteredScrollView(
+                padding: const EdgeInsetsDirectional.only(start: AppScrollbar.gutter),
                 child: LessonProse(
                   markdown: text,
                   fontSize: fontSize,
@@ -303,7 +311,11 @@ class _Tile extends StatelessWidget {
           // take a column off the middle of the tile and leave the text sitting
           // to one side of its own box.
           if (_mark case final IconData mark)
-            Positioned(top: 0, right: 0, child: Icon(mark, size: 18, color: theme.colors.foreground)),
+            Positioned(
+              top: 0,
+              right: AppScrollbar.gutter,
+              child: Icon(mark, size: 18, color: theme.colors.foreground),
+            ),
         ],
       ),
     );

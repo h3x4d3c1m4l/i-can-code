@@ -15,8 +15,10 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/components/duotone_icon.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
@@ -29,6 +31,7 @@ import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/components/split_page.dart';
 import 'package:i_can_code/views/components/vm/vm_display.dart';
 import 'package:i_can_code/views/components/vm/vm_machine_card.dart';
 import 'package:i_can_code/views/components/vm/vm_run_dialog.dart';
@@ -194,28 +197,15 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
     // the output are pushed off it.
     final editorHeight = math.min(size.height * 0.5, math.max(200, size.height - 460)).toDouble();
 
-    return Padding(
+    // The tasks scroll; the program stands still beside them.
+    return SplitPage(
+      maxWidth: _pageWidth,
       padding: EdgeInsets.only(left: _padding.left, right: _padding.right),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _pageWidth),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // The tasks scroll; the program stands still beside them.
-              Expanded(
-                child: SingleChildScrollView(padding: vertical, child: Observer(builder: _buildTasks)),
-              ),
-              const SizedBox(width: 36),
-              Expanded(
-                child: Padding(
-                  padding: vertical,
-                  child: _buildWorkspace(context, editorHeight: editorHeight, stacked: false),
-                ),
-              ),
-            ],
-          ),
-        ),
+      gap: 36,
+      left: GutteredScrollView(padding: vertical, child: Observer(builder: _buildTasks)),
+      right: Padding(
+        padding: vertical,
+        child: _buildWorkspace(context, editorHeight: editorHeight, stacked: false),
       ),
     );
   }
@@ -407,7 +397,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
 
   /// The right-hand column: the program, and what runs it. [stacked] is the
   /// layout where the column sits in the page's own scroll view, under the
-  /// tasks.
+  /// tasks. Otherwise it is a column of a [SplitPage].
   Widget _buildWorkspace(BuildContext context, {required double editorHeight, required bool stacked}) {
     return switch (viewModel.machine) {
       final VmSessionViewModel machine => _buildMachineWorkspace(
@@ -416,9 +406,15 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
         editorHeight: editorHeight,
         stacked: stacked,
       ),
-      null => _buildBoardWorkspace(editorHeight: editorHeight, outputHeight: stacked ? 240 : null),
+      null when stacked => _buildBoardWorkspace(editorHeight: editorHeight, outputHeight: 240),
+      null => _clearOfScrollbar(_buildBoardWorkspace(editorHeight: editorHeight)),
     };
   }
+
+  /// Keeps what does not scroll out of the room a [SplitPage] column leaves at
+  /// its end for a scrollbar.
+  static Widget _clearOfScrollbar(Widget child) =>
+      Padding(padding: const EdgeInsetsDirectional.only(end: AppScrollbar.gutter), child: child);
 
   /// The one editor every task shares, under [status].
   Widget _buildEditor({required double height, required String Function(BuildContext context) status}) {
@@ -483,7 +479,7 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
       ],
     );
 
-    return Column(
+    final program = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildEditor(height: editorHeight, status: (context) => vmStatusLabel(context.localizations, machine)),
@@ -501,7 +497,17 @@ class ProjectScreenView extends ScreenViewBase<ProjectScreenViewModel, ProjectSc
             ],
           ),
         ),
-        if (stacked) report else Expanded(child: SingleChildScrollView(child: report)),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (stacked) ...[program, report] else ...[
+          _clearOfScrollbar(program),
+          // The report's scrollbar takes the room the program is kept out of.
+          Expanded(child: GutteredScrollView(child: report)),
+        ],
       ],
     );
   }

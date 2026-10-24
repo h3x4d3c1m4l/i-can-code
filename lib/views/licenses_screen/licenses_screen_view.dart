@@ -8,6 +8,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/loading_overlay.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
 import 'package:i_can_code/views/components/text_link.dart';
@@ -144,11 +145,13 @@ class LicensesScreenView extends ScreenViewBase<LicensesScreenViewModel, License
 
     if (stacked || shown == null) return list;
 
+    // The list's scrollbar stands in the gap: the list keeps its rows clear of
+    // it, and this gives the list the room back.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: _listWidth, child: list),
-        const SizedBox(width: _gap),
+        SizedBox(width: _listWidth + AppScrollbar.gutter, child: list),
+        const SizedBox(width: _gap - AppScrollbar.gutter),
         Expanded(child: _buildDetail(context, shown)),
       ],
     );

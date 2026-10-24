@@ -7,6 +7,7 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 
 /// What stands where the program's screen will be while the machine loads: the
 /// step it is on, how much has arrived, how fast and how much longer, and that
@@ -46,71 +47,74 @@ class VmLoadPanel extends StatelessWidget {
     final lineStyle = text.codeSmall.copyWith(color: colors.codeMuted);
     final speed = speedLine(l10n, progress, step: step);
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                switch (step) {
-                  0 => l10n.tkinterScreen_downloadTitle,
-                  1 => l10n.tkinterScreen_unpackTitle,
-                  _ => l10n.tkinterScreen_startingTitle,
-                },
-                style: text.h3.copyWith(color: colors.codeForeground),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                l10n.tkinterScreen_downloadBody,
-                style: text.bodySmall.copyWith(fontSize: 15, height: 1.5, color: colors.codeMuted),
-              ),
-              const SizedBox(height: 14),
-              // The title already says which step this is.
-              ExcludeSemantics(child: _Steps(current: step)),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: _barHeight,
-                // The fill is clipped to the track rather than rounded itself: a
-                // squircle narrower than it is tall bows inward.
-                child: ClipPath(
-                  clipper: ShapeBorderClipper(shape: _barShape),
-                  child: ColoredBox(
-                    color: colors.codeMuted.withValues(alpha: 0.3),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: FractionallySizedBox(
-                        widthFactor: fraction,
-                        heightFactor: 1,
-                        child: ColoredBox(color: colors.codeForeground),
+    return ScrollConfiguration(
+      behavior: const AppScrollBehavior(surface: ScrollSurface.code),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  switch (step) {
+                    0 => l10n.tkinterScreen_downloadTitle,
+                    1 => l10n.tkinterScreen_unpackTitle,
+                    _ => l10n.tkinterScreen_startingTitle,
+                  },
+                  style: text.h3.copyWith(color: colors.codeForeground),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.tkinterScreen_downloadBody,
+                  style: text.bodySmall.copyWith(fontSize: 15, height: 1.5, color: colors.codeMuted),
+                ),
+                const SizedBox(height: 14),
+                // The title already says which step this is.
+                ExcludeSemantics(child: _Steps(current: step)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: _barHeight,
+                  // The fill is clipped to the track rather than rounded itself: a
+                  // squircle narrower than it is tall bows inward.
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(shape: _barShape),
+                    child: ColoredBox(
+                      color: colors.codeMuted.withValues(alpha: 0.3),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FractionallySizedBox(
+                          widthFactor: fraction,
+                          heightFactor: 1,
+                          child: ColoredBox(color: colors.codeForeground),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Visibility.maintain(
-                visible: measured,
-                child: Text(bytesLine(l10n, progress), style: lineStyle),
-              ),
-              Stack(
-                children: [
-                  // Holds the room of the longest speed line in this language.
-                  Visibility.maintain(visible: false, child: Text(_longestSpeed(l10n), style: lineStyle)),
-                  if (speed != null) Text(speed, style: lineStyle),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Stack(
-                children: [
-                  Visibility.maintain(visible: false, child: Text(_longestNote(l10n), style: noteStyle)),
-                  if (note != null) Semantics(liveRegion: true, child: Text(note, style: noteStyle)),
-                ],
-              ),
-            ],
+                const SizedBox(height: 6),
+                Visibility.maintain(
+                  visible: measured,
+                  child: Text(bytesLine(l10n, progress), style: lineStyle),
+                ),
+                Stack(
+                  children: [
+                    // Holds the room of the longest speed line in this language.
+                    Visibility.maintain(visible: false, child: Text(_longestSpeed(l10n), style: lineStyle)),
+                    if (speed != null) Text(speed, style: lineStyle),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Stack(
+                  children: [
+                    Visibility.maintain(visible: false, child: Text(_longestNote(l10n), style: noteStyle)),
+                    if (note != null) Semantics(liveRegion: true, child: Text(note, style: noteStyle)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

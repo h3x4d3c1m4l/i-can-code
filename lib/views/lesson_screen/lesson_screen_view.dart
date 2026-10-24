@@ -13,6 +13,7 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
@@ -24,6 +25,7 @@ import 'package:i_can_code/views/components/lesson/section_heading.dart';
 import 'package:i_can_code/views/components/lesson/step_progress_bar.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
+import 'package:i_can_code/views/components/split_page.dart';
 import 'package:i_can_code/views/components/tour_target.dart';
 import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
 import 'package:i_can_code/views/lesson_screen/components/files_card.dart';
@@ -841,32 +843,17 @@ class _SplitPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final vertical = EdgeInsets.only(top: padding.top, bottom: padding.bottom);
 
-    return Padding(
+    // Both columns take the window's full height, which is there to take:
+    // `StepTransition` lays every step out to the full size of the screen.
+    return SplitPage(
+      maxWidth: maxWidth,
       padding: EdgeInsets.only(left: padding.left, right: padding.right),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          // Both columns take the window's full height, which is what gives
-          // each one a viewport to scroll inside. The height is there to take:
-          // `StepTransition` lays every step out to the full size of the
-          // screen.
-          //
-          // Even halves. `Expanded.flex` is an integer ratio against a default
-          // of 1, so `flex: 11` would be an 11:1 split, not 1:1.1.
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: SingleChildScrollView(padding: vertical, child: left)),
-              SizedBox(width: gap),
-              // A scroll view as well, though this column is meant to stand
-              // still: it fits the window and so does not scroll, but a long
-              // enough run of output would otherwise overflow it with no way
-              // to reach the end.
-              Expanded(child: SingleChildScrollView(padding: vertical, child: right)),
-            ],
-          ),
-        ),
-      ),
+      gap: gap,
+      left: GutteredScrollView(padding: vertical, child: left),
+      // A scroll view as well, though this column is meant to stand still: it
+      // fits the window and so does not scroll, but a long enough run of output
+      // would otherwise overflow it with no way to reach the end.
+      right: GutteredScrollView(padding: vertical, child: right),
     );
   }
 

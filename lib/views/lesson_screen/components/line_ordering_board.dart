@@ -7,6 +7,8 @@ import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 
 /// The order the available lines are laid out in: every line of the pool, once.
 ///
@@ -394,15 +396,21 @@ class _LineTile extends StatelessWidget {
         shape: squircle(kChipCornerRadius),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(18, 12, placed ? 4 : 18, 12),
+        // No top or bottom: the scroll view's own padding is both, so the line
+        // keeps the scrollbar's room under it and stays centred on the chip.
+        padding: EdgeInsets.fromLTRB(18, 0, placed ? 4 : 18, 0),
         child: Row(
           children: [
             Expanded(
-              // A long line scrolls rather than wrapping, which would read as
-              // two statements — the same rule a worked example follows.
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Text(text, style: ghost ? style.copyWith(color: tokens.colors.codeMuted) : style),
+              child: ScrollConfiguration(
+                behavior: const AppScrollBehavior(surface: ScrollSurface.code),
+                // A long line scrolls rather than wrapping, which would read as
+                // two statements — the same rule a worked example follows.
+                child: GutteredScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(top: AppScrollbar.gutter),
+                  child: Text(text, style: ghost ? style.copyWith(color: tokens.colors.codeMuted) : style),
+                ),
               ),
             ),
             if (placed && !ghost)

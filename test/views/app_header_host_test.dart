@@ -20,6 +20,7 @@ import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_host.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/settings_menu.dart';
 import 'package:i_can_code/views/components/spotlight_scrim.dart';
 import 'package:i_can_code/views/components/tour_target.dart';
@@ -322,6 +323,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(_hasEdge(tester), isTrue);
     });
+  });
+
+  group('a scrollbar on the page', () {
+    /// Where the scrollbar's track starts, below the top of its scroll view.
+    double trackTop(WidgetTester tester) {
+      final paint = tester.widget<CustomPaint>(
+        find.descendant(of: find.byType(AppScrollbar), matching: find.byType(CustomPaint)).first,
+      );
+      return (paint.foregroundPainter! as ScrollbarPainter).padding.resolve(TextDirection.ltr).top;
+    }
+
+    Widget page({double top = 0}) =>
+        ScrollConfiguration(behavior: const AppScrollBehavior(), child: _scrollingPage(top: top));
+
+    testWidgets('starts its track under the bar', (tester) async {
+      await tester.pumpWidget(_host(ValueNotifier(_screen(child: page()))));
+      await tester.pumpAndSettle();
+
+      expect(trackTop(tester), AppHeader.height);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+    testWidgets('further down the page, starts at its own top', (tester) async {
+      await tester.pumpWidget(_host(ValueNotifier(_screen(child: page(top: 200)))));
+      await tester.pumpAndSettle();
+
+      expect(trackTop(tester), 0);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
   });
 
   group('the cog, with nothing above the bar to hang off', () {

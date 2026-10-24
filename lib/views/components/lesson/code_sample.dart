@@ -8,8 +8,10 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
 import 'package:i_can_code/views/components/code_strip_button.dart';
+import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/selectable_code.dart';
 import 'package:re_highlight/languages/python.dart';
 import 'package:re_highlight/re_highlight.dart';
@@ -108,15 +110,22 @@ class CodeSample extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: CodeEditorCard.codePadding,
+              // The scroll view's gutter is the rest of the bottom padding, so
+              // the card is as tall as the editor's.
+              padding: CodeEditorCard.codePadding.copyWith(
+                bottom: CodeEditorCard.codePadding.bottom - AppScrollbar.gutter,
+              ),
               child: SelectableCode(
-                // A long line scrolls rather than wrapping, which would read as
-                // two statements.
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  // Switched off at the text and not above the scroll view, so
-                  // a program scrolled sideways stays there when it turns on.
-                  child: copyable ? code : SelectionContainer.disabled(child: code),
+                child: ScrollConfiguration(
+                  behavior: const AppScrollBehavior(surface: ScrollSurface.code),
+                  // A long line scrolls rather than wrapping, which would read
+                  // as two statements.
+                  child: GutteredScrollView(
+                    scrollDirection: Axis.horizontal,
+                    // Switched off at the text and not above the scroll view,
+                    // so a program scrolled sideways stays there when it turns on.
+                    child: copyable ? code : SelectionContainer.disabled(child: code),
+                  ),
                 ),
               ),
             ),

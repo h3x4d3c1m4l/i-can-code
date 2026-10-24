@@ -7,12 +7,16 @@ import 'package:i_can_code/services/licenses/license_catalog.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/theme/squircle_input_border.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/catalog_group_heading.dart';
 import 'package:i_can_code/views/licenses_screen/components/license_row.dart';
 import 'package:i_can_code/views/licenses_screen/license_labels.dart';
 
 /// The licence screen's list: a search field, and under it every component the
 /// app ships, under a heading for where it comes from.
+///
+/// The field and the rows stop [AppScrollbar.gutter] short of the list's end,
+/// which is where the rows' scrollbar goes.
 class LicenseList extends StatelessWidget {
 
   /// What the headings are indented by, so they line up with the names under
@@ -47,22 +51,26 @@ class LicenseList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localizations = context.localizations;
+    const clearOfScrollbar = EdgeInsetsDirectional.only(end: AppScrollbar.gutter);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FTextField(
-          control: .managed(initial: TextEditingValue(text: query), onChange: (value) => onSearch(value.text)),
-          hint: localizations.licensesScreen_search,
-          // A name is not prose: nothing here is a word to capitalise or correct.
-          textCapitalization: TextCapitalization.none,
-          autocorrect: false,
-          prefixBuilder: (context, style, variants) =>
-              FTextField.prefixIconBuilder(context, style, variants, const Icon(FLucideIcons.search)),
-          style: FTextFieldStyleDelta.delta(
-            // A chip's radius, not a control's: the field is one line tall, and
-            // a squircle bows inward past half its shortest side.
-            border: squircleFieldBorder(context, radius: kChipCornerRadius),
+        Padding(
+          padding: clearOfScrollbar,
+          child: FTextField(
+            control: .managed(initial: TextEditingValue(text: query), onChange: (value) => onSearch(value.text)),
+            hint: localizations.licensesScreen_search,
+            // A name is not prose: nothing here is a word to capitalise or correct.
+            textCapitalization: TextCapitalization.none,
+            autocorrect: false,
+            prefixBuilder: (context, style, variants) =>
+                FTextField.prefixIconBuilder(context, style, variants, const Icon(FLucideIcons.search)),
+            style: FTextFieldStyleDelta.delta(
+              // A chip's radius, not a control's: the field is one line tall,
+              // and a squircle bows inward past half its shortest side.
+              border: squircleFieldBorder(context, radius: kChipCornerRadius),
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -80,27 +88,34 @@ class LicenseList extends StatelessWidget {
                 )
               : CustomScrollView(
                   slivers: [
-                    for (final MapEntry(key: origin, value: components) in groups.entries) ...[
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(_headingInset, 12, _headingInset, 8),
-                          child: CatalogGroupHeading(originLabel(localizations, origin)),
-                        ),
-                      ),
-                      SliverList.builder(
-                        itemCount: components.length,
-                        itemBuilder: (context, index) {
-                          final component = components[index];
+                    SliverPadding(
+                      padding: clearOfScrollbar,
+                      sliver: SliverMainAxisGroup(
+                        slivers: [
+                          for (final MapEntry(key: origin, value: components) in groups.entries) ...[
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(_headingInset, 12, _headingInset, 8),
+                                child: CatalogGroupHeading(originLabel(localizations, origin)),
+                              ),
+                            ),
+                            SliverList.builder(
+                              itemCount: components.length,
+                              itemBuilder: (context, index) {
+                                final component = components[index];
 
-                          return LicenseRow(
-                            name: componentName(localizations, component),
-                            selected: identical(component, selected),
-                            onPress: () => onPick(component),
-                          );
-                        },
+                                return LicenseRow(
+                                  name: componentName(localizations, component),
+                                  selected: identical(component, selected),
+                                  onPress: () => onPick(component),
+                                );
+                              },
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                          ],
+                        ],
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                    ],
+                    ),
                   ],
                 ),
         ),
