@@ -81,11 +81,18 @@ class AppButton extends StatelessWidget {
   /// do.
   static const double _bevelOutlineWidth = 3;
 
+  /// The half of the outline that lies outside the face, reserved around it.
+  ///
+  /// [ContinuousRectangleBorder] strokes centred on the shape's edge. Left
+  /// outside the button's box, that half was cut by any clip at the box's edge:
+  /// a scroll view with the button flush against its side drew a flat edge.
+  static const EdgeInsets _outlineOverhang = EdgeInsets.all(_bevelOutlineWidth / 2);
+
   /// How far the collar shows beneath a button, and how far it sinks
   /// when pressed. A [BoxShadow] with no blur rather than a second widget: a
-  /// [ShapeDecoration]'s shadows are already clipped to its own shape, so one
-  /// solid, unblurred, downward shadow reads as a hard-edged rim instead of a
-  /// soft drop shadow.
+  /// [ShapeDecoration] draws its shadows in its own shape, so one solid,
+  /// unblurred, downward shadow reads as a hard-edged rim instead of a soft
+  /// drop shadow. It hangs below the button's box, the one thing drawn outside it.
   static const double _collarHeight = 4;
 
   /// How much darker the outline and the collar are than the fill they sit
@@ -352,7 +359,10 @@ class AppButton extends StatelessWidget {
         // Transform, not a resize: the same reason `busy` keeps the label's
         // own box laid out. A button that grew or shrank on press would also
         // shift whatever sits below it in an [AppButtonRow].
-        return Transform.translate(offset: Offset(0, pressed ? _collarHeight : 0), child: decorated);
+        return Padding(
+          padding: _outlineOverhang,
+          child: Transform.translate(offset: Offset(0, pressed ? _collarHeight : 0), child: decorated),
+        );
       },
       child: DefaultTextStyle(
         // The heading face, so a button reads as part of the same playful set

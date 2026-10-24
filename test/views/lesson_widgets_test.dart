@@ -1848,7 +1848,9 @@ void main() {
 
       final quarter = await fillAt(0.25);
       final full = await fillAt(1);
-      final button = tester.getRect(find.byType(AppButton));
+      final button = tester.getRect(
+        find.descendant(of: find.byType(AppButton), matching: find.byType(DecoratedBox)).first,
+      );
 
       expect(quarter.width, lessThan(full.width));
       expect(quarter.left, moreOrLessEquals(button.left), reason: 'it grows from the leading edge');
