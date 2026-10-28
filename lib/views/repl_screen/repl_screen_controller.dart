@@ -20,27 +20,29 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
   StreamSubscription<ReplEvent>? _subscription;
   bool _disposed = false;
 
-  /// The prompt the interpreter printed most recently.
+  /// What the interpreter has written on the line the cursor is on: `>>> `,
+  /// `... `, the prompt of an `input()`, or the end of a `print` without a
+  /// newline. Empty once a line has been submitted, until it writes again.
   ///
   /// Read off the screen, which is where a terminal has always got it. The
   /// worker flushes whatever is pending just before it parks, so the last thing
   /// written before a read is the prompt that read is for.
   String _prompt = '';
 
-  /// A prompt sits at the very end of what was written, and there are only two
-  /// of them.
-  static final RegExp _promptAtEnd = RegExp(r'(>>> |\.\.\. )$');
-
   /// The interpreter is part way through a block — `for ...:` typed, the body
   /// still to come. Throwing away the current line leaves the block open, and
   /// nothing a line discipline can send will close it.
-  bool get _inPendingBlock => _prompt == '... ';
+  bool get _inPendingBlock => _prompt.endsWith('... ');
 
   ReplScreenController({required super.viewModel, required super.contextAccessor}) {
     _editor = LineEditor(
       echo: viewModel.terminal.write,
-      submit: (line) => _repl.write(line),
+      submit: (line) {
+        _prompt = '';
+        _repl.write(line);
+      },
       endOfInput: () => _repl.endInput(),
+      prompt: () => _prompt,
       // wasm has no signals, so nothing can interrupt a running program from
       // inside it — and an open block cannot be closed from outside. Ctrl-C is
       // therefore the Restart button in both cases, which at least always ends
@@ -91,9 +93,15 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
     _editor.releaseAnchor();
     viewModel.terminal.write(cookOutput(text));
 
-    final prompt = _promptAtEnd.firstMatch(text);
-    if (prompt != null) _prompt = prompt.group(0)!;
+    final lineStart = text.lastIndexOf(_lineBreak) + 1;
+    final line = lineStart == 0 ? _prompt + text : text.substring(lineStart);
+    // A program printing without newlines would grow this without end.
+    _prompt = line.length > _maxPromptLength ? line.substring(line.length - _maxPromptLength) : line;
   }
+
+  static final RegExp _lineBreak = RegExp('[\r\n]');
+
+  static const int _maxPromptLength = 256;
 
   /// A line from the app rather than from Python, marked as such. Grey, so it
   /// cannot be mistaken for something the interpreter said.

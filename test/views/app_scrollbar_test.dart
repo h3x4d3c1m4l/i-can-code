@@ -12,13 +12,16 @@ const Key _content = ValueKey('content');
 
 /// The app's scroll behaviour round [child], the way the shell puts it round
 /// the whole app.
-Widget _host(Widget child, {ScrollSurface surface = ScrollSurface.page}) => FTheme(
+Widget _host(Widget child, {ScrollSurface surface = ScrollSurface.page, bool thumbAlwaysShown = false}) => FTheme(
   data: buildAppTheme(),
   child: Directionality(
     textDirection: TextDirection.ltr,
     child: MediaQuery(
       data: const MediaQueryData(size: Size(800, 600)),
-      child: ScrollConfiguration(behavior: AppScrollBehavior(surface: surface), child: child),
+      child: ScrollConfiguration(
+        behavior: AppScrollBehavior(surface: surface, thumbAlwaysShown: thumbAlwaysShown),
+        child: child,
+      ),
     ),
   ),
 );
@@ -80,6 +83,16 @@ void main() {
     await _settleThumb(tester);
     expect(_thumbAt(tester, height - 1), isFalse);
     expect(_thumbAt(tester, height - 30), isTrue);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+  testWidgets('the thumb fades out at rest, and stays where it is asked to', (tester) async {
+    await tester.pumpWidget(_host(_longPage()));
+    await _settleThumb(tester);
+    expect(_thumbAt(tester, 30), isFalse);
+
+    await tester.pumpWidget(_host(_longPage(), thumbAlwaysShown: true));
+    await _settleThumb(tester);
+    expect(_thumbAt(tester, 30), isTrue);
   }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
   testWidgets('the thumb takes the ink of the surface it is drawn on', (tester) async {

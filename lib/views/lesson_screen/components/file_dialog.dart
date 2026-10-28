@@ -9,10 +9,10 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/file_download/file_download.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/lesson/selectable_code.dart';
+import 'package:i_can_code/views/components/scroll_card.dart';
 
 /// Where a file on a step came from, which is what its dialog says about it.
 enum FileOrigin {
@@ -184,27 +184,13 @@ class _Contents extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = context.appTheme;
-
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        color: theme.colors.card,
-        shape: squircle(kCardCornerRadius, side: BorderSide(color: theme.colors.border)),
-      ),
-      child: SingleChildScrollView(
-        primary: false,
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-        child: SizedBox(
-          width: double.infinity,
-          child: SelectableCode(
-            child: Text(
-              // `csv.writer` ends its rows in \r\n, which would draw as a blank
-              // line under each. Copied and downloaded, the text is as written.
-              const LineSplitter().convert(text).join('\n'),
-              style: tokens.text.code.copyWith(fontSize: 15, height: 1.7),
-            ),
-          ),
+    return ScrollCard(
+      child: SelectableCode(
+        child: Text(
+          // `csv.writer` ends its rows in \r\n, which would draw as a blank
+          // line under each. Copied and downloaded, the text is as written.
+          const LineSplitter().convert(text).join('\n'),
+          style: context.appTheme.text.code.copyWith(fontSize: 15, height: 1.7),
         ),
       ),
     );

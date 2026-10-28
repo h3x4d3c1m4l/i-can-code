@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
@@ -10,6 +12,8 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
+import 'package:i_can_code/views/components/text_link.dart';
+import 'package:i_can_code/views/repl_screen/components/repl_help_dialog.dart';
 import 'package:i_can_code/views/repl_screen/repl_screen_controller.dart';
 import 'package:i_can_code/views/repl_screen/repl_screen_view_model.dart';
 
@@ -59,7 +63,8 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
                     child: Observer(
                       builder: (context) => switch (viewModel.status) {
                         ReplStatus.unavailable => _buildUnavailable(context),
-                        _ => ReplTerminal(terminal: viewModel.terminal),
+                        // The line editor takes Ctrl+A to the start of the line.
+                        _ => ReplTerminal(terminal: viewModel.terminal, passesCtrlA: true),
                       },
                     ),
                   ),
@@ -82,18 +87,26 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
         return Row(
           children: [
             Expanded(
-              child: Text(
-                starting
-                    ? context.localizations.replScreen_starting
-                    // Only worth reading once there is something to type into.
-                    : context.localizations.replScreen_hint,
-                style: context.appTheme.text.bodySmall.copyWith(color: context.theme.colors.mutedForeground),
-              ),
+              child: starting
+                  ? Text(
+                      context.localizations.replScreen_starting,
+                      style: context.appTheme.text.bodySmall.copyWith(color: context.theme.colors.mutedForeground),
+                    )
+                  // Only worth reading once there is something to type into.
+                  : Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextLink(
+                        label: context.localizations.replScreen_help,
+                        target: TextLinkTarget.help,
+                        onPress: () => unawaited(showReplHelpDialog(context)),
+                      ),
+                    ),
             ),
             const SizedBox(width: 16),
             if (viewModel.status != ReplStatus.unavailable)
               AppButton(
                 tone: AppButtonTone.neutral,
+                icon: FLucideIcons.rotateCcw,
                 busy: starting,
                 onPress: starting ? null : controller.restart,
                 child: Text(context.localizations.replScreen_restart),

@@ -145,7 +145,44 @@
   "replScreen_subtitle": "Probeer dingen regel voor regel uit. Hier wordt niets gecontroleerd.",
   "replScreen_starting": "De interpreter wordt gestart…",
   "replScreen_restart": "Herstarten",
-  "replScreen_hint": "Enter voert de regel uit · Pijl-omhoog haalt een eerdere regel terug · Ctrl-D sluit af",
+  "replScreen_help": "Uitleg en sneltoetsen",
+  "replHelpDialog_title": "Uitleg en sneltoetsen",
+  "replHelpDialog_lines": "Wat je typt gaat regel voor regel naar Python. Druk op Enter en de regel wordt meteen uitgevoerd. Typ je alleen een waarde of een berekening, zoals 2 + 3, dan laat Python de uitkomst zien, ook zonder print.",
+  "replHelpDialog_names": "Variabelen en functies blijven bestaan zolang de interpreter draait, net als wat je importeert. Wat je op de ene regel maakt, kun je op de volgende gebruiken. Herstarten of de pagina verlaten wist alles.",
+  "replHelpDialog_blocks": "Eindigt een regel op een dubbele punt, zoals na if of for, dan wacht Python achter ... op de rest van het blok. Spring die regels in en sluit het blok af met een lege regel.",
+  "replHelpDialog_enter": "Voert de regel uit.",
+  "replHelpDialog_upKey": "Pijl-omhoog",
+  "replHelpDialog_downKey": "Pijl-omlaag",
+  "replHelpDialog_history": "Haalt een eerdere regel terug, of gaat weer vooruit.",
+  "replHelpDialog_tab": "Springt in, aan het begin van een regel.",
+  "replHelpDialog_lineEnds": "Naar het begin of het einde van de regel.",
+  "replHelpDialog_wordBackKey": "{modifier}+Pijl-links",
+  "@replHelpDialog_wordBackKey": {
+    "placeholders": {
+      "modifier": {
+        "type": "String",
+        "example": "Ctrl"
+      }
+    }
+  },
+  "replHelpDialog_wordForwardKey": "{modifier}+Pijl-rechts",
+  "@replHelpDialog_wordForwardKey": {
+    "placeholders": {
+      "modifier": {
+        "type": "String",
+        "example": "Ctrl"
+      }
+    }
+  },
+  "replHelpDialog_words": "Een woord terug of vooruit.",
+  "replHelpDialog_erase": "Wist alles voor de cursor, alles erna, of het woord ervoor.",
+  "replHelpDialog_clear": "Maakt het scherm leeg.",
+  "replHelpDialog_interrupt": "Gooit de regel weg die je aan het typen bent. Draait er een programma of zit je in een blok, dan start de interpreter opnieuw.",
+  "replHelpDialog_endInput": "Op een lege regel: einde van de invoer. Achter >>> stopt de interpreter, in input() geeft het een EOFError.",
+  "replHelpDialog_leaveKeys": "Esc, dan Tab",
+  "replHelpDialog_leave": "Naar de volgende knop. Met Shift+Tab naar de vorige.",
+  "replHelpDialog_close": "Sluiten",
+  "replTerminal_leaveHint": "Esc, dan Tab: verlaten",
   "replScreen_exited": "De interpreter is gestopt (afsluitcode {code}).",
   "@replScreen_exited": {
     "placeholders": {

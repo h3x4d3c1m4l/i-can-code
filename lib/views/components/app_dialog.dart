@@ -37,12 +37,18 @@ class AppDialog extends StatelessWidget {
   final Widget? body;
 
   /// What the dialog shows below [body], such as a program or a file.
+  ///
+  /// The one part that gives way when the dialog is taller than the window, so
+  /// a [content] that can grow SHOULD scroll.
   final Widget? content;
 
   /// The buttons, with the one that carries the question forward last.
   final List<Widget> actions;
 
   const AppDialog({this.title, this.body, this.content, this.actions = const [], super.key});
+
+  /// What [body] is set in, for text in [content] that reads as more of it.
+  static TextStyle bodyStyle(BuildContext context) => context.appTheme.text.bodySmall.copyWith(fontSize: 17);
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +68,15 @@ class AppDialog extends StatelessWidget {
           if (title != null) DefaultTextStyle.merge(style: text.h3, child: title),
           if (body != null) ...[
             if (title != null) const SizedBox(height: 12),
-            DefaultTextStyle.merge(style: text.bodySmall.copyWith(fontSize: 17), child: body),
+            DefaultTextStyle.merge(style: bodyStyle(context), child: body),
           ],
           if (content != null) ...[
-            if (title != null || body != null) const SizedBox(height: 20),
-            content,
+            if (body != null)
+              const SizedBox(height: 20)
+            else if (title != null)
+              const SizedBox(height: 12),
+            // forui bounds the dialog by the window less its inset.
+            Flexible(child: content),
           ],
           if (actions.isNotEmpty) ...[
             if (title != null || body != null || content != null) const SizedBox(height: 24),

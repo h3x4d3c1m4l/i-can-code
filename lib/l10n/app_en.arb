@@ -398,8 +398,74 @@
   "@replScreen_starting": {},
   "replScreen_restart": "Restart",
   "@replScreen_restart": {},
-  "replScreen_hint": "Enter runs the line · Up arrow brings back an earlier one · Ctrl-D exits",
-  "@replScreen_hint": {},
+  "replScreen_help": "Help and shortcuts",
+  "@replScreen_help": {
+    "description": "The link under the console that opens a dialog explaining it and listing its keys."
+  },
+  "replHelpDialog_title": "Help and shortcuts",
+  "@replHelpDialog_title": {},
+  "replHelpDialog_lines": "What you type goes to Python one line at a time. Press Enter and the line runs straight away. Type just a value or a sum, like 2 + 3, and Python shows the result without print.",
+  "@replHelpDialog_lines": {},
+  "replHelpDialog_names": "Variables and functions stay around for as long as the interpreter runs, and so does anything you import. What you make on one line, you can use on the next. Restarting or leaving the page wipes everything.",
+  "@replHelpDialog_names": {},
+  "replHelpDialog_blocks": "When a line ends in a colon, as after if or for, Python waits behind ... for the rest of the block. Indent those lines and end the block with an empty line.",
+  "@replHelpDialog_blocks": {},
+  "replHelpDialog_enter": "Runs the line.",
+  "@replHelpDialog_enter": {},
+  "replHelpDialog_upKey": "Up arrow",
+  "@replHelpDialog_upKey": {
+    "description": "Key names, not symbols: the interface font has no arrow glyphs."
+  },
+  "replHelpDialog_downKey": "Down arrow",
+  "@replHelpDialog_downKey": {},
+  "replHelpDialog_history": "Brings back an earlier line, or goes forward again.",
+  "@replHelpDialog_history": {},
+  "replHelpDialog_tab": "Indents, at the start of a line.",
+  "@replHelpDialog_tab": {},
+  "replHelpDialog_lineEnds": "To the start or the end of the line.",
+  "@replHelpDialog_lineEnds": {},
+  "replHelpDialog_wordBackKey": "{modifier}+Left arrow",
+  "@replHelpDialog_wordBackKey": {
+    "description": "Key names, not symbols: the interface font has no arrow glyphs.",
+    "placeholders": {
+      "modifier": {
+        "type": "String",
+        "example": "Ctrl"
+      }
+    }
+  },
+  "replHelpDialog_wordForwardKey": "{modifier}+Right arrow",
+  "@replHelpDialog_wordForwardKey": {
+    "description": "Key names, not symbols: the interface font has no arrow glyphs.",
+    "placeholders": {
+      "modifier": {
+        "type": "String",
+        "example": "Ctrl"
+      }
+    }
+  },
+  "replHelpDialog_words": "One word back or forward.",
+  "@replHelpDialog_words": {},
+  "replHelpDialog_erase": "Erases everything before the cursor, everything after it, or the word before it.",
+  "@replHelpDialog_erase": {
+    "description": "For Ctrl+U, Ctrl+K and Ctrl+W, in that order."
+  },
+  "replHelpDialog_clear": "Clears the screen.",
+  "@replHelpDialog_clear": {},
+  "replHelpDialog_interrupt": "Throws away the line you are typing. If a program is running or you are inside a block, the interpreter starts over.",
+  "@replHelpDialog_interrupt": {},
+  "replHelpDialog_endInput": "On an empty line: end of input. After >>> the interpreter stops; in input() it raises an EOFError.",
+  "@replHelpDialog_endInput": {},
+  "replHelpDialog_leaveKeys": "Esc, then Tab",
+  "@replHelpDialog_leaveKeys": {},
+  "replHelpDialog_leave": "To the next button. Shift+Tab goes to the previous one.",
+  "@replHelpDialog_leave": {},
+  "replHelpDialog_close": "Close",
+  "@replHelpDialog_close": {},
+  "replTerminal_leaveHint": "Esc, then Tab to leave",
+  "@replTerminal_leaveHint": {
+    "description": "Shown in the corner of a console while it has the keyboard. Tab goes to the program there, so pressing Esc and then Tab (or Shift+Tab) is how the keyboard moves on to the next control."
+  },
   "replScreen_exited": "The interpreter has stopped (exit code {code}).",
   "@replScreen_exited": {
     "placeholders": {

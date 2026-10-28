@@ -18,11 +18,15 @@
 /** Header slots, as Int32 indices. `Atomics.wait` needs an Int32Array. */
 const IDX_WRITE = 0;
 const IDX_READ = 1;
-const IDX_CLOSED = 2;
-const IDX_WAITING = 3;
+const IDX_WAITING = 2;
 
-const HEADER_SLOTS = 4;
+const HEADER_SLOTS = 3;
 const HEADER_BYTES = HEADER_SLOTS * 4;
+
+/** Ctrl-D, carried in the ring as a tty carries VEOF: in order with the text
+ *  around it, and gone once a read has seen it. In UTF-8 only U+0004 itself
+ *  encodes to this byte, so text without it cannot be mistaken for one. */
+const EOF_BYTE = 0x04;
 
 /** Room for anything a person can type or paste in one go, and nothing like the
  *  size that would make it worth growing. */
@@ -53,13 +57,26 @@ function dataOf(channel) {
  *  Returns how many bytes were taken. Short of `text` means the ring was full —
  *  the program is not reading, and dropping the tail is better than blocking the
  *  page, which is the one thread that must never block.
+ *
+ *  `text` MUST NOT hold U+0004, which the reader takes for end of input.
  */
 export function write(channel, text) {
+  return writeBytes(channel, new TextEncoder().encode(text));
+}
+
+/** Ends the input once, which is what Ctrl-D on an empty line does in a
+ *  terminal. The read that reaches it returns nothing, and the one after it
+ *  waits for more as usual. At a prompt that nothing is the REPL's cue to exit;
+ *  inside `input()` it is an EOFError, and the session goes on. */
+export function endOfInput(channel) {
+  return writeBytes(channel, Uint8Array.of(EOF_BYTE));
+}
+
+function writeBytes(channel, bytes) {
   const header = headerOf(channel);
   const data = dataOf(channel);
   const capacity = data.length;
 
-  const bytes = new TextEncoder().encode(text);
   const w = Atomics.load(header, IDX_WRITE);
   const r = Atomics.load(header, IDX_READ);
 
@@ -75,14 +92,6 @@ export function write(channel, text) {
   Atomics.store(header, IDX_WRITE, (w + count) % capacity);
   Atomics.notify(header, IDX_WRITE);
   return count;
-}
-
-/** Ends the stream. A parked reader wakes and sees EOF, which is what Ctrl-D
- *  means to the REPL: exit. */
-export function close(channel) {
-  const header = headerOf(channel);
-  Atomics.store(header, IDX_CLOSED, 1);
-  Atomics.notify(header, IDX_WRITE);
 }
 
 /** True while the program is parked on an empty ring — it has asked for input
@@ -106,15 +115,16 @@ export class BlockingStdin {
     this.capacity = this.data.length;
   }
 
-  /** Blocks until at least one byte is available. An empty result means EOF and
-   *  MUST be treated as such by the caller — returning it in a loop would spin. */
+  /** Blocks until at least one byte is available. An empty result means end of
+   *  input for this one read, and the next read blocks again.
+   *
+   *  Stops short of an end of input that follows some text, as a tty's read
+   *  does, so the text is answered first and the end on the read after it. */
   read(max) {
     const r = Atomics.load(this.header, IDX_READ);
     let w = Atomics.load(this.header, IDX_WRITE);
 
     while (w === r) {
-      if (Atomics.load(this.header, IDX_CLOSED) === 1) return new Uint8Array(0);
-
       Atomics.store(this.header, IDX_WAITING, 1);
       // Expects `w`, so a write landing between the store above and this call
       // returns "not-equal" straight away rather than being lost.
@@ -124,8 +134,14 @@ export class BlockingStdin {
       w = Atomics.load(this.header, IDX_WRITE);
     }
 
+    if (this.data[r] === EOF_BYTE) {
+      Atomics.store(this.header, IDX_READ, (r + 1) % this.capacity);
+      return new Uint8Array(0);
+    }
+
     const available = (w - r + this.capacity) % this.capacity;
-    const count = Math.min(available, max);
+    let count = 0;
+    while (count < Math.min(available, max) && this.data[(r + count) % this.capacity] !== EOF_BYTE) count += 1;
     const out = new Uint8Array(count);
 
     const firstRun = Math.min(count, this.capacity - r);

@@ -82,10 +82,13 @@ abstract class PythonRepl {
   /// Hands [text] to the interpreter's standard input, verbatim.
   ///
   /// The caller MUST include the newline that ends a line: this is a stream,
-  /// not a line-based API, and CPython does not act until it sees one.
+  /// not a line-based API, and CPython does not act until it sees one. [text]
+  /// MUST NOT hold U+0004, which is how [endInput] travels.
   void write(String text);
 
-  /// Closes standard input — what Ctrl-D means. The interpreter exits.
+  /// Ends standard input for one read, as Ctrl-D on an empty line does in a
+  /// terminal. At a prompt the interpreter exits. Inside `input()` that read
+  /// raises EOFError, and the session goes on.
   void endInput();
 
   /// True while the interpreter is parked waiting for a line, and so doing

@@ -9,11 +9,13 @@ class _Harness {
   int endedInput = 0;
   int interrupted = 0;
   bool canDiscard = true;
+  String prompt = '>>> ';
 
   late final LineEditor editor = LineEditor(
     echo: echoed.write,
     submit: submitted.add,
     endOfInput: () => endedInput++,
+    prompt: () => prompt,
     interrupt: () => interrupted++,
     canDiscardLine: () => canDiscard,
   );
@@ -95,6 +97,15 @@ void main() {
       expect(harness.editor.line, isEmpty);
     });
 
+    test('Ctrl-U keeps what is after the cursor, as readline does', () {
+      final harness = _Harness()
+        ..type('oops print(1)')
+        ..type('\x1b[D' * 'print(1)'.length)
+        ..type('\x15');
+
+      expect(harness.editor.line, 'print(1)');
+    });
+
     test('Ctrl-W deletes the word before the cursor', () {
       final harness = _Harness()..type('print hello\x17');
 
@@ -121,6 +132,82 @@ void main() {
       // The half-sequence is held rather than printed. What matters is that no
       // stray bracket reaches the line.
       expect(harness.editor.line, 'ab');
+    });
+  });
+
+  group('words', () {
+    // Readline's words are letters and digits, so `my_var` is two of them.
+    const line = 'x = my_var + 1';
+
+    _Harness atEnd() => _Harness()..type(line);
+
+    test('Meta-B moves to the start of the word, Option+Left on a Mac', () {
+      final harness = atEnd()
+        ..type('\x1bb\x1bb')
+        ..type('!');
+
+      expect(harness.editor.line, 'x = my_!var + 1');
+    });
+
+    test('Ctrl+Left moves a word back', () {
+      final harness = atEnd()
+        ..type('\x1b[1;5D\x1b[1;5D')
+        ..type('!');
+
+      expect(harness.editor.line, 'x = my_!var + 1');
+    });
+
+    test('Meta-F and Ctrl+Right move to the end of the next word', () {
+      final harness = _Harness()
+        ..type(line)
+        ..type('\x1b[H')
+        ..type('\x1bf\x1b[1;5C\x1b[1;3C')
+        ..type('!');
+
+      expect(harness.editor.line, 'x = my_var! + 1');
+    });
+
+    test('an arrow without a modifier still moves one character', () {
+      final harness = atEnd()
+        ..type('\x1b[D')
+        ..type('!');
+
+      expect(harness.editor.line, 'x = my_var + !1');
+    });
+  });
+
+  group('Tab', () {
+    test('at the start of a line it indents with a tab', () {
+      final harness = _Harness()..type('\tprint(i)');
+
+      expect(harness.editor.line, '\tprint(i)');
+    });
+
+    test('after a word break it inserts a tab, as rlcompleter does', () {
+      final harness = _Harness()..type('print(\t');
+
+      expect(harness.editor.line, 'print(\t');
+    });
+
+    test('in a word, where readline would complete, it does nothing', () {
+      final harness = _Harness()..type('pri\t');
+
+      expect(harness.editor.line, 'pri');
+    });
+  });
+
+  group('Ctrl-L', () {
+    test('clears the screen and puts the prompt back above the line', () {
+      final harness = _Harness()
+        ..prompt = '... '
+        ..type('x = 1')
+        ..type('\x0c');
+
+      final echoed = harness.echoed.toString();
+      final cleared = echoed.lastIndexOf('\x1b[2J');
+      expect(echoed.substring(cleared), startsWith('\x1b[2J\x1b[H... '));
+      expect(echoed.substring(cleared), contains('x = 1'));
+      expect(harness.editor.line, 'x = 1');
     });
   });
 
@@ -179,6 +266,12 @@ void main() {
       expect(harness.echoed.toString(), isNot(contains('KeyboardInterrupt')));
     });
 
+    test('it puts the prompt back, which the interpreter has no reason to print', () {
+      final harness = _Harness()..type('oops\x03');
+
+      expect(harness.echoed.toString(), contains('^C\r\n>>> '));
+    });
+
     test('while the interpreter is busy it is the caller\'s problem', () {
       final harness = _Harness()
         ..canDiscard = false
@@ -205,7 +298,17 @@ void main() {
       expect(harness.endedInput, 1);
     });
 
-    test('with something typed it does nothing, so a session is not lost by accident', () {
+    test('with something typed it deletes the character under the cursor', () {
+      final harness = _Harness()
+        ..type('xy')
+        ..type('\x1b[D')
+        ..type('\x04');
+
+      expect(harness.endedInput, 0);
+      expect(harness.editor.line, 'x');
+    });
+
+    test('at the end of a line with something typed it does nothing', () {
       final harness = _Harness()..type('x\x04');
 
       expect(harness.endedInput, 0);

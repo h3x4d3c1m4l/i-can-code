@@ -16,7 +16,7 @@ PythonRepl createPythonRepl() => WebPythonRepl();
 ///
 /// It is reached by `importModule` rather than rewritten in Dart because the
 /// worker half has to be the same code, and because `Atomics` has no Dart
-/// binding — the page's half is only `write`, `close` and two loads, so keeping
+/// binding — the page's half is only `write`, `endOfInput` and two loads, so keeping
 /// the protocol in one file is worth the interop.
 extension type _StdinChannelModule(JSObject _) implements JSObject {
 
@@ -24,7 +24,7 @@ extension type _StdinChannelModule(JSObject _) implements JSObject {
 
   external int write(JSObject channel, String text);
 
-  external void close(JSObject channel);
+  external int endOfInput(JSObject channel);
 
   external bool isWaiting(JSObject channel);
 
@@ -161,7 +161,7 @@ class WebPythonRepl implements PythonRepl {
     final module = _module;
     final channel = _channel;
     if (module == null || channel == null) return;
-    module.close(channel);
+    module.endOfInput(channel);
   }
 
   @override

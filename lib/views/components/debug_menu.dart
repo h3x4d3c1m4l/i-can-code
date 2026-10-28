@@ -14,6 +14,7 @@ import 'package:i_can_code/services/tour_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
+import 'package:i_can_code/views/components/scroll_card.dart';
 
 /// Developer tools behind Alt+B, in release builds as well, so a simulation can
 /// be shown on the deployed site. The app is open source, so the key hides
@@ -78,7 +79,7 @@ class _DebugMenuState extends State<DebugMenu> {
   Future<void> _show() async {
     if (_open) return;
     _open = true;
-    await showAppDialog<void>(context, builder: (context) => const _DebugPanel());
+    await showAppDialog<void>(context, wide: true, builder: (context) => const _DebugPanel());
     _open = false;
   }
 
@@ -102,79 +103,69 @@ class _DebugPanel extends StatelessWidget {
     final course = GetIt.I.isRegistered<Course>() ? GetIt.I<Course>() : null;
     final toggles = GetIt.I.isRegistered<FeatureToggles>() ? GetIt.I<FeatureToggles>() : null;
 
-    // Scrolls once the toggles outgrow a short window.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Debug', style: context.appTheme.text.h3),
-          if (colorVision != null) ...[
-            const SizedBox(height: 20),
-            _DebugRow(title: 'Colour vision', control: _ColorVisionPicker(colorVision)),
+    return AppDialog(
+      title: const Text('Debug'),
+      // Scrolls once the toggles outgrow a short window.
+      content: ScrollCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 20,
+          children: [
+            if (colorVision != null) _DebugRow(title: 'Colour vision', control: _ColorVisionPicker(colorVision)),
+            _DebugRow(
+              title: 'Tips',
+              status: seen.isEmpty ? 'None seen yet.' : 'Seen: ${(seen.toList()..sort()).join(', ')}',
+              control: AppButton(
+                tone: AppButtonTone.neutral,
+                icon: FLucideIcons.rotateCcw,
+                // Closes as well, so the tip the current screen offers again is
+                // not hidden behind this dialog.
+                onPress: tours == null || seen.isEmpty
+                    ? null
+                    : () {
+                        unawaited(tours.clear());
+                        Navigator.of(context).pop();
+                      },
+                child: const Text('Show tips again'),
+              ),
+            ),
+            _DebugRow(
+              title: 'Mobile warning',
+              status: mobileWarning?.dismissed ?? false ? 'Dismissed in this browser.' : 'Not dismissed.',
+              control: AppButton(
+                tone: AppButtonTone.neutral,
+                icon: FLucideIcons.rotateCcw,
+                // Shown again at the next start, and only in a mobile browser.
+                onPress: mobileWarning == null || !mobileWarning.dismissed
+                    ? null
+                    : () {
+                        unawaited(mobileWarning.clear());
+                        Navigator.of(context).pop();
+                      },
+                child: const Text('Ask again'),
+              ),
+            ),
+            _DebugRow(
+              title: 'Error reporting',
+              status: kReportsErrors ? 'On: errors go to Sentry.' : 'Off: this build was given no Sentry DSN.',
+              control: AppButton(
+                tone: AppButtonTone.neutral,
+                icon: FLucideIcons.bug,
+                // Uncaught on purpose, so it takes the path a real error takes.
+                onPress: kReportsErrors ? () => throw StateError('Test error from the debug menu.') : null,
+                child: const Text('Throw test error'),
+              ),
+            ),
+            if (toggles != null) _FeatureToggleRows(course: course, toggles: toggles),
           ],
-          const SizedBox(height: 20),
-          _DebugRow(
-            title: 'Tips',
-            status: seen.isEmpty ? 'None seen yet.' : 'Seen: ${(seen.toList()..sort()).join(', ')}',
-            control: AppButton(
-              tone: AppButtonTone.neutral,
-              icon: FLucideIcons.rotateCcw,
-              // Closes as well, so the tip the current screen offers again is
-              // not hidden behind this dialog.
-              onPress: tours == null || seen.isEmpty
-                  ? null
-                  : () {
-                      unawaited(tours.clear());
-                      Navigator.of(context).pop();
-                    },
-              child: const Text('Show tips again'),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _DebugRow(
-            title: 'Mobile warning',
-            status: mobileWarning?.dismissed ?? false ? 'Dismissed in this browser.' : 'Not dismissed.',
-            control: AppButton(
-              tone: AppButtonTone.neutral,
-              icon: FLucideIcons.rotateCcw,
-              // Shown again at the next start, and only in a mobile browser.
-              onPress: mobileWarning == null || !mobileWarning.dismissed
-                  ? null
-                  : () {
-                      unawaited(mobileWarning.clear());
-                      Navigator.of(context).pop();
-                    },
-              child: const Text('Ask again'),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _DebugRow(
-            title: 'Error reporting',
-            status: kReportsErrors ? 'On: errors go to Sentry.' : 'Off: this build was given no Sentry DSN.',
-            control: AppButton(
-              tone: AppButtonTone.neutral,
-              icon: FLucideIcons.bug,
-              // Uncaught on purpose, so it takes the path a real error takes.
-              onPress: kReportsErrors ? () => throw StateError('Test error from the debug menu.') : null,
-              child: const Text('Throw test error'),
-            ),
-          ),
-          if (toggles != null) ...[
-            const SizedBox(height: 20),
-            _FeatureToggleRows(course: course, toggles: toggles),
-          ],
-          const SizedBox(height: 28),
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton(
-              onPress: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ),
-        ],
+        ),
       ),
+      actions: [
+        AppButton(
+          onPress: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 

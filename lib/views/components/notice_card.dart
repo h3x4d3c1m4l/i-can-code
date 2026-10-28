@@ -44,8 +44,10 @@ class NoticeCard extends StatelessWidget {
     final detailLabel = this.detailLabel;
     final detailStyle = context.appTheme.text.code.copyWith(color: context.theme.colors.mutedForeground);
 
+    // As tall as what it says: a dialog bounds its content by the window.
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: context.appTheme.text.h3),
         const SizedBox(height: 12),

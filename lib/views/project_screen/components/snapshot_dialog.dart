@@ -4,8 +4,9 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
-import 'package:i_can_code/views/components/guttered_scroll_view.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
+import 'package:i_can_code/views/components/scroll_card.dart';
 
 /// Shows the program as it stood when a task was said to work, and answers
 /// whether the student wants it back.
@@ -33,7 +34,11 @@ Future<bool> showSnapshotDialog(
           // A long program scrolls inside the card rather than pushing the
           // buttons off the screen.
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
-          child: GutteredScrollView(
+          // No padding: the sample is a code card of its own, and its edge is
+          // the card's. Its own padding keeps the code clear of the thumb.
+          child: ScrollCard(
+            surface: ScrollSurface.code,
+            padding: EdgeInsets.zero,
             child: CodeSample(
               source: code,
               language: language,

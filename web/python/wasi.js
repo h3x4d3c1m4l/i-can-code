@@ -214,7 +214,9 @@ export class Wasi {
    *        Standard input as a stream instead of a buffer. Its `read` MAY block
    *        the whole thread — that is the point of it, and is what lets CPython
    *        sit at a REPL prompt — and MUST return an empty array for end of
-   *        input. Wins over `stdin` when both are given.
+   *        input. That end holds for one read, as a terminal's Ctrl-D does: the
+   *        reader is asked again on the next. Wins over `stdin` when both are
+   *        given.
    * @param {boolean} options.stdioIsTerminal
    *        Makes `isatty()` true for the three standard streams.
    *
@@ -231,7 +233,6 @@ export class Wasi {
     this.stdioIsTerminal = stdioIsTerminal === true;
     this.stdinBytes = stdin ?? new Uint8Array(0);
     this.stdinOffset = 0;
-    this.stdinAtEof = false;
     this.onOutput = onOutput;
     this.memory = null;
     this.exitCode = null;
@@ -936,17 +937,13 @@ export class Wasi {
     if (fd !== 0) return true;
     // A reader always "has" input: asking it is what blocks, and it reports the
     // end of the stream by handing back nothing.
-    if (this.stdinReader) return !this.stdinAtEof;
+    if (this.stdinReader) return true;
     return this.stdinOffset < this.stdinBytes.length;
   }
 
   readInto(fd, ptr, len) {
     if (fd === 0 && this.stdinReader) {
       const chunk = this.stdinReader.read(len);
-      if (chunk.length === 0) {
-        this.stdinAtEof = true;
-        return 0;
-      }
       this.bytes.set(chunk, ptr);
       return chunk.length;
     }

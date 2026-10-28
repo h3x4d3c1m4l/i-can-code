@@ -2,7 +2,23 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 
-/// A link set in running text: to the app's source, or to another screen.
+/// Where a [TextLink] goes, which its glyph says before the press.
+enum TextLinkTarget {
+
+  /// Another screen of the app.
+  screen,
+
+  /// Another tab, such as the app's source.
+  tab,
+
+  /// An explanation in a dialog over this screen. A button to a screen reader,
+  /// since nothing navigates.
+  help,
+
+}
+
+/// A link set in running text: to the app's source, to another screen, or to an
+/// explanation.
 ///
 /// Underlined as well as coloured, like a link in a lesson's prose: the link
 /// colour of a preset is not always far enough from its text colour to say
@@ -16,18 +32,17 @@ class TextLink extends StatelessWidget {
 
   final VoidCallback onPress;
 
-  /// Whether the press opens another tab, which the link then says before the
-  /// press. Otherwise it points on to a screen of the app.
-  final bool opensTab;
+  final TextLinkTarget target;
 
-  const TextLink({required this.label, required this.onPress, this.opensTab = false, super.key});
+  const TextLink({required this.label, required this.onPress, this.target = TextLinkTarget.screen, super.key});
 
   @override
   Widget build(BuildContext context) {
     final color = context.appTheme.colors.link;
 
     return Semantics(
-      link: true,
+      link: target != TextLinkTarget.help,
+      button: target == TextLinkTarget.help,
       child: FTappable(
         onPress: onPress,
         child: Row(
@@ -45,7 +60,11 @@ class TextLink extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            Icon(opensTab ? FLucideIcons.externalLink : FLucideIcons.chevronRight, size: _fontSize, color: color),
+            Icon(switch (target) {
+              TextLinkTarget.screen => FLucideIcons.chevronRight,
+              TextLinkTarget.tab => FLucideIcons.externalLink,
+              TextLinkTarget.help => FLucideIcons.circleQuestionMark,
+            }, size: _fontSize, color: color),
           ],
         ),
       ),

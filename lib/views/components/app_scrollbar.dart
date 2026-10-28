@@ -23,7 +23,11 @@ class AppScrollBehavior extends ScrollBehavior {
 
   final ScrollSurface surface;
 
-  const AppScrollBehavior({this.surface = ScrollSurface.page});
+  /// Shows the thumb at rest as well, for a scroll view whose overflow is easy
+  /// to miss. It still shows nothing where there is nothing to scroll.
+  final bool thumbAlwaysShown;
+
+  const AppScrollBehavior({this.surface = ScrollSurface.page, this.thumbAlwaysShown = false});
 
   @override
   Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
@@ -31,6 +35,7 @@ class AppScrollBehavior extends ScrollBehavior {
       TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => AppScrollbar(
         controller: details.controller,
         surface: surface,
+        thumbAlwaysShown: thumbAlwaysShown,
         child: child,
       ),
       // As Flutter's own: a touch screen draws no scrollbar.
@@ -39,7 +44,8 @@ class AppScrollBehavior extends ScrollBehavior {
   }
 
   @override
-  bool shouldNotify(AppScrollBehavior oldDelegate) => surface != oldDelegate.surface;
+  bool shouldNotify(AppScrollBehavior oldDelegate) =>
+      surface != oldDelegate.surface || thumbAlwaysShown != oldDelegate.thumbAlwaysShown;
 
 }
 
@@ -72,8 +78,14 @@ class AppScrollbar extends RawScrollbar {
 
   final ScrollSurface surface;
 
-  const AppScrollbar({required super.child, super.controller, this.surface = ScrollSurface.page, super.key})
-    : super(
+  const AppScrollbar({
+    required super.child,
+    super.controller,
+    this.surface = ScrollSurface.page,
+    bool thumbAlwaysShown = false,
+    super.key,
+  }) : super(
+        thumbVisibility: thumbAlwaysShown,
         thickness: _thumbThickness,
         shape: const StadiumBorder(),
         crossAxisMargin: _sideMargin,

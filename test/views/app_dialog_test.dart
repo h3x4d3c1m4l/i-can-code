@@ -11,6 +11,7 @@ import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/catalog_screen/components/restart_lesson_dialog.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
+import 'package:i_can_code/views/components/notice_card.dart';
 
 /// Loads the app's own fonts, which `flutter test` otherwise draws every glyph
 /// of as a square a whole em wide, too wide for two buttons on a phone. In a
@@ -119,5 +120,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_button(tester, 'Opnieuw beginnen').right, closeTo(_endEdge(tester), 0.5));
+  });
+
+  // The content is bounded by the window, and a notice that filled what it was
+  // given left a blank card the height of the window above the buttons.
+  testWidgets('keeps a notice as tall as what it says', (tester) async {
+    final page = await _page(tester, width: 1280);
+    unawaited(
+      showAppDialog<void>(
+        page,
+        builder: (context) => AppDialog(
+          content: const NoticeCard(title: 'Sluit je micro:bit aan', body: 'Steek het bordje in.', framed: false),
+          actions: [AppButton(onPress: () {}, child: const Text('Sluiten'))],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_button(tester, 'Sluiten').top - tester.getRect(find.text('Steek het bordje in.')).bottom, closeTo(24, 0.5));
   });
 }

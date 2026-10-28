@@ -64,7 +64,7 @@ class AboutScreenView extends ScreenViewBase<AboutScreenViewModel, AboutScreenCo
                     spacing: 28,
                     runSpacing: 10,
                     children: [
-                      TextLink(label: l10n.aboutScreen_source, onPress: controller.openSource, opensTab: true),
+                      TextLink(label: l10n.aboutScreen_source, onPress: controller.openSource, target: TextLinkTarget.tab),
                       TextLink(label: l10n.aboutScreen_licenses, onPress: controller.openLicenses),
                     ],
                   ),

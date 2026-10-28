@@ -6,10 +6,15 @@
 /// does none of it itself. Nothing here is a stand-in for Python: it is the half
 /// of a terminal that Python never had.
 ///
-/// History is the one liberty taken. A tty has none — `readline` adds it — and
-/// the wasm32-wasi build has no `readline` to add it. Recalling a line here
-/// re-sends it as if it had been typed, so the interpreter cannot tell the
-/// difference.
+/// The keys are GNU readline's, in its default emacs mode, because that is what
+/// `python3` in a terminal answers to: the basic REPL reads its lines through
+/// readline wherever there is one. The wasm32-wasi build has none, so its
+/// editing half lives here, history included. Recalling a line re-sends it as
+/// if it had been typed, so the interpreter cannot tell the difference.
+///
+/// Tab is the half that cannot be here. Readline completes a name with it, and
+/// that needs the interpreter, which is parked in a read. What is left is what
+/// rlcompleter does where there is no name to complete: insert a tab.
 ///
 /// ## How the line is redrawn
 ///
@@ -37,6 +42,10 @@ class LineEditor {
   /// Ctrl-D on an empty line: end of input.
   final void Function() endOfInput;
 
+  /// What the interpreter wrote on the line the input starts on. Ctrl-L and
+  /// Ctrl-C write it back, since the interpreter never sees either key.
+  final String Function() prompt;
+
   /// Ctrl-C where throwing the line away would not help. A line discipline
   /// cannot interrupt anything — there is no signal to send — so this is the
   /// caller's problem, and the caller MUST decide what it means.
@@ -53,6 +62,7 @@ class LineEditor {
     required this.echo,
     required this.submit,
     required this.endOfInput,
+    required this.prompt,
     required this.interrupt,
     required this.canDiscardLine,
   });
@@ -92,6 +102,13 @@ class LineEditor {
   /// forever would swallow everything typed afterwards.
   static const int _maxEscapeLength = 32;
 
+  /// Where readline's Python completer starts a new word, as `Modules/readline.c`
+  /// sets it. Tab inserts a tab after one of these, or at the start of a line.
+  static const String _wordBreaks = ' \t\n`~!@#\$%^&*()-=+[{]}\\|;:\'",<>/?';
+
+  /// What readline's word movements count as a word: letters and digits.
+  static final RegExp _wordCharacter = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
   /// Feeds keystrokes in, exactly as the terminal reports them.
   ///
   /// [data] is a stream: it may hold several keys, a pasted block, or the
@@ -128,22 +145,25 @@ class LineEditor {
         case '\x03':
           _cancelLine();
         case '\x04':
-          if (_line.isEmpty) endOfInput();
+          _line.isEmpty ? endOfInput() : _delete();
         case '\x01':
           _moveTo(0);
         case '\x05':
           _moveTo(_line.length);
         case '\x15':
-          _replaceLine('', cursor: 0);
+          _replaceLine(_line.substring(_cursor), cursor: 0);
         case '\x0b':
           _replaceLine(_line.substring(0, _cursor), cursor: _cursor);
         case '\x17':
           _deleteWord();
         case '\x0c':
-          // Clear screen, then put the line back under a fresh anchor.
-          echo('\x1b[2J\x1b[H');
+          // Clear screen, then put the prompt and the line back under a fresh
+          // anchor.
+          echo('\x1b[2J\x1b[H${prompt()}');
           _anchored = false;
           _redraw();
+        case '\t':
+          if (_cursor == 0 || _wordBreaks.contains(_line[_cursor - 1])) _insert('\t');
         default:
           // Anything else printable, including a pasted block's contents.
           if (char.codeUnitAt(0) >= 0x20) _insert(char);
@@ -158,12 +178,18 @@ class LineEditor {
     // keys, Home, End and Delete.
     if (start + 1 >= data.length) return 0;
     if (data[start + 1] != '[') {
-      // ESC O A and friends, sent by some terminals in application mode. Two
-      // more characters, and the last one is what matters.
-      if (data[start + 1] == 'O') {
-        if (start + 2 >= data.length) return 0;
-        _cursorKey(data[start + 2]);
-        return 3;
+      switch (data[start + 1]) {
+        // ESC O A and friends, sent by some terminals in application mode. Two
+        // more characters, and the last one is what matters.
+        case 'O':
+          if (start + 2 >= data.length) return 0;
+          _cursorKey(data[start + 2]);
+          return 3;
+        // Meta-B and Meta-F. Option+arrow on a Mac arrives as these.
+        case 'b' || 'B':
+          _moveTo(_previousWordStart());
+        case 'f' || 'F':
+          _moveTo(_nextWordEnd());
       }
       return 2;
     }
@@ -180,22 +206,30 @@ class LineEditor {
     if (finalByte == '~') {
       if (parameters == '3') _delete();
     } else {
-      _cursorKey(finalByte);
+      _cursorKey(finalByte, byWord: _isWordModifier(parameters));
     }
     return index - start + 1;
   }
+
+  /// Ctrl or Alt held with an arrow, as in `CSI 1;5C`. Readline setups move a
+  /// word at a time for both.
+  static bool _isWordModifier(String parameters) => parameters.endsWith(';3') || parameters.endsWith(';5');
 
   static bool _isFinalByte(String char) {
     final code = char.codeUnitAt(0);
     return code >= 0x40 && code <= 0x7e;
   }
 
-  void _cursorKey(String finalByte) {
+  void _cursorKey(String finalByte, {bool byWord = false}) {
     switch (finalByte) {
       case 'A':
         _recall(-1);
       case 'B':
         _recall(1);
+      case 'C' when byWord:
+        _moveTo(_nextWordEnd());
+      case 'D' when byWord:
+        _moveTo(_previousWordStart());
       case 'C':
         if (_cursor < _line.length) _moveTo(_cursor + 1);
       case 'D':
@@ -234,7 +268,8 @@ class LineEditor {
       interrupt();
       return;
     }
-    echo('^C\r\n');
+    // The interpreter never saw the line, so it prints no new prompt.
+    echo('^C\r\n${prompt()}');
     _anchored = false;
     _line = '';
     _cursor = 0;
@@ -275,6 +310,33 @@ class LineEditor {
     _cursor = start;
     _redraw();
   }
+
+  /// Readline's `forward-word`: past any gap, then to the end of the word.
+  int _nextWordEnd() {
+    var index = _cursor;
+    while (index < _line.length && !_isWordCharacter(index)) {
+      index += 1;
+    }
+    while (index < _line.length && _isWordCharacter(index)) {
+      index += 1;
+    }
+    return index;
+  }
+
+  /// Readline's `backward-word`: back past any gap, then to the start of the
+  /// word.
+  int _previousWordStart() {
+    var index = _cursor;
+    while (index > 0 && !_isWordCharacter(index - 1)) {
+      index -= 1;
+    }
+    while (index > 0 && _isWordCharacter(index - 1)) {
+      index -= 1;
+    }
+    return index;
+  }
+
+  bool _isWordCharacter(int index) => _wordCharacter.hasMatch(_line[index]);
 
   void _moveTo(int cursor) {
     _cursor = cursor.clamp(0, _line.length);

@@ -96,7 +96,7 @@ class LicensesScreenView extends ScreenViewBase<LicensesScreenViewModel, License
                     child: TextLink(
                       label: context.localizations.licensesScreen_source,
                       onPress: controller.openSource,
-                      opensTab: true,
+                      target: TextLinkTarget.tab,
                     ),
                   ),
                   const SizedBox(height: 28),
