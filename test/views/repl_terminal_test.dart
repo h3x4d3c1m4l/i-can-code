@@ -21,7 +21,7 @@ class _Harness {
     terminal.onOutput = sent.write;
   }
 
-  Widget build({bool passesCtrlA = false}) => FTheme(
+  Widget build({bool passesCtrlA = false, TextScaler textScaler = TextScaler.noScaling}) => FTheme(
     data: buildAppTheme(),
     child: Localizations(
       locale: const Locale('nl'),
@@ -29,7 +29,7 @@ class _Harness {
       child: Directionality(
         textDirection: TextDirection.ltr,
         child: MediaQuery(
-          data: const MediaQueryData(size: Size(1000, 800)),
+          data: MediaQueryData(size: const Size(1000, 800), textScaler: textScaler),
           child: Shortcuts(
             shortcuts: WidgetsApp.defaultShortcuts,
             child: Actions(
@@ -141,6 +141,20 @@ void main() {
 
     expect(find.text(_leaveHint), findsNothing);
   });
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('the first line starts below the way out at ${scale}x text', (tester) async {
+      final harness = _Harness();
+      await tester.pumpWidget(harness.build(textScaler: TextScaler.linear(scale)));
+      await tester.pump();
+
+      final view = find.byType(TerminalView);
+      final firstLine = tester.getTopLeft(view).dy + tester.widget<TerminalView>(view).padding!.top;
+      final hint = find.ancestor(of: find.text(_leaveHint), matching: find.byType(ColoredBox)).first;
+
+      expect(tester.getRect(hint).bottom, lessThanOrEqualTo(firstLine));
+    });
+  }
 
   group('Ctrl+A on Windows', () {
     Future<void> pressCtrlA(WidgetTester tester, {bool shift = false}) async {

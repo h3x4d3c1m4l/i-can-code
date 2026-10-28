@@ -70,6 +70,11 @@ class _ReplTerminalState extends State<ReplTerminal> {
     LogicalKeyboardKey.metaRight,
   };
 
+  /// The hint's distance from the top edge, and from the first line under it.
+  static const double _hintInset = 6;
+
+  static const EdgeInsets _hintPadding = EdgeInsets.symmetric(horizontal: 6, vertical: 2);
+
   late final FocusNode _node = FocusNode(debugLabel: 'ReplTerminal');
 
   /// Escape was the last key pressed and has not been sent yet.
@@ -116,6 +121,20 @@ class _ReplTerminalState extends State<ReplTerminal> {
     return KeyEventResult.ignored;
   }
 
+  /// Room above the first line for the hint, asked of the font at the reader's
+  /// text size.
+  double _hintBand(TextStyle hintStyle) {
+    final painter = TextPainter(
+      text: TextSpan(text: 'X', style: hintStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final lineHeight = painter.height;
+    painter.dispose();
+
+    return _hintInset + _hintPadding.vertical + lineHeight + _hintInset;
+  }
+
   Map<ShortcutActivator, Intent>? get _shortcuts {
     if (!widget.passesCtrlA) return null;
     // On a Mac select all is Cmd+A already, and nothing here matches.
@@ -132,6 +151,7 @@ class _ReplTerminalState extends State<ReplTerminal> {
   Widget build(BuildContext context) {
     final appTheme = context.appTheme;
     final shape = squircle(kCardCornerRadius);
+    final hintStyle = appTheme.text.codeSmall.copyWith(color: appTheme.colors.codeMuted);
 
     return ClipPath(
       clipper: ShapeBorderClipper(shape: shape),
@@ -151,7 +171,10 @@ class _ReplTerminalState extends State<ReplTerminal> {
                   autofocus: widget.autofocus,
                   shortcuts: _shortcuts,
                   onKeyEvent: _onKey,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  // The band is kept while the hint is hidden too, or every line
+                  // would move when the terminal gains the keyboard. Only a band
+                  // above works, because the columns ignore the side padding.
+                  padding: EdgeInsets.fromLTRB(20, _hintBand(hintStyle), 20, 16),
                   theme: buildTerminalTheme(appTheme.colors, cursor: context.theme.colors.primary),
                   // Straight from the app's code style, so a line here and a
                   // line in a lesson's code block are the same type at the same
@@ -160,21 +183,18 @@ class _ReplTerminalState extends State<ReplTerminal> {
                 ),
               ),
             ),
-            // In the top corner, where output has scrolled past by the time
-            // the screen is full, and clear of the scrollbar at the edge.
+            // In the band above the first line, which only output that has
+            // scrolled past passes through, and clear of the scrollbar at the edge.
             if (_focused)
               Positioned(
-                top: 6,
+                top: _hintInset,
                 right: 24,
                 child: IgnorePointer(
                   child: ColoredBox(
                     color: appTheme.colors.codeBackground,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      child: Text(
-                        context.localizations.replTerminal_leaveHint,
-                        style: appTheme.text.codeSmall.copyWith(color: appTheme.colors.codeMuted),
-                      ),
+                      padding: _hintPadding,
+                      child: Text(context.localizations.replTerminal_leaveHint, style: hintStyle),
                     ),
                   ),
                 ),
