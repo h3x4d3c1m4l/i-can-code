@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:i_can_code/routing/app_router.dart';
-import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/lessons/includes.dart';
 import 'package:i_can_code/services/lessons/lesson.dart';
@@ -112,23 +111,6 @@ void main() {
             expect(ids[entry.subject], contains(id), reason: '${named(path)}: "${section.title}" recommends "$id"');
           }
         }
-      }
-    });
-
-    test('a project on the machine is hidden with the Tkinter page', () {
-      // Nothing in the app hides it otherwise, so a build without the machine's
-      // image would list a card that opens on "not in this version". Every
-      // translation names the same toggle, which `Course.fromFiles` holds.
-      for (final entry in lessons) {
-        final path = entry.paths.values.first;
-        final lesson = parsed(path);
-        if (!lesson.isProject || lesson.runtime != LessonRuntime.tkinter) continue;
-
-        expect(
-          [lesson.feature, entry.group?.feature],
-          contains(tkinterFeature.name),
-          reason: '${named(path)} runs on the machine; give it, or its group, `feature: ${tkinterFeature.name}`',
-        );
       }
     });
 

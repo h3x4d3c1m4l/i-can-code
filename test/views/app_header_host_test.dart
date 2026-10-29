@@ -832,7 +832,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Off · 1 lesson'), findsOneWidget);
-      expect(find.text('Off · ${tkinterFeature.description}'), findsOneWidget, reason: 'the app declares it');
 
       // Below the fold of a 600px window: the panel scrolls. The rows are
       // sorted, so `files` is the first.

@@ -178,9 +178,7 @@ licence any of them declares. `docs/vm-build.md`, *Licences*, says how they are
 written and what checks them.
 
 The screen lists the whole file as one component, `v86 & Alpine Linux`, under
-*Tkinter*. It is shown in every build that ships the image, whether or not the
-`tkinter` feature toggle shows the page: the image is distributed with the
-build either way.
+*Tkinter*. It is shown in every build that ships the image.
 
 ## Do the licences go together
 

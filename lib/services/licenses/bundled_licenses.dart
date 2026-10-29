@@ -182,7 +182,6 @@ Stream<LicenseEntry> vmLicenseEntries({Future<String> Function() loadNotices = l
 void registerBundledLicenses() {
   LicenseRegistry.addLicense(() => bundledLicenseEntries(rootBundle));
   // Not an asset: the image is served beside the build, and its notices with
-  // it. Whether the Tkinter toggle is on does not matter, since the build
-  // ships the image either way.
+  // it.
   if (vmImageIncluded) LicenseRegistry.addLicense(vmLicenseEntries);
 }

@@ -81,7 +81,7 @@ fvm flutter run -d chrome --web-port=8080 \
 
 The two headers make the page cross-origin isolated, which the interactive console needs for `SharedArrayBuffer`. The "no isolation" configuration leaves them out, for when you want to rule them out as the cause of something failing to load.
 
-`ICC_VM_IMAGE=true` offers the Tkinter page. Without an image in `web/vm/image/` that page shows a download failure, and the rest of the app works as usual. The page also sits behind the `tkinter` feature toggle, which is off by default. Press Alt+B (Option+B on a Mac) to open the debug menu and switch it on under "Feature toggles".
+`ICC_VM_IMAGE=true` offers the Tkinter page. Without an image in `web/vm/image/` that page shows a download failure, and the rest of the app works as usual.
 
 To try the build that ships:
 

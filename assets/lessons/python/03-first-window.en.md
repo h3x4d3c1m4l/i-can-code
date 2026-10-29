@@ -6,7 +6,6 @@ A program with a window of its own, made with Tkinter.
 id: first-window
 icon: window
 runtime: tkinter
-feature: tkinter
 ```
 
 ## Opening a window

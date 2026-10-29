@@ -1362,8 +1362,7 @@ above.
   is disposed, as Retry would: the newest `VmSessionController` still standing
   holds the machine, and one that goes hands it to the one under it.
 - **A build says whether it has a bundle.** `--dart-define=ICC_VM_IMAGE=true`
-  turns the page on (`lib/services/vm/vm_image.dart`), and the `tkinter`
-  feature toggle then shows it (`tkinterShown`); without the define the catalog
+  turns the page on (`lib/services/vm/vm_image.dart`); without the define the catalog
   offers no card, `createVmRuntime()` returns the stub and the page says the
   machine is not in this version of the app, downloading nothing. A build that
   passes it without `web/vm/image/` fails the load as `network` with the

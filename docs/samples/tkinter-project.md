@@ -7,7 +7,6 @@ id: sample-tkinter-project
 icon: window
 layout: project
 runtime: tkinter
-feature: tkinter
 ```
 
 ## What you will build

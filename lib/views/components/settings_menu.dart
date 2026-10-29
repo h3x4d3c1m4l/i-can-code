@@ -8,11 +8,11 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
-import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/theme_mode_controller.dart';
+import 'package:i_can_code/services/vm/vm_image.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
@@ -96,7 +96,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
           ),
           // Its one setting is about the machine behind the Tkinter page, which a
           // project on `runtime: tkinter` runs on too.
-          if (tkinterShown)
+          if (vmImageIncluded)
             FItemGroup(
               children: [
                 FItem(

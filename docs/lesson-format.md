@@ -366,12 +366,9 @@ itself and every lesson under it:
   name is a toggle as soon as a file uses it. A typo is a second toggle, so
   check the menu after adding one.
 - **A lesson in a hidden group needs both** its group's toggle and its own.
-- **The app has toggles of its own**, for parts of it that are not ready yet,
-  and they share these names. A lesson about such a part names the app's toggle
-  and is hidden with it: `feature: tkinter` goes with the Tkinter environment.
-  A project on `runtime: tkinter` runs on that environment's machine, so it
-  names the toggle too, or stands under a group that does;
-  `test/content/lessons_test.dart` holds that.
+- **The app can declare toggles of its own**, for parts of it that are not
+  ready yet, and they share these names. A lesson about such a part names the
+  app's toggle and is hidden with it.
 - **Hidden means not listed, and nothing more.** The catalog, the count on the
   subject's card and "Volgende les" pass it by. Its address still opens it, and
   the file is in the build like any other, so this keeps nothing secret.

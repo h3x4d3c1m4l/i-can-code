@@ -6,7 +6,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/routing/catalog_anchor.dart';
-import 'package:i_can_code/services/feature_toggles.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
@@ -95,7 +94,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                 meta: context.localizations.catalogScreen_extraFreePlay,
                 onTap: controller.openRepl,
               ),
-            if (_offersWindows)
+            if (subjectHasWindows(subject))
               CatalogTile(
                 // A window, for the one page here whose programs open them. Still
                 // in the browser, which is why it sits beside the console rather
@@ -130,10 +129,6 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
       ],
     );
   }
-
-  /// Read in the content's [Observer], so a switch of the toggle redraws the
-  /// section at once.
-  bool get _offersWindows => tkinterShown && subjectHasWindows(viewModel.subject);
 
   /// One tile of the course, for whichever run it belongs to. [group] is the
   /// heading it stands under on this page, which it lights up along with.
@@ -305,7 +300,7 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                     ..._buildRun(run.items, locale, first: index == 0, width: width),
                   if (optional.isNotEmpty) SliverToBoxAdapter(child: _buildDeepDive(context, optional, locale, width)),
                   if (subjectHasRepl(viewModel.subject) ||
-                      _offersWindows ||
+                      subjectHasWindows(viewModel.subject) ||
                       subjectHasMicrobit(viewModel.subject))
                     SliverToBoxAdapter(child: _buildExtra(context, width)),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
