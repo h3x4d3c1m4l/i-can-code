@@ -54,6 +54,7 @@ void main() {
       '/$editorSettingsPath',
       '/learn-python',
       '/learn-python/$replLesson',
+      '/learn-python/$programLesson',
       '/learn-python/$microbitLesson',
       '/learn-python/$projectSegment/dice',
       '/learn-python/$microbitReplLesson',
@@ -112,6 +113,16 @@ void main() {
     expect(matched.single.params.getString('subjectSlug'), 'learn-python');
   });
 
+  test('the program page has its own address, ahead of the lesson addresses', () {
+    // Declared before the lesson routes like the console, so it wins the
+    // two-segment match instead of being read as a lesson called "program".
+    final matched = AppRouter().matcher.match('/learn-python/$programLesson');
+
+    expect(matched, hasLength(1));
+    expect(matched!.single.name, 'ProgramRoute');
+    expect(matched.single.params.getString('subjectSlug'), 'learn-python');
+  });
+
   test('both micro:bit screens have their own address, ahead of the lesson addresses', () {
     // Same arrangement as the console above: declared before the lesson routes,
     // so they win the two-segment match instead of being read as lessons called
@@ -141,7 +152,7 @@ void main() {
   test('every page address is a reserved lesson id', () {
     // A lesson with one of these ids would be unreachable: its address is taken.
     // `test/content/lessons_test.dart` holds the course to the same list.
-    for (final reserved in [replLesson, microbitLesson, microbitReplLesson, tkinterLesson]) {
+    for (final reserved in [replLesson, programLesson, microbitLesson, microbitReplLesson, tkinterLesson]) {
       final matched = AppRouter().matcher.match('/learn-python/$reserved');
       expect(matched!.single.name, isNot('LessonRoute'), reason: reserved);
     }

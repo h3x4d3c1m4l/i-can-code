@@ -359,6 +359,7 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/uitvoer                          resume: wherever you left off
 /learn-python/uitvoer/zelf-printen             one step, named by its section id
 /learn-python/repl                             the interactive console
+/learn-python/program                          a program of your own, in the browser
 /learn-python/microbit                         a program of your own, on a board
 /learn-python/microbit-repl                    MicroPython's own prompt, on a board
 /learn-python/project/dobbelsteen              a project, on a board or in the VM
@@ -366,7 +367,7 @@ No service worker means no console — private browsing, storage disabled, no ht
 /editor-settings                               the code editor settings, from the cog
 ```
 
-`repl`, `microbit`, `microbit-repl`, `tkinter` and `project` sit where a lesson id goes, so all five are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the subject catch-all, because auto_route would otherwise read them as lessons by those names.
+`repl`, `program`, `microbit`, `microbit-repl`, `tkinter` and `project` sit where a lesson id goes, so all six are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the subject catch-all, because auto_route would otherwise read them as lessons by those names.
 
 **The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
 
@@ -639,7 +640,7 @@ A **whole lesson** may be optional too, by saying `optional: true` in its docume
 
 A section of any type may be **optional** — a "Verdieping". It is badged and can be skipped, and skipping records nothing: the step stays grey in the progress bar and comes back on the next visit. Optionality is a flag on a section, deliberately not a `SectionKind` of its own, so a Verdieping can still hold an exercise or a board.
 
-**Catalog** names a listing *screen*, not content, which is why it sits outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing. The **Tkinter page** under *Extra* is the same kind of thing.
+**Catalog** names a listing *screen*, not content, which is why it sits outside the table. So does **console** — the interactive prompt under *Extra*, which is not a lesson, records nothing and checks nothing. The **program page** and the **Tkinter page** under *Extra* are the same kind of thing.
 
 ### Lessons
 
@@ -769,6 +770,8 @@ Three pieces make that work, and none of them is optional:
 **`stdioIsTerminal` is what turns the colour on, not `TERM`.** wasi-libc's `isatty()` answers no for a character device that is *seekable*, and the shim hands out every right by default — so CPython saw a redirected file and dropped its colourised tracebacks. The REPL worker withholds `FD_SEEK` and `FD_TELL`, and **`python_worker.js` deliberately does not**: the lesson screen renders its output as plain text, where the same escape codes are only noise.
 
 **Nothing can interrupt a running program.** wasm has no signals, so Ctrl-C at a fresh prompt throws away the typed line — all a line discipline can do — and anywhere else, busy or part way through a block, restarts the interpreter and says so. No `KeyboardInterrupt` is ever printed, because Python never raised one. The controller tells the two cases apart by reading the last prompt off the screen, which is where a terminal has always got it. That same prompt is what Ctrl-C and Ctrl-L write back, because the interpreter never saw either key and prints no new one.
+
+**The program page runs on the same worker.** `createPythonRepl(program:)` starts `python -u /main.py` instead of `-i`, so `input()` parks in the same read and the student answers it in a terminal, the way they would anywhere else. That is what the lesson runner cannot do: it hands a program all of its input up front. `ProgramScreen` (`/learn-python/program`) is the micro:bit program page without the board: an editor, Run that is Stop, and a terminal, side by side from `lg`. A run is a new interpreter on an empty terminal; Ctrl-C ends it, as a `KeyboardInterrupt` in `input()` would. Its program is a draft under the page key `draft.program.<subject>`.
 
 **The keys are readline's**, in its default emacs mode, because that is what `python3` in a terminal answers to. The reference is a real REPL in a pseudo-terminal with `PYTHON_BASIC_REPL=1`, not a guess: check a new key there before changing `LineEditor`. Three things in it are easy to get wrong:
 

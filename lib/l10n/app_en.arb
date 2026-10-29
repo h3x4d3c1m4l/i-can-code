@@ -598,6 +598,43 @@
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Your program starts as soon as it is on the board. What it prints appears below, and what you type goes to it",
   "@microbitProgramScreen_hint": {},
+  "programScreen_title": "Your own program in the browser",
+  "@programScreen_title": {
+    "description": "The page where a student writes a program and runs it in the browser straight away, with a terminal in which input() works. Also the title of its tile under Extra."
+  },
+  "programScreen_subtitle": "Write a program and run it straight away. Nothing here is checked.",
+  "@programScreen_subtitle": {},
+  "programScreen_crumb": "Own program (browser)",
+  "@programScreen_crumb": {},
+  "programScreen_hint": "What your program prints appears below. When it asks for something with input(), type your answer there and press Enter.",
+  "@programScreen_hint": {},
+  "programScreen_run": "Run",
+  "@programScreen_run": {},
+  "programScreen_stop": "Stop",
+  "@programScreen_stop": {},
+  "programScreen_statusStarting": "Starting…",
+  "@programScreen_statusStarting": {},
+  "programScreen_statusRunning": "Running…",
+  "@programScreen_statusRunning": {},
+  "programScreen_finished": "Finished (exit code {code})",
+  "@programScreen_finished": {
+    "description": "Grey, in the terminal under what the program printed, once it ends by itself. An exit code other than 0 usually follows an error message that is already there.",
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
+  "programScreen_stopped": "Stopped",
+  "@programScreen_stopped": {
+    "description": "Grey, in the terminal, when the student stops the program with the button or with Ctrl-C."
+  },
+  "programScreen_failed": "Python could not be started. This was not your program's fault.",
+  "@programScreen_failed": {},
+  "programScreen_unavailableTitle": "This browser cannot do this",
+  "@programScreen_unavailableTitle": {},
+  "programScreen_unavailableBody": "A program that asks for input needs this page to be cross-origin isolated, which is not happening here. Usually that is private browsing, or a site not loaded over https. The lessons themselves still work.",
+  "@programScreen_unavailableBody": {},
   "tkinterScreen_crumb": "Windows with Tkinter",
   "tkinterScreen_title": "Windows with Tkinter",
   "@tkinterScreen_title": {

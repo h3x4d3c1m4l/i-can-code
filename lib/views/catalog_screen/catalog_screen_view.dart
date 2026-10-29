@@ -94,6 +94,16 @@ class CatalogScreenView extends ScreenViewBase<CatalogScreenViewModel, CatalogSc
                 meta: context.localizations.catalogScreen_extraFreePlay,
                 onTap: controller.openRepl,
               ),
+            if (subjectHasRepl(subject))
+              CatalogTile(
+                // A program of your own, run from the top. Beside the console
+                // because it runs on the same interpreter, in the browser.
+                label: '▶️',
+                title: context.localizations.programScreen_title,
+                subtitle: context.localizations.programScreen_subtitle,
+                meta: context.localizations.catalogScreen_extraFreePlay,
+                onTap: controller.openProgram,
+              ),
             if (subjectHasWindows(subject))
               CatalogTile(
                 // A window, for the one page here whose programs open them. Still

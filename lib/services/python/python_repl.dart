@@ -26,14 +26,16 @@ class ReplOutput extends ReplEvent {
 
 }
 
-/// The interpreter is up and CPython is about to print its banner.
+/// The interpreter is up. At a prompt CPython is about to print its banner; a
+/// program is about to start.
 class ReplStarted extends ReplEvent {
 
   const ReplStarted();
 
 }
 
-/// The session ended — `exit()`, or the end of input. Nothing more will arrive
+/// The session ended — `exit()`, the end of input, or the end of the program.
+/// Nothing more will arrive
 /// from this [PythonRepl]; starting again means a new interpreter with none of
 /// the old one's state.
 class ReplExited extends ReplEvent {
@@ -54,12 +56,13 @@ class ReplFailed extends ReplEvent {
 
 }
 
-/// One long-lived CPython sitting at an interactive prompt.
+/// One long-lived CPython on a terminal: sitting at an interactive prompt, or
+/// running one program whose standard input is the terminal.
 ///
 /// Distinct from [PythonRuntime] on purpose, and not a mode of it. That runs a
-/// program and hands back what it printed; this one never finishes, holds the
-/// names the student has defined, and is fed a line at a time. The two share
-/// `python.wasm` and the WASI shim and nothing else.
+/// program and hands back what it printed once it is done; this one shows
+/// output as it is written and is fed a line at a time while it runs. The two
+/// share `python.wasm` and the WASI shim and nothing else.
 ///
 /// Single-use. Once [ReplExited] arrives, the interpreter is gone — a new
 /// session is a new [PythonRepl].
@@ -105,4 +108,8 @@ abstract class PythonRepl {
 }
 
 /// The REPL for this platform.
-PythonRepl createPythonRepl() => impl.createPythonRepl();
+///
+/// Given a [program], it runs that as `/main.py` instead of starting a prompt,
+/// and exits when the program does. `input()` then waits for a line written
+/// with [PythonRepl.write], as it would in a terminal.
+PythonRepl createPythonRepl({String? program}) => impl.createPythonRepl(program: program);

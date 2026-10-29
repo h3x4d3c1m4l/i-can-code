@@ -294,6 +294,43 @@
   "@microbitProgramScreen_crumb": {},
   "microbitProgramScreen_hint": "Je programma start zodra het op het bordje staat. Wat het print verschijnt hieronder, en wat je typt gaat ernaartoe",
   "@microbitProgramScreen_hint": {},
+  "programScreen_title": "Je eigen programma in de browser",
+  "@programScreen_title": {
+    "description": "De pagina waar een leerling een programma schrijft en meteen in de browser uitvoert, met een terminal waarin input() werkt. Ook de titel van de kaart onder Extra."
+  },
+  "programScreen_subtitle": "Schrijf een programma en voer het meteen uit. Hier wordt niets gecontroleerd.",
+  "@programScreen_subtitle": {},
+  "programScreen_crumb": "Eigen programma (browser)",
+  "@programScreen_crumb": {},
+  "programScreen_hint": "Wat je programma print verschijnt hieronder. Vraagt het iets met input(), typ dan daar je antwoord en druk op Enter.",
+  "@programScreen_hint": {},
+  "programScreen_run": "Uitvoeren",
+  "@programScreen_run": {},
+  "programScreen_stop": "Stoppen",
+  "@programScreen_stop": {},
+  "programScreen_statusStarting": "Starten…",
+  "@programScreen_statusStarting": {},
+  "programScreen_statusRunning": "Bezig…",
+  "@programScreen_statusRunning": {},
+  "programScreen_finished": "Klaar (afsluitcode {code})",
+  "@programScreen_finished": {
+    "description": "Grijs in de terminal onder wat het programma printte, als het vanzelf stopt. Een afsluitcode die geen 0 is volgt meestal op een foutmelding die er al staat.",
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
+  "programScreen_stopped": "Gestopt",
+  "@programScreen_stopped": {
+    "description": "Grijs in de terminal, als de leerling het programma stopt met de knop of met Ctrl-C."
+  },
+  "programScreen_failed": "Python kon niet worden gestart. Dit lag niet aan je programma.",
+  "@programScreen_failed": {},
+  "programScreen_unavailableTitle": "Dit werkt niet in deze browser",
+  "@programScreen_unavailableTitle": {},
+  "programScreen_unavailableBody": "Een programma dat om invoer vraagt, heeft een pagina nodig die cross-origin geïsoleerd is. Dat lukt hier niet. Meestal komt dat door privémodus, of doordat de site niet via https geladen is. De lessen zelf werken gewoon.",
+  "@programScreen_unavailableBody": {},
   "tkinterScreen_crumb": "Vensters met Tkinter",
   "tkinterScreen_title": "Vensters met Tkinter",
   "@tkinterScreen_title": {

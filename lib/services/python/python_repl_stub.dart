@@ -1,6 +1,6 @@
 import 'package:i_can_code/services/python/python_repl.dart';
 
-PythonRepl createPythonRepl() => UnsupportedPythonRepl();
+PythonRepl createPythonRepl({String? program}) => UnsupportedPythonRepl();
 
 /// Stands in where no host for `python.wasm` exists — every platform but the
 /// web, including the Dart VM that `flutter test` runs on.

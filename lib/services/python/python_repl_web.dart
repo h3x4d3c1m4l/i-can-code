@@ -10,7 +10,7 @@ import 'package:web/web.dart' as web;
 const String _workerPath = 'python/python_repl_worker.js';
 const String _channelPath = 'python/stdin_channel.js';
 
-PythonRepl createPythonRepl() => WebPythonRepl();
+PythonRepl createPythonRepl({String? program}) => WebPythonRepl(program: program);
 
 /// The module in `web/python/stdin_channel.js`, typed.
 ///
@@ -32,7 +32,7 @@ extension type _StdinChannelModule(JSObject _) implements JSObject {
 
 extension type _StartMessage._(JSObject _) implements JSObject {
 
-  external factory _StartMessage({String type, JSObject channel});
+  external factory _StartMessage({String type, JSObject channel, String? program});
 
 }
 
@@ -61,11 +61,16 @@ class WebPythonRepl implements PythonRepl {
 
   final StreamController<ReplEvent> _events = StreamController<ReplEvent>.broadcast();
 
+  /// Run instead of the prompt when given.
+  final String? _program;
+
   web.Worker? _worker;
   _StdinChannelModule? _module;
   JSObject? _channel;
   Future<void>? _starting;
   bool _disposed = false;
+
+  WebPythonRepl({this._program});
 
   @override
   // `SharedArrayBuffer` is absent rather than broken on a page that is not
@@ -129,7 +134,7 @@ class WebPythonRepl implements PythonRepl {
       case 'ready':
         // The worker holds the interpreter; hand over the channel and let it block. Nothing
         // may be posted to the worker after this.
-        _worker?.postMessage(_StartMessage(type: 'start', channel: _channel!));
+        _worker?.postMessage(_StartMessage(type: 'start', channel: _channel!, program: _program));
       case 'started':
         _emit(const ReplStarted());
       case 'output':

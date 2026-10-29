@@ -34,6 +34,12 @@ const String microbitLesson = 'microbit';
 /// running, and a program has to be left alone to run. Reserved like the others.
 const String microbitReplLesson = 'microbit-repl';
 
+/// The lesson id a program of the student's own sits on, run in the page with a
+/// terminal for its input and output.
+///
+/// Reserved like the others, for the same reason and held by the same test.
+const String programLesson = 'program';
+
 /// The lesson id the Tkinter page sits on, a program with windows run in the VM.
 ///
 /// Reserved like the others, for the same reason and held by the same test.
@@ -144,6 +150,7 @@ class AppRouter extends RootStackRouter {
     // lesson called "repl". Same arrangement as /initialization above the
     // subject catch-all, and the reason [replLesson] is a reserved id.
     AutoRoute(page: ReplRoute.page, path: '/:subjectSlug/$replLesson'),
+    AutoRoute(page: ProgramRoute.page, path: '/:subjectSlug/$programLesson'),
     AutoRoute(page: MicrobitProgramRoute.page, path: '/:subjectSlug/$microbitLesson'),
     AutoRoute(page: MicrobitReplRoute.page, path: '/:subjectSlug/$microbitReplLesson'),
     AutoRoute(page: TkinterRoute.page, path: '/:subjectSlug/$tkinterLesson'),

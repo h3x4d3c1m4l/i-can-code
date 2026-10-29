@@ -18,6 +18,10 @@
 //
 // The interpreter is single-use: CPython calls proc_exit when the session ends,
 // which unwinds the instance. A new session is a new worker.
+//
+// Given a `program`, it runs that as /main.py instead of starting a prompt, and
+// exits when the program does. Everything above still holds: `input()` parks in
+// the same read, so the program reads from the terminal as it would in one.
 
 import { Wasi, WasiExit } from './wasi.js';
 import { BlockingStdin } from './stdin_channel.js';
@@ -37,7 +41,8 @@ function init({ module, stdlib: zip }) {
 }
 
 /** Never returns while the session lives. */
-async function start({ channel }) {
+async function start({ channel, program }) {
+  const runsProgram = typeof program === 'string';
   // One decoder per stream, kept across writes: a multi-byte character can be
   // split over two fd_writes, and a fresh decoder would turn the halves into
   // two replacement characters.
@@ -64,7 +69,10 @@ async function start({ channel }) {
     // and run it as a script, printing nothing back.
     //
     // `-u` because a prompt that sits in a buffer is a prompt nobody sees.
-    args: ['python', '-i', '-u'],
+    //
+    // A program is given a real filename rather than passed with -c, for the
+    // reason python_worker.js gives: a traceback then quotes the line.
+    args: runsProgram ? ['python', '-u', '/main.py'] : ['python', '-i', '-u'],
     env: {
       PYTHONHOME: '/',
       // No .pyc files beside the modules a session imports: they would
@@ -83,8 +91,10 @@ async function start({ channel }) {
       // page's job, because the basic REPL does none of them.
       TERM: 'xterm-256color',
     },
-    // No /main.py: there is no program, only the prompt.
-    files: new Map([[STDLIB_ZIP, stdlib]]),
+    files: new Map([
+      [STDLIB_ZIP, stdlib],
+      ...(runsProgram ? [['/main.py', new TextEncoder().encode(program)]] : []),
+    ]),
     // Writable from the prompt, except the zip every import reads from. This
     // filesystem lives as long as the session, not as long as one run.
     readOnlyPaths: [STDLIB_ZIP],

@@ -15,9 +15,9 @@ import 'package:xterm/xterm.dart';
 /// understood the escape codes we happened to think of would be a console right
 /// up until a lesson printed something in colour.
 ///
-/// Shared by the browser console and the micro:bit screen. Only what is wired to
-/// it differs: the micro:bit needs no line discipline, because MicroPython
-/// echoes for itself.
+/// Shared by the browser console, the program page and the micro:bit screens.
+/// Only what is wired to it differs: the micro:bit needs no line discipline,
+/// because MicroPython echoes for itself.
 ///
 /// The rounded corners have to be *clipped* rather than drawn: the terminal
 /// paints its own background edge to edge, so a squircle behind it would never
@@ -49,7 +49,17 @@ class ReplTerminal extends StatefulWidget {
   /// Ctrl+Shift+A there, as in their own terminals.
   final bool passesCtrlA;
 
-  const ReplTerminal({required this.terminal, this.autofocus = true, this.passesCtrlA = false, super.key});
+  /// For a screen that hands the keyboard to the terminal itself. Owned by the
+  /// caller, and MUST stay the same node for the life of this widget.
+  final FocusNode? focusNode;
+
+  const ReplTerminal({
+    required this.terminal,
+    this.autofocus = true,
+    this.passesCtrlA = false,
+    this.focusNode,
+    super.key,
+  });
 
   @override
   State<ReplTerminal> createState() => _ReplTerminalState();
@@ -75,7 +85,7 @@ class _ReplTerminalState extends State<ReplTerminal> {
 
   static const EdgeInsets _hintPadding = EdgeInsets.symmetric(horizontal: 6, vertical: 2);
 
-  late final FocusNode _node = FocusNode(debugLabel: 'ReplTerminal');
+  late final FocusNode _node = widget.focusNode ?? FocusNode(debugLabel: 'ReplTerminal');
 
   /// Escape was the last key pressed and has not been sent yet.
   bool _escapeHeld = false;
@@ -90,9 +100,8 @@ class _ReplTerminalState extends State<ReplTerminal> {
 
   @override
   void dispose() {
-    _node
-      ..removeListener(_onFocusChange)
-      ..dispose();
+    _node.removeListener(_onFocusChange);
+    if (widget.focusNode == null) _node.dispose();
     super.dispose();
   }
 

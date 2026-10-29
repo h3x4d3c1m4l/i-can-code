@@ -29,6 +29,14 @@ class CatalogScreenController extends ScreenControllerBase<CatalogScreenViewMode
     );
   }
 
+  /// Opens the page a program is written and run on, in the browser.
+  Future<void> openProgram() async {
+    if (!contextAccessor.buildContext.mounted) return;
+    await contextAccessor.buildContext.router.push(
+      ProgramRoute(subjectSlug: subjectSlug(viewModel.subject)),
+    );
+  }
+
   /// Opens the page a program is written and put on a board from.
   Future<void> openMicrobitProgram() async {
     if (!contextAccessor.buildContext.mounted) return;
