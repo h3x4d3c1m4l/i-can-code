@@ -494,6 +494,7 @@ icon: loop
 | `hourglass` | an hourglass running |
 | `index` | three boxes counted from 0 |
 | `keyboard` | a keyboard on its cable |
+| `kiosk` | a screen on a pillar |
 | `label` | a tag |
 | `led-scanner` | a row of lights, one lit with a trail |
 | `lifebuoy` | a lifebuoy |
@@ -511,6 +512,7 @@ icon: loop
 | `snake` | a snake |
 | `sparkles` | three sparkles |
 | `table` | a grid with a header row |
+| `tabs` | a window with three tabs, the first one open |
 | `text` | an A and an a |
 | `true-false` | a tick beside a cross |
 | `window` | a window with its title bar |

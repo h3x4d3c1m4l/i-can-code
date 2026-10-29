@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
 import 'package:i_can_code/routing/bootstrap_guard.dart';
+import 'package:i_can_code/routing/known_lesson_guard.dart';
 import 'package:i_can_code/routing/project_guard.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -38,6 +39,12 @@ const String microbitReplLesson = 'microbit-repl';
 /// Reserved like the others, for the same reason and held by the same test.
 const String tkinterLesson = 'tkinter';
 
+/// The segment a project's id follows in its address.
+///
+/// Reserved like the others and held by the same test: a lesson with this id
+/// would have every one of its steps read as a project.
+const String projectSegment = 'project';
+
 /// The code-editor settings, which belong to no subject. One segment, like a
 /// subject's own address, so it is declared above that route.
 const String editorSettingsPath = 'editor-settings';
@@ -70,10 +77,8 @@ LessonRoute lessonRoute({
 /// reason [lessonRoute] gives: keyed on the lesson, so opening the next project
 /// from the end of this one is a new screen rather than this one updated.
 ///
-/// Under [microbitLesson] because the first projects were programs for a
-/// board, and that address is where a program for a board already lives. A
-/// project on the machine has the same address. `microbit` is a reserved
-/// lesson id, so no lesson can claim the segment.
+/// Under [projectSegment] whether it runs on a board or in the VM, because
+/// auto_route gives a page only one path.
 ProjectRoute projectRoute({required String subjectSlug, required String lessonId}) => ProjectRoute(
   key: ValueKey(lessonId),
   subjectSlug: subjectSlug,
@@ -142,10 +147,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: MicrobitProgramRoute.page, path: '/:subjectSlug/$microbitLesson'),
     AutoRoute(page: MicrobitReplRoute.page, path: '/:subjectSlug/$microbitReplLesson'),
     AutoRoute(page: TkinterRoute.page, path: '/:subjectSlug/$tkinterLesson'),
-    // Three segments, like a lesson step, so above that route too. `microbit`
+    // Three segments, like a lesson step, so above that route too. `project`
     // is reserved as a lesson id, which keeps the two from ever meaning the
     // same address.
-    AutoRoute(page: ProjectRoute.page, path: '/:subjectSlug/$microbitLesson/:lessonId'),
+    AutoRoute(page: ProjectRoute.page, path: '/:subjectSlug/$projectSegment/:lessonId', guards: [KnownLessonGuard(), ProjectGuard()]),
     // A lesson's bare address means "wherever I left off". auto_route matches on
     // an exact segment count, so that cannot be an optional segment below — and
     // **a page may appear only once**, so a second AutoRoute is out too
@@ -155,7 +160,7 @@ class AppRouter extends RootStackRouter {
     // Hence the redirect to a reserved section id: an unknown id already means
     // "resume" to the screen, which rewrites the address to where it lands.
     RedirectRoute(path: '/:subjectSlug/:lessonId', redirectTo: '/:subjectSlug/:lessonId/$resumeSection'),
-    AutoRoute(page: LessonRoute.page, path: '/:subjectSlug/:lessonId/:sectionId', guards: [ProjectGuard()]),
+    AutoRoute(page: LessonRoute.page, path: '/:subjectSlug/:lessonId/:sectionId', guards: [KnownLessonGuard(), ProjectGuard()]),
   ];
 
 }

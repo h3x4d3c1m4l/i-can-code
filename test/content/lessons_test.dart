@@ -206,7 +206,7 @@ void _holdsTheRules(Lesson lesson) {
     isNot(contains(resumeSection)),
     reason: '"$resumeSection" is the address that means "wherever I left off"',
   );
-  for (final reserved in [replLesson, microbitLesson, microbitReplLesson, tkinterLesson]) {
+  for (final reserved in [replLesson, microbitLesson, microbitReplLesson, tkinterLesson, projectSegment]) {
     expect(lesson.id, isNot(reserved), reason: '"$reserved" is an address of its own, where a lesson id goes');
   }
   expect(

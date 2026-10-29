@@ -361,16 +361,16 @@ No service worker means no console — private browsing, storage disabled, no ht
 /learn-python/repl                             the interactive console
 /learn-python/microbit                         a program of your own, on a board
 /learn-python/microbit-repl                    MicroPython's own prompt, on a board
-/learn-python/microbit/dobbelsteen             a project, on a board or in the VM
+/learn-python/project/dobbelsteen              a project, on a board or in the VM
 /learn-python/tkinter                          a program with windows, in the VM
 /editor-settings                               the code editor settings, from the cog
 ```
 
-`repl`, `microbit`, `microbit-repl` and `tkinter` sit where a lesson id goes, so all four are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the subject catch-all, because auto_route would otherwise read them as lessons by those names.
+`repl`, `microbit`, `microbit-repl`, `tkinter` and `project` sit where a lesson id goes, so all five are **reserved**: a lesson must not use any of them, and `test/content/lessons_test.dart` holds that. Their routes are declared *above* the lesson routes, the same arrangement as `/initialization` above the subject catch-all, because auto_route would otherwise read them as lessons by those names.
 
 **The two micro:bit addresses are two screens, not two views of one**, because they want opposite things of a board: a prompt has to interrupt whatever is running, and a program has to be left alone to run. `MicrobitSessionController.interrupt` is that difference and the only one — both screens share a view model and a controller (`lib/views/components/microbit/`), and differ in their View. A screen that lets the program run also expects no MicroPython banner, since the board only prints one on its way into the prompt.
 
-**A project has no step in its address.** It shows every task up to the one in front of the student, and which one that is comes from progress, not from the address. It sits under `microbit` because the first projects were programs for a board, and a project on the machine (`runtime: tkinter`) has the same address. Three segments long it would otherwise read as a lesson step, so it is declared above that route. A project's lesson address, typed or bookmarked, still reaches the lesson route: `ProjectGuard` (`lib/routing/`) sends it on. Everything the app builds itself goes through `openingRoute()`, which picks the right one.
+**A project has no step in its address.** It shows every task up to the one in front of the student, and which one that is comes from progress, not from the address. It sits under `project` whether it runs on a board or in the VM (`runtime: tkinter`), because a page may appear in the route table only once (below). Three segments long it would otherwise read as a lesson step, so it is declared above that route. A project's lesson address, typed or bookmarked, still reaches the lesson route, and a lesson under `project` reaches the project route: `ProjectGuard` (`lib/routing/`) sends either on to the screen that can show it. An address naming a lesson the course does not have, such as a bookmark of a project's old address under `microbit`, lands on the subject picker: `KnownLessonGuard` sends it there, because neither screen can be built without its lesson. Everything the app builds itself goes through `openingRoute()`, which picks the right one.
 
 The step is a **`LessonSection.id`, never a position** — the same reason progress keys on it. A pasted or bookmarked link still opens the step it named after the author reorders the lesson, and an id the lesson no longer has resolves like the bare form rather than showing nothing.
 

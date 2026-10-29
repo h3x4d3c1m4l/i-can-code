@@ -55,7 +55,7 @@ void main() {
       '/learn-python',
       '/learn-python/$replLesson',
       '/learn-python/$microbitLesson',
-      '/learn-python/$microbitLesson/dice',
+      '/learn-python/$projectSegment/dice',
       '/learn-python/$microbitReplLesson',
       '/learn-python/$tkinterLesson',
       '/learn-python/hello',
@@ -155,11 +155,11 @@ void main() {
     expect(matched!.last.params.getString('sectionId'), resumeSection);
   });
 
-  test('a project has its own address under the board, ahead of a lesson step', () {
-    // Three segments, the same count as a lesson step, and `microbit` is a
+  test('a project has its own address, ahead of a lesson step', () {
+    // Three segments, the same count as a lesson step, and `project` is a
     // reserved lesson id: so this must win rather than read as the step "dice"
-    // of a lesson called "microbit".
-    final matched = AppRouter().matcher.match('/learn-python/$microbitLesson/dice');
+    // of a lesson called "project".
+    final matched = AppRouter().matcher.match('/learn-python/$projectSegment/dice');
 
     expect(matched, hasLength(1));
     expect(matched!.single.name, 'ProjectRoute');

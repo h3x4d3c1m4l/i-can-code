@@ -21,6 +21,7 @@ enum CourseIcon {
   // `index` is taken by Enum.
   indexing('index'),
   keyboard('keyboard'),
+  kiosk('kiosk'),
   label('label'),
   ledScanner('led-scanner'),
   lifebuoy('lifebuoy'),
@@ -38,6 +39,7 @@ enum CourseIcon {
   snake('snake'),
   sparkles('sparkles'),
   table('table'),
+  tabs('tabs'),
   text('text'),
   trueFalse('true-false'),
   window('window');
