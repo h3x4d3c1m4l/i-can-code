@@ -596,6 +596,12 @@ void main() {
     });
   });
 
+  testPage('the editor indents the way the subject does', (tester) async {
+    open();
+
+    expect(session.code.options.indentSize, subjectIndentSize('python'));
+  });
+
   // What a project on the machine waits for before "Het werkt!". The page
   // asks for none of it, so this drives the session on its own.
   group('the first window a run shows', () {

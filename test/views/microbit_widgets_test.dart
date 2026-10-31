@@ -2,8 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/microbit/microbit_board_summary.dart';
 import 'package:i_can_code/views/components/microbit/microbit_docs_button.dart';
@@ -269,6 +271,26 @@ void main() {
     test('leaves a short tail alone rather than reading past the end', () {
       expect(groupSerial('9906360200'), '99063602 00');
       expect(groupSerial(''), '');
+    });
+  });
+
+  group('MicrobitSessionViewModel', () {
+    test('indents the editor the way the subject does', () {
+      final viewModel = MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python');
+      addTearDown(viewModel.dispose);
+
+      expect(viewModel.code.options.indentSize, subjectIndentSize('python'));
+    });
+
+    test('disposes the editor it made, and has none to dispose when it made none', () {
+      final read = MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python');
+      final code = read.code;
+      read.dispose();
+
+      expect(() => code.addListener(() {}), throwsFlutterError);
+
+      // The REPL screen's case: nothing ever reads the editor.
+      MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python').dispose();
     });
   });
 }

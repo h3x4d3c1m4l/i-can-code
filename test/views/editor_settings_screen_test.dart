@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/editor_settings.dart';
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/app_button.dart';
@@ -74,6 +75,12 @@ void main() {
     expect(find.text('Standaard'), findsOneWidget);
     expect(find.text('icc_setup.py'), findsOneWidget);
     expect(restoreButton(tester).onPress, isNull);
+  });
+
+  testWidgets('indents the setup the way Python does', (tester) async {
+    await open(tester);
+
+    expect(viewModel.tkinterSetup.options.indentSize, subjectIndentSize('python'));
   });
 
   testWidgets('opens on what was set before', (tester) async {

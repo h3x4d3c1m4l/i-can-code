@@ -48,12 +48,20 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// named something that is not a subject of ours.
   final String subject;
 
-  /// What the reader is about to flash.
+  /// What [code] opens with.
+  final String _program;
+
+  CodeLineEditingController? _code;
+
+  /// What the reader is about to flash. Made on first read, so the REPL screen,
+  /// which has no editor, never makes one. Owned here, and disposed with the
+  /// session.
   ///
   /// Not observable, like the terminal: it keeps its own state and notifies its
   /// own listeners, and a MobX observable over every keystroke would rebuild the
   /// screen on each one.
-  final CodeLineEditingController code;
+  CodeLineEditingController get code =>
+      _code ??= CodeLineEditingController.fromText(_program, CodeLineOptions(indentSize: subjectIndentSize(subject)));
 
   /// The emulator the view hands to a `TerminalView`.
   ///
@@ -101,10 +109,7 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// greeting, the smallest program that shows the board is listening.
   MicrobitSessionViewModelBase({required super.contextAccessor, required String subjectSlug, String? program})
     : subject = subjectFromSlug(subjectSlug) ?? '',
-      code = CodeLineEditingController.fromText(
-        program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n',
-        CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
-      );
+      _program = program ?? 'from microbit import *\n\ndisplay.scroll("Hello")\n';
 
   @action
   void setStatus(MicrobitStatus status) => _status = status;
@@ -164,6 +169,12 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
     _failure = message;
     _boardInfo = null;
     _status = MicrobitStatus.failed;
+  }
+
+  @override
+  void dispose() {
+    _code?.dispose();
+    super.dispose();
   }
 
 }

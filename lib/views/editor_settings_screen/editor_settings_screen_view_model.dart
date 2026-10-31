@@ -1,3 +1,4 @@
+import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
 import 'package:re_editor/re_editor.dart';
@@ -10,8 +11,11 @@ abstract class EditorSettingsScreenViewModelBase extends ScreenViewModelBase wit
 
   /// The code the machine runs before every program, on the Tkinter page and in
   /// a project on it. Not observable, like every editor's controller: it
-  /// notifies its own listeners.
-  final CodeLineEditingController tkinterSetup = CodeLineEditingController();
+  /// notifies its own listeners. Python whatever subject opened the screen, so
+  /// it indents like Python.
+  final CodeLineEditingController tkinterSetup = CodeLineEditingController(
+    options: CodeLineOptions(indentSize: subjectIndentSize('python')),
+  );
 
   EditorSettingsScreenViewModelBase({
     required super.contextAccessor,

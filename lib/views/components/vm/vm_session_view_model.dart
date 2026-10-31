@@ -165,15 +165,13 @@ abstract class VmSessionViewModelBase extends ScreenViewModelBase with Store {
   @readonly
   bool _displayFocused = false;
 
-  /// [program] is what the editor opens with. [options] are the editor's own,
-  /// re_editor's defaults when left out.
-  VmSessionViewModelBase({
-    required super.contextAccessor,
-    required String subjectSlug,
-    required String program,
-    CodeLineOptions options = const CodeLineOptions(),
-  }) : subject = subjectFromSlug(subjectSlug) ?? '',
-       code = CodeLineEditingController.fromText(program, options);
+  /// [program] is what the editor opens with.
+  VmSessionViewModelBase({required super.contextAccessor, required String subjectSlug, required String program})
+    : subject = subjectFromSlug(subjectSlug) ?? '',
+      code = CodeLineEditingController.fromText(
+        program,
+        CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
+      );
 
   /// Whether Run does anything now. A machine still loading takes the run and
   /// starts it once ready.

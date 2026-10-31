@@ -78,12 +78,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
         machine = null;
       case LessonRuntime.tkinter:
         board = null;
-        machine = VmSessionViewModel(
-          contextAccessor: contextAccessor,
-          subjectSlug: subjectSlug,
-          program: program,
-          options: CodeLineOptions(indentSize: subjectIndentSize(lesson.entry.subject)),
-        );
+        machine = VmSessionViewModel(contextAccessor: contextAccessor, subjectSlug: subjectSlug, program: program);
       case LessonRuntime.python:
         throw StateError('Lesson.parse refuses a project on python; it runs on microbit or tkinter.');
     }
@@ -169,9 +164,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
 
   @override
   void dispose() {
-    board
-      ?..code.dispose()
-      ..dispose();
+    board?.dispose();
     machine?.dispose();
     super.dispose();
   }
