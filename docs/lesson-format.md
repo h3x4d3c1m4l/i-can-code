@@ -701,6 +701,30 @@ Four things to know:
 Anywhere else that reads the file, a preview on GitHub included, it is still an
 ordinary list with an emoji at the start of each item.
 
+## A table — scrolls sideways when it does not fit
+
+A GitHub table is drawn in a frame with its header row shaded, in text a little
+smaller than the prose around it.
+
+```markdown
+| | Lijst | Set |
+| --- | --- | --- |
+| Leeg | `[]` | `set()` |
+| Volgorde | ja | nee |
+```
+
+Four things to know:
+
+- **A column narrows down to its longest word and no further.** When the
+  columns still do not fit, the table keeps those widths and scrolls sideways.
+  On a phone a table of four or five columns usually does, so keep cells short.
+- **The row of dashes under the header needs a `|`.** Without one, `---`
+  underlines a heading instead.
+- **A table ends at the first blank line**, as it does for the renderer.
+- **Only a table at the left margin.** One indented under a list item is left to
+  the renderer, which draws it in the same style but cannot scroll it, and one
+  inside a fenced block is code.
+
 ## Why the role rides in the fence language
 
 Six words are reserved outright rather than read as a language: `metadata`,

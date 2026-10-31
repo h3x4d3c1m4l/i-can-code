@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -49,8 +50,8 @@ import '../support/recording_url_launcher.dart';
 /// Wraps [child] in what the lesson widgets need: the app theme, the
 /// localizations, and the scroll view they always sit inside — prose is taller
 /// than the viewport, and without one the Column overflows.
-Widget _host(Widget child) => FTheme(
-  data: buildAppTheme(),
+Widget _host(Widget child, {Brightness brightness = Brightness.light}) => FTheme(
+  data: buildAppTheme(brightness: brightness),
   child: Localizations(
     locale: const Locale('nl'),
     delegates: AppLocalizations.localizationsDelegates,
@@ -102,6 +103,11 @@ Widget _hostWithNavigator(Widget child) => FTheme(
     ),
   ),
 );
+
+/// The position of the one scroll view under test that scrolls sideways.
+ScrollPosition _sideways(WidgetTester tester) => tester
+    .state<ScrollableState>(find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.right))
+    .position;
 
 /// Stands in for the platform's clipboard, and answers with what was last put
 /// on it. With [refuse] every write is turned down, the way a browser may.
@@ -241,6 +247,41 @@ void main() {
 
     test('a nested list is left to the renderer', () {
       final blocks = splitProseOnEmojiLists('- een\n  - ❓ twee');
+
+      expect(blocks.single, isA<ProseMarkdown>());
+    });
+  });
+
+  group('splitProseOnTables', () {
+    test('prose without a table comes back as one block of markdown', () {
+      final blocks = splitProseOnTables('Een | in de tekst.\n\nNa.');
+
+      expect((blocks.single as ProseMarkdown).markdown, 'Een | in de tekst.\n\nNa.');
+    });
+
+    test('a table is cut out of the prose around it, up to the first blank line', () {
+      final blocks = splitProseOnTables('Voor.\n\n| a | b |\n| --- | :-: |\n| 1 | 2 |\n\nNa.');
+
+      expect(blocks, hasLength(3));
+      expect((blocks[0] as ProseMarkdown).markdown, 'Voor.');
+      expect((blocks[1] as ProseTable).markdown, '| a | b |\n| --- | :-: |\n| 1 | 2 |');
+      expect((blocks[2] as ProseMarkdown).markdown, 'Na.');
+    });
+
+    test('a table inside a fence is code, not a table', () {
+      final blocks = splitProseOnTables('```text\n| a | b |\n| --- | --- |\n```');
+
+      expect(blocks.single, isA<ProseMarkdown>());
+    });
+
+    test('a table indented under a list item stays in the list', () {
+      final blocks = splitProseOnTables('- een\n\n  | a | b |\n  | --- | --- |\n- twee');
+
+      expect(blocks.single, isA<ProseMarkdown>());
+    });
+
+    test('dashes without a pipe underline a heading rather than a header row', () {
+      final blocks = splitProseOnTables('a | b\n---');
 
       expect(blocks.single, isA<ProseMarkdown>());
     });
@@ -507,6 +548,78 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('•'), findsNWidgets(2));
+    });
+
+    testWidgets('a table is drawn in the theme, not in Material light', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const LessonProse(markdown: 'Voor.\n\n| Vorm | Set |\n| --- | --- |\n| Volgorde | nee |'),
+          brightness: Brightness.dark,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Color? colorOf(String text) => tester.widget<Text>(find.text(text)).textSpan!.style?.color;
+      expect(colorOf('nee'), colorOf('Voor.'));
+      expect(colorOf('Set'), buildAppTheme(brightness: Brightness.dark).colors.secondaryForeground);
+    });
+
+    testWidgets('a table whose words fit fills the width and does not scroll', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: '| a | b |\n| --- | --- |\n| een | twee |')));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(find.byType(Table)).width, 700);
+      expect(_sideways(tester).maxScrollExtent, 0);
+    });
+
+    testWidgets('a table too wide for its column scrolls sideways rather than break a word', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 200,
+              child: LessonProse(markdown: '| eigenschap | woordenboek |\n| --- | --- |\n| volgorde | toevoegen |'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_sideways(tester).maxScrollExtent, greaterThan(0));
+      final cells = tester.renderObjectList<RenderParagraph>(
+        find.descendant(of: find.byType(Table), matching: find.byType(RichText)),
+      );
+      for (final cell in cells) {
+        expect(
+          cell.size.width,
+          greaterThanOrEqualTo(cell.getMinIntrinsicWidth(double.infinity) - precisionErrorTolerance),
+          reason: cell.text.toPlainText(),
+        );
+      }
+    });
+
+    testWidgets('a table is spaced from the prose below it as a list is', (tester) async {
+      Future<double> gapUnder(String block, Finder last) async {
+        await tester.pumpWidget(_host(LessonProse(markdown: 'Voor.\n\n$block\n\nNa.')));
+        await tester.pumpAndSettle();
+
+        return tester.getRect(find.textContaining('Na.')).top - tester.getRect(last).bottom;
+      }
+
+      // Its scroll view leaves the scrollbar room underneath, out of the gap.
+      expect(
+        await gapUnder('| a | b |\n| --- | --- |\n| een | twee |', find.byType(Table)),
+        await gapUnder('- ❓ een\n- 🏷️ twee', find.textContaining('twee')),
+      );
+    });
+
+    testWidgets('a cell with inline code keeps the line height of the cells beside it', (tester) async {
+      await tester.pumpWidget(_host(const LessonProse(markdown: '| a | b |\n| --- | --- |\n| een `in` | twee |')));
+      await tester.pumpAndSettle();
+
+      // The package forces the line height of a mixed cell from `p`.
+      expect(tester.getSize(find.textContaining('een')).height, tester.getSize(find.text('twee')).height);
     });
   });
 

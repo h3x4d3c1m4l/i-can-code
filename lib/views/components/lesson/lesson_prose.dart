@@ -5,9 +5,11 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
 import 'package:i_can_code/views/components/lesson/emoji_bullet_list.dart';
+import 'package:i_can_code/views/components/lesson/fit_or_scroll_sideways.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -108,6 +110,15 @@ class ProseEmojiList extends ProseBlock {
   final List<EmojiListItem> items;
 
   const ProseEmojiList(this.items);
+
+}
+
+/// A table, drawn in a frame that scrolls sideways when its columns do not fit.
+class ProseTable extends ProseBlock {
+
+  final String markdown;
+
+  const ProseTable(this.markdown);
 
 }
 
@@ -214,6 +225,61 @@ List<ProseBlock> splitProseOnEmojiLists(String markdown) {
   return blocks.isEmpty ? const [ProseMarkdown('')] : blocks;
 }
 
+/// [markdown], cut into its tables and the prose between them.
+///
+/// A table starts at a line at the left margin with a `|` in it, whose next line
+/// is the row of dashes under a header, and ends at the first blank line, where
+/// the renderer ends it too. An indented table belongs to a list item and is
+/// left to the renderer, and one inside a fenced block is code. Markdown without
+/// a table comes back as a single [ProseMarkdown].
+List<ProseBlock> splitProseOnTables(String markdown) {
+  final fence = RegExp(r'^\s*(?:```|~~~)');
+  final indented = RegExp(r'^[ \t]');
+  // Without the pipe, a line of dashes is a heading's underline or a rule.
+  final delimiter = RegExp(r'^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$');
+
+  final blocks = <ProseBlock>[];
+  final prose = <String>[];
+
+  void flushProse() {
+    final text = prose.join('\n').trim();
+    if (text.isNotEmpty) {
+      blocks.add(ProseMarkdown(text));
+    }
+    prose.clear();
+  }
+
+  final lines = markdown.split('\n');
+  var inFence = false;
+  var index = 0;
+
+  while (index < lines.length) {
+    final line = lines[index];
+    if (fence.hasMatch(line)) {
+      inFence = !inFence;
+    }
+
+    final next = index + 1 < lines.length ? lines[index + 1] : '';
+    if (inFence || indented.hasMatch(line) || !line.contains('|') || !next.contains('|') || !delimiter.hasMatch(next)) {
+      prose.add(line);
+      index++;
+      continue;
+    }
+
+    var end = index + 2;
+    while (end < lines.length && lines[end].trim().isNotEmpty) {
+      end++;
+    }
+
+    flushProse();
+    blocks.add(ProseTable(lines.sublist(index, end).join('\n')));
+    index = end;
+  }
+  flushProse();
+
+  return blocks.isEmpty ? const [ProseMarkdown('')] : blocks;
+}
+
 /// A section's prose, rendered in the app's type scale.
 ///
 /// `flutter_markdown_plus` cannot read `context.appTheme`, so the tokens are
@@ -275,6 +341,9 @@ class LessonProse extends StatelessWidget {
     final theme = context.theme;
     final tokens = context.appTheme;
     final body = tokens.text.body.copyWith(fontSize: fontSize, height: 1.6);
+    // Smaller than the prose, so that a table of several columns still fits
+    // across a step without scrolling.
+    final cell = body.copyWith(fontSize: fontSize - 4, height: 1.4);
 
     // [paragraphSpacing] is the space *on top of* the package's own block gap.
     // Widening that gap therefore has to come off the paragraph's own inset, or
@@ -326,7 +395,30 @@ class LessonProse extends StatelessWidget {
           color: theme.colors.secondary,
           shape: squircle(kChipCornerRadius),
         ),
+        // Same trap for every table slot: the fallback's text is Material's
+        // `bodyMedium`, dark on the dark page, and its border `dividerColor`.
+        tableHead: cell.copyWith(fontWeight: FontWeight.w700, color: theme.colors.secondaryForeground),
+        tableBody: cell,
+        tableHeadAlign: TextAlign.start,
+        tableHeadCellsDecoration: BoxDecoration(color: theme.colors.secondary),
+        // The outer edge is the squircle frame a [ProseTable] is drawn in.
+        tableBorder: TableBorder.symmetric(inside: BorderSide(color: theme.colors.border)),
+        tableCellsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        tableVerticalAlignment: TableCellVerticalAlignment.top,
+        // A column takes the width its text wants, and gives it up down to its
+        // longest word. Not an [IntrinsicColumnWidth] on its own: the package
+        // puts such a table in a scroll view of its own, where no cell wraps.
+        tableColumnWidth: const MaxColumnWidth(IntrinsicColumnWidth(), FlexColumnWidth()),
       );
+
+    final tableSheet = sheet.copyWith(
+      // The package forces the line height of a cell that mixes styles, such as
+      // text with inline code, from `p` rather than from the cell. Left at the
+      // prose's size, every line of such a cell stood a third further apart.
+      p: cell,
+      // Four under the cell text, as the prose's code is four under the prose.
+      code: tokens.text.code.copyWith(fontSize: fontSize - 8, color: theme.colors.foreground),
+    );
 
     // A worked example, drawn on the same dark surface as the editor.
     //
@@ -368,9 +460,13 @@ class LessonProse extends StatelessWidget {
 
     // An emoji list is drawn here and not by the package. Its `bulletBuilder`
     // is told an item's index and never its text, so it cannot know which
-    // emoji to draw.
+    // emoji to draw. A table is too, because the package can only scroll one
+    // sideways by never wrapping its cells.
     Widget blocks(String data) {
-      final parts = splitProseOnEmojiLists(data);
+      final parts = [
+        for (final part in splitProseOnEmojiLists(data))
+          if (part case ProseMarkdown(markdown: final prose)) ...splitProseOnTables(prose) else part,
+      ];
       if (parts case [ProseMarkdown(markdown: final only)]) {
         return render(only);
       }
@@ -380,14 +476,29 @@ class LessonProse extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final (index, part) in parts.indexed) ...[
-            // The package spaces sibling blocks inside one body only.
-            if (index > 0) const SizedBox(height: _blockSpacing),
+            // The package spaces sibling blocks inside one body only. Under a
+            // table, its scroll view has already left the scrollbar's gutter.
+            if (index > 0)
+              SizedBox(height: parts[index - 1] is ProseTable ? _blockSpacing - AppScrollbar.gutter : _blockSpacing),
             switch (part) {
               ProseMarkdown(markdown: final prose) => render(prose),
               ProseEmojiList(:final items) => EmojiBulletList(
                 items: [for (final item in items) (emoji: item.emoji, child: render(item.body, styleSheet: itemSheet))],
                 style: body,
                 spacing: _blockSpacing,
+              ),
+              // Clipped, so the header's fill keeps to the frame's corners.
+              ProseTable(markdown: final table) => FitOrScrollSideways(
+                child: ClipPath(
+                  clipper: ShapeBorderClipper(shape: squircle(kChipCornerRadius)),
+                  child: DecoratedBox(
+                    position: DecorationPosition.foreground,
+                    decoration: ShapeDecoration(
+                      shape: squircle(kChipCornerRadius, side: BorderSide(color: theme.colors.border)),
+                    ),
+                    child: render(table, styleSheet: tableSheet),
+                  ),
+                ),
               ),
             },
           ],
