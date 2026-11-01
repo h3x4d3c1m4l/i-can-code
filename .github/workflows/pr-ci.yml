@@ -40,7 +40,7 @@ jobs:
       # Node 22.7+ because web/python/wasi.js is an ES module without a
       # package.json saying so, and older Node reads it as CommonJS.
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -200,7 +200,7 @@ jobs:
       # skip without pytest. The versions are tool/bake_pytest.py's, which is
       # what the app ships.
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
 
