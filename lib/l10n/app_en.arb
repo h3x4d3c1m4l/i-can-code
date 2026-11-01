@@ -382,6 +382,66 @@
   "@resetProgress_body": {},
   "resetProgress_confirm": "Reset",
   "@resetProgress_confirm": {},
+  "appHeader_exportProgress": "Export progress",
+  "@appHeader_exportProgress": {},
+  "appHeader_importProgress": "Import progress",
+  "@appHeader_importProgress": {},
+  "progressFile_name": "i-can-code-progress-{date}.json",
+  "@progressFile_name": {
+    "description": "The name an exported progress file is saved under. The date is yyyy-mm-dd.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "importProgress_failedTitle": "This file cannot be imported",
+  "@importProgress_failedTitle": {},
+  "importProgress_notProgress": "This is not an I Can Code progress file. You make one with Export progress.",
+  "@importProgress_notProgress": {},
+  "importProgress_newer": "This file comes from a newer version of I Can Code. Reload the page and try again.",
+  "@importProgress_newer": {},
+  "importProgress_damaged": "Something in this progress file does not add up. Nothing was changed.",
+  "@importProgress_damaged": {},
+  "importProgress_nothingTitle": "Nothing to import",
+  "@importProgress_nothingTitle": {},
+  "importProgress_noSteps": "This file has no finished steps.",
+  "@importProgress_noSteps": {},
+  "importProgress_unknownSteps": "The finished steps in this file belong to lessons this version of the app does not have.",
+  "@importProgress_unknownSteps": {},
+  "importProgress_modeTitle": "Merge or replace?",
+  "@importProgress_modeTitle": {},
+  "importProgress_modeBody": "This browser already has progress. Merge adds the ticks from the file. Replace first clears every tick here. Your code stays either way.",
+  "@importProgress_modeBody": {},
+  "importProgress_merge": "Merge",
+  "@importProgress_merge": {},
+  "importProgress_replace": "Replace",
+  "@importProgress_replace": {},
+  "importProgress_doneTitle": "Progress imported",
+  "@importProgress_doneTitle": {},
+  "importProgress_done": "{steps, plural, =1{1 finished step} other{{steps} finished steps}} from {lessons, plural, =1{1 lesson} other{{lessons} lessons}}.",
+  "@importProgress_done": {
+    "description": "What an import brought in. Steps are counted over all lessons together.",
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "lessons": {
+        "type": "int"
+      }
+    }
+  },
+  "importProgress_skipped": "{count, plural, =1{1 step from the file was skipped, because this version of the app does not have it.} other{{count} steps from the file were skipped, because this version of the app does not have them.}}",
+  "@importProgress_skipped": {
+    "description": "Follows importProgress_done when the file names steps the course does not have.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importProgress_close": "Close",
+  "@importProgress_close": {},
   "common_cancel": "Cancel",
   "@common_cancel": {},
   "replScreen_title": "Try {subject} freely (browser)",

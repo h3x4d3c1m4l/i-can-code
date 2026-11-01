@@ -5,19 +5,19 @@ import 'package:yaml/yaml.dart';
 enum SectionKind {
 
   /// Prose only. Nothing to write, nothing to run.
-  info,
+  info('info'),
 
   /// A short exercise. Prose and editor stack in a single column.
-  quickExercise,
+  quickExercise('quick-exercise'),
 
   /// A full exercise, in the design's two-column layout: prose on the left,
   /// editor and output on the right.
-  exercise,
+  exercise('exercise'),
 
   /// Match the pairs: prose, then a board of tiles the student pairs up. Asks
   /// for work but not for code, so there is no editor and nothing to run — the
   /// board itself is the check.
-  matchPairs,
+  matchPairs('match-pairs'),
 
   /// Predict the output: the lesson's own program, and a box to write what the
   /// student thinks it prints before it is run.
@@ -27,7 +27,7 @@ enum SectionKind {
   /// interpreter** — the program is run and its output compared to the
   /// prediction — so a lesson cannot state one that drifts from the code beside
   /// it.
-  predictOutput,
+  predictOutput('predict-output'),
 
   /// Put the lines in order: the program's own lines, shuffled, for the student
   /// to arrange into a working one.
@@ -37,7 +37,7 @@ enum SectionKind {
   /// program. Checked by **running what was assembled** through the section's
   /// ordinary validator, never by comparing it against the order in the file,
   /// so an arrangement that is different but correct still passes.
-  orderLines,
+  orderLines('order-lines'),
 
   /// One task of a project: prose, what the program does once the task is done,
   /// and a button the student presses when theirs does it.
@@ -46,7 +46,12 @@ enum SectionKind {
   /// watch, or shows windows the app does not judge, so the student's own
   /// say-so is the verdict. Only a [LessonLayout.project] has these, and it has
   /// no other kind but [info].
-  task;
+  task('task');
+
+  /// What a lesson file calls it, in a section's `type`.
+  final String type;
+
+  const SectionKind(this.type);
 
   /// Whether the student writes and runs code here.
   ///
@@ -69,16 +74,10 @@ enum SectionKind {
   /// that program reads on standard input.
   bool get runsCode => usesValidator || this == SectionKind.predictOutput;
 
-  static SectionKind parse(String value) => switch (value) {
-    'info' => SectionKind.info,
-    'quick-exercise' => SectionKind.quickExercise,
-    'exercise' => SectionKind.exercise,
-    'match-pairs' => SectionKind.matchPairs,
-    'predict-output' => SectionKind.predictOutput,
-    'order-lines' => SectionKind.orderLines,
-    'task' => SectionKind.task,
-    _ => throw FormatException('Unknown section type "$value".'),
-  };
+  static SectionKind parse(String value) => values.firstWhere(
+    (kind) => kind.type == value,
+    orElse: () => throw FormatException('Unknown section type "$value".'),
+  );
 
 }
 
@@ -87,15 +86,20 @@ enum SectionKind {
 enum LessonRuntime {
 
   /// CPython built for wasm, in the page.
-  python,
+  python('python'),
 
   /// Python with Tk on the machine behind the Tkinter page. A project runs
   /// here, and a step of any other lesson cannot yet: see [readyIn].
-  tkinter,
+  tkinter('tkinter'),
 
   /// MicroPython on a BBC micro:bit, written to the board over USB. Only a
   /// [LessonLayout.project] runs here.
-  microbit;
+  microbit('microbit');
+
+  /// What a lesson file calls it, in `runtime`.
+  final String runtime;
+
+  const LessonRuntime(this.runtime);
 
   /// Whether a step on this runtime can be shown today in a lesson laid out as
   /// [layout].
@@ -108,12 +112,10 @@ enum LessonRuntime {
   /// the app can run it.
   bool readyIn(LessonLayout layout) => this != LessonRuntime.tkinter || layout == LessonLayout.project;
 
-  static LessonRuntime parse(String value) => switch (value) {
-    'python' => LessonRuntime.python,
-    'tkinter' => LessonRuntime.tkinter,
-    'microbit' => LessonRuntime.microbit,
-    _ => throw FormatException('Unknown runtime "$value".'),
-  };
+  static LessonRuntime parse(String value) => values.firstWhere(
+    (runtime) => runtime.runtime == value,
+    orElse: () => throw FormatException('Unknown runtime "$value".'),
+  );
 
 }
 
@@ -121,17 +123,21 @@ enum LessonRuntime {
 enum SectionRun {
 
   /// As a program. Every step that does not say otherwise.
-  script,
+  script('script'),
 
   /// Under pytest: the editor holds one file, the section's `file` blocks the
   /// others, and pytest runs the tests among them. See `docs/lesson-format.md`.
-  pytest;
+  pytest('pytest');
 
-  static SectionRun parse(String value) => switch (value) {
-    'script' => SectionRun.script,
-    'pytest' => SectionRun.pytest,
-    _ => throw FormatException('Unknown run "$value".'),
-  };
+  /// What a lesson file calls it, in `run`.
+  final String run;
+
+  const SectionRun(this.run);
+
+  static SectionRun parse(String value) => values.firstWhere(
+    (run) => run.run == value,
+    orElse: () => throw FormatException('Unknown run "$value".'),
+  );
 
 }
 
@@ -141,19 +147,23 @@ enum LessonLayout {
 
   /// One step on screen at a time, each finished on its own. Every lesson that
   /// does not say otherwise.
-  steps,
+  steps('steps'),
 
   /// One program, built up over a run of [SectionKind.task]s. Each task appears
   /// under the one before it once that one works, and all of them share one
   /// editor. It runs on [LessonRuntime.microbit] or [LessonRuntime.tkinter],
   /// whichever the lesson's own `runtime` names. See `docs/lesson-format.md`.
-  project;
+  project('project');
 
-  static LessonLayout parse(String value) => switch (value) {
-    'steps' => LessonLayout.steps,
-    'project' => LessonLayout.project,
-    _ => throw FormatException('Unknown layout "$value".'),
-  };
+  /// What a lesson file calls it, in `layout`.
+  final String layout;
+
+  const LessonLayout(this.layout);
+
+  static LessonLayout parse(String value) => values.firstWhere(
+    (layout) => layout.layout == value,
+    orElse: () => throw FormatException('Unknown layout "$value".'),
+  );
 
 }
 
@@ -888,7 +898,7 @@ class Lesson {
     String? stdin,
   ) {
     if (run != null && !kind.isAssignment) {
-      throw FormatException('Section "$section" is a ${kind.name} step but declares a `run`; only an exercise has one.');
+      throw FormatException('Section "$section" is a ${kind.type} step but declares a `run`; only an exercise has one.');
     }
     if (run != SectionRun.pytest) {
       if (fileName != null) {

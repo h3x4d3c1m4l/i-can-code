@@ -170,6 +170,59 @@ void main() {
     expect(reloaded.hasProgress, isFalse);
   });
 
+  group('restoring', () {
+    final intro = _lesson(id: 'intro', sectionIds: ['a', 'b']);
+    final loops = _lesson(id: 'loops', sectionIds: ['a', 'b']);
+
+    test('merging adds to what is there and outlives the store', () async {
+      await store.markFinished(intro, 'a');
+
+      await store.restore({
+        intro: {'b'},
+        loops: {'a'},
+      }, replace: false);
+      expect(store.finishedIn(intro), {'a', 'b'});
+      expect(store.finishedIn(loops), {'a'});
+
+      final reloaded = ProgressStore();
+      await reloaded.load(Course(lessons: [intro, loops]));
+      expect(reloaded.finishedIn(intro), {'a', 'b'}, reason: 'the restore has to reach storage, not just memory');
+      expect(reloaded.finishedIn(loops), {'a'});
+    });
+
+    test('replacing leaves only what was restored, in storage too', () async {
+      await store.markFinished(intro, 'a');
+      await store.markFinished(loops, 'a');
+
+      await store.restore({
+        intro: {'b'},
+      }, replace: true);
+      expect(store.finishedIn(intro), {'b'});
+      expect(store.isStarted(loops), isFalse);
+
+      final reloaded = ProgressStore();
+      await reloaded.load(Course(lessons: [intro, loops]));
+      expect(reloaded.finishedIn(intro), {'b'});
+      expect(reloaded.isStarted(loops), isFalse);
+    });
+
+    test('replacing reaches progress of a lesson that is gone', () async {
+      await store.markFinished(_lesson(id: 'input-and-output', sectionIds: ['a']), 'a');
+      final renamed = ProgressStore();
+      await renamed.load(Course(lessons: [intro]));
+
+      await renamed.restore({
+        intro: {'a'},
+      }, replace: true);
+
+      final reloaded = ProgressStore();
+      await reloaded.load(Course(lessons: [intro]));
+      expect(reloaded.hasProgress, isTrue);
+      await reloaded.forget(intro);
+      expect(reloaded.hasProgress, isFalse, reason: 'the old key went with the replace');
+    });
+  });
+
   test('lessons of the same name in different subjects are kept apart', () {
     expect(
       ProgressStoreBase.keyFor('python', 'intro'),

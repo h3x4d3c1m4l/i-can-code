@@ -104,6 +104,32 @@ abstract class ProgressStoreBase with Store {
     }
   }
 
+  /// Records the sections in [finished] as done, by lesson, and writes them out.
+  ///
+  /// With [replace] it forgets everything first, as [clear] does, so storage
+  /// then holds [finished] and nothing else.
+  Future<void> restore(Map<CourseLesson, Set<String>> finished, {required bool replace}) async {
+    if (replace) await clear();
+
+    final updated = {..._finished};
+    final changed = <String>{};
+    for (final MapEntry(key: lesson, value: sections) in finished.entries) {
+      if (sections.isEmpty) continue;
+      final key = keyFor(lesson.entry.subject, lesson.translations.values.first.id);
+      updated[key] = {...?updated[key], ...sections};
+      changed.add(key);
+    }
+    _replace(updated);
+
+    for (final key in changed) {
+      try {
+        await _preferences.setStringList(key, updated[key]!.toList());
+      } on Object {
+        // The ticks stand for this session either way.
+      }
+    }
+  }
+
   /// Forgets the finished steps of [lesson] alone, in storage as well as in
   /// memory, so it counts as never started.
   Future<void> forget(CourseLesson lesson) async {

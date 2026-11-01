@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/routing/app_router.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/services/file_download/file_download.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
@@ -18,6 +19,7 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
 import 'package:i_can_code/views/components/debug_menu.dart';
 import 'package:i_can_code/views/components/header_icon_button.dart';
+import 'package:i_can_code/views/components/progress_transfer.dart';
 
 /// The cog in the header. Holds the language choice and anything else that
 /// belongs to the reader rather than to the lesson.
@@ -37,6 +39,9 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
   /// so something MUST call [FPopoverController.toggle].
   late final FPopoverController _controller = FPopoverController(vsync: this);
 
+  /// The menu's tap region, which a [_DisabledReason] joins with its panel.
+  final Object _tapGroup = Object();
+
   @override
   void dispose() {
     _controller.dispose();
@@ -54,6 +59,7 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
     return Observer(
       builder: (context) => FPopoverMenu(
         control: FPopoverControl.managed(controller: _controller),
+        groupId: _tapGroup,
         menuAnchor: Alignment.topRight,
         childAnchor: Alignment.bottomRight,
         semanticsLabel: context.localizations.appHeader_settings,
@@ -111,11 +117,31 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
             ),
           FItemGroup(
             children: [
+              // Offered with nothing done too: the file lists every lesson, so
+              // it still reports where a student stands.
+              if (canDownloadFiles)
+                FItem(
+                  title: Text(context.localizations.appHeader_exportProgress),
+                  prefix: const Icon(FLucideIcons.download),
+                  onPress: () {
+                    unawaited(_controller.hide());
+                    ProgressTransfer.exportFile(context);
+                  },
+                ),
+              FItem(
+                title: Text(context.localizations.appHeader_importProgress),
+                prefix: const Icon(FLucideIcons.upload),
+                onPress: () async {
+                  unawaited(_controller.hide());
+                  await ProgressTransfer.importFile(context);
+                },
+              ),
               // Always there, so it can be found before it is needed. Greyed
               // out while there is nothing to clear, and saying so when pressed.
               _DisabledReason(
                 enabled: progress.hasProgress || drafts.hasDrafts,
                 reason: context.localizations.appHeader_resetProgressNothing,
+                tapGroup: _tapGroup,
                 builder: (enabled) => FItem(
                   enabled: enabled,
                   title: Text(context.localizations.appHeader_resetProgress),
@@ -240,6 +266,10 @@ class _SettingsMenuState extends State<SettingsMenu> with SingleTickerProviderSt
 ///
 /// The reason is an [FPopover] and not an [FTooltip] for the reason [HintMark]
 /// gives: forui's tooltip hides itself on every pointer down.
+///
+/// It stands left of the menu where the window has room, so it covers no other
+/// item, and under the item where it has not. A press on it closes it and
+/// leaves the menu open.
 class _DisabledReason extends StatefulWidget with FItemMixin {
 
   final bool enabled;
@@ -247,10 +277,19 @@ class _DisabledReason extends StatefulWidget with FItemMixin {
   /// What the popover says while the item is disabled. A sentence.
   final String reason;
 
+  /// The menu's `groupId`. The panel is in an overlay of its own, so without
+  /// it a press on the panel is outside the menu and closes it.
+  final Object tapGroup;
+
   /// Builds the item itself, enabled or not.
   final Widget Function(bool enabled) builder;
 
-  const _DisabledReason({required this.enabled, required this.reason, required this.builder});
+  const _DisabledReason({
+    required this.enabled,
+    required this.reason,
+    required this.tapGroup,
+    required this.builder,
+  });
 
   @override
   State<_DisabledReason> createState() => _DisabledReasonState();
@@ -263,7 +302,17 @@ class _DisabledReasonState extends State<_DisabledReason> with SingleTickerProvi
   static const double _panelWidth = 300;
   static const EdgeInsets _panelPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
+  /// Between the panel and the menu, when it stands beside it.
+  static const double _gap = 8;
+
+  /// What the panel keeps clear of the window's left edge.
+  static const double _margin = 16;
+
   late final FPopoverController _controller = FPopoverController(vsync: this);
+
+  /// Whether the panel stands left of the menu. Measured on the press, since
+  /// the menu's place depends on the window and on the widest item.
+  bool _beside = true;
 
   @override
   void didUpdateWidget(_DisabledReason oldWidget) {
@@ -277,26 +326,42 @@ class _DisabledReasonState extends State<_DisabledReason> with SingleTickerProvi
     super.dispose();
   }
 
+  void _explain() {
+    // The item is as wide as the menu, so its left edge is the menu's.
+    final item = context.findRenderObject()! as RenderBox;
+    setState(() => _beside = item.localToGlobal(Offset.zero).dx >= _margin + _panelWidth + _gap);
+    unawaited(_controller.show());
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.enabled) return widget.builder(true);
 
     return FPopover(
-      popoverAnchor: Alignment.topCenter,
-      childAnchor: Alignment.bottomCenter,
+      popoverAnchor: _beside ? Alignment.topRight : Alignment.topCenter,
+      childAnchor: _beside ? Alignment.topLeft : Alignment.bottomCenter,
+      spacing: _beside ? const FPortalSpacing(_gap) : const FPortalSpacing(4),
       control: FPopoverControl.managed(controller: _controller),
-      popoverBuilder: (context, _) => ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: _panelWidth),
-        child: Padding(
-          padding: _panelPadding,
-          child: Text(widget.reason, style: context.appTheme.text.bodySmall),
+      popoverBuilder: (context, _) => TapRegion(
+        groupId: widget.tapGroup,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          excludeFromSemantics: true,
+          onTap: _controller.hide,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _panelWidth),
+            child: Padding(
+              padding: _panelPadding,
+              child: Text(widget.reason, style: context.appTheme.text.bodySmall),
+            ),
+          ),
         ),
       ),
       child: GestureDetector(
         // Opaque, so a press on the item's padding counts as well.
         behavior: HitTestBehavior.opaque,
         excludeFromSemantics: true,
-        onTap: _controller.show,
+        onTap: _explain,
         child: widget.builder(false),
       ),
     );

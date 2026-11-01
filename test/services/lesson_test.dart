@@ -1035,4 +1035,20 @@ void main() {
       });
     });
   });
+
+  test('every value of a metadata key reads back from how a lesson file writes it', () {
+    for (final kind in SectionKind.values) {
+      expect(SectionKind.parse(kind.type), kind);
+    }
+    for (final runtime in LessonRuntime.values) {
+      expect(LessonRuntime.parse(runtime.runtime), runtime);
+    }
+    for (final run in SectionRun.values) {
+      expect(SectionRun.parse(run.run), run);
+    }
+    for (final layout in LessonLayout.values) {
+      expect(LessonLayout.parse(layout.layout), layout);
+    }
+    expect(() => SectionKind.parse('quickExercise'), throwsFormatException);
+  });
 }

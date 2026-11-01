@@ -352,6 +352,61 @@ void main() {
     expect(find.text('Voortgang wissen?'), findsNothing);
   });
 
+  group('the reason a greyed-out item gives', () {
+    const reason = 'Er zijn nog geen vinkjes of code om te wissen.';
+
+    /// Opens the menu in a window [width] wide and presses the greyed-out reset.
+    Future<void> explain(WidgetTester tester, {required double width}) async {
+      tester.view
+        ..physicalSize = Size(width, 800)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // `WidgetsApp` puts one above the app. Without it no press is ever
+      // outside a popover, and nothing here would close on one.
+      await tester.pumpWidget(TapRegionSurface(child: _host(const AppHeader(), width: width)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SettingsMenu));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Voortgang wissen'));
+      await tester.pumpAndSettle();
+    }
+
+    Rect itemOf(WidgetTester tester) =>
+        tester.getRect(find.ancestor(of: find.text('Voortgang wissen'), matching: find.byType(FItem)).first);
+
+    testWidgets('stands left of the menu where there is room, so it covers no item', (tester) async {
+      await explain(tester, width: 800);
+
+      final item = itemOf(tester);
+      final text = tester.getRect(find.text(reason));
+      expect(text.right, lessThan(item.left));
+      expect(text.top, greaterThanOrEqualTo(item.top));
+      expect(text.left, greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('opens under the item in a window too narrow for that', (tester) async {
+      await explain(tester, width: 400);
+
+      final item = itemOf(tester);
+      final text = tester.getRect(find.text(reason));
+      expect(text.top, greaterThan(item.bottom));
+      expect(text.left, greaterThanOrEqualTo(0));
+      expect(text.right, lessThanOrEqualTo(400));
+    });
+
+    for (final width in [800.0, 400.0]) {
+      testWidgets('closes when pressed and leaves the menu open, $width wide', (tester) async {
+        await explain(tester, width: width);
+
+        await tester.tap(find.text(reason));
+        await tester.pumpAndSettle();
+
+        expect(find.text(reason), findsNothing);
+        expect(find.text('Voortgang wissen'), findsOneWidget);
+      });
+    }
+  });
+
   testWidgets('reset is offered once there is progress, and asks first', (tester) async {
     final lesson = CourseLesson(
       entry: const LessonEntry(subject: 'python', order: 1, paths: {'nl': 'x'}),
