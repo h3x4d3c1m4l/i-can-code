@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^2.0.0 # Used by forui's FTextField reaches for on Apple (web) platforms.
   intl: any
 
-  forui: 0.27.6
+  forui: 0.27.7
   mobx: 2.7.0
   flutter_mobx: 2.4.0
   auto_route: 11.2.0
@@ -29,17 +29,17 @@ dependencies:
   yaml: 3.1.4
   freezed_annotation: 3.1.0
   meta: 1.19.0
-  web: 1.1.1
-  material_ui: 1.7.0
+  web: 1.1.2
+  material_ui: 1.9.0
   theme_tailor_annotation: 4.0.0
   xterm: 4.0.0
   flutter_rust_bridge: 2.13.0
   url_launcher: 6.3.3
-  sentry_flutter: 10.1.0
-  vector_graphics: 1.2.4
+  sentry_flutter: 10.2.0
+  vector_graphics: 1.2.5
   # Imported by bin/bundle_icons.dart, the transformer that writes
   # assets/icons.bin, and by nothing the app itself ships.
-  vector_graphics_compiler: 1.3.2
+  vector_graphics_compiler: 1.3.4
 
 dev_dependencies:
   flutter_test: { sdk: flutter }
@@ -52,7 +52,7 @@ dev_dependencies:
   mobx_codegen: 2.8.0
   auto_route_generator: 10.6.0
   freezed: 4.0.1
-  json_serializable: 6.14.1
+  json_serializable: 6.15.2
   theme_tailor: 4.0.1
   sentry_dart_plugin: 3.4.0
 
