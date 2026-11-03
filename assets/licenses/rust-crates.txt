@@ -455,7 +455,6 @@ SOFTWARE.
 anyhow
 lazy_static
 nusb
-once_cell
 pin-project-lite
 portable-atomic
 proc-macro2
