@@ -7,6 +7,7 @@
 /// Dart VM as well.
 enum CourseIcon {
 
+  arrowPad('arrow-pad'),
   barChart('bar-chart'),
   branch('branch'),
   click('click'),
@@ -30,8 +31,10 @@ enum CourseIcon {
   lock('lock'),
   loop('loop'),
   magnifier('magnifier'),
+  marble('marble'),
   microbit('microbit'),
   mirror('mirror'),
+  music('music'),
   operators('operators'),
   output('output'),
   package('package'),

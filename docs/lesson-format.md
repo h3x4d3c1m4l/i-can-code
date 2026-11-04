@@ -481,6 +481,7 @@ icon: loop
 
 | Icon | Drawn as |
 | --- | --- |
+| `arrow-pad` | four arrows in a cross, one lit |
 | `bar-chart` | three bars on a baseline |
 | `branch` | a decision diamond with two ways out |
 | `click` | a pointer clicking a button |
@@ -503,8 +504,10 @@ icon: loop
 | `lock` | a padlock |
 | `loop` | two arrows chasing each other round |
 | `magnifier` | a magnifying glass over a decimal |
+| `marble` | a marble on a tilted plank, rolling to a flag |
 | `microbit` | a micro:bit with a smile on its lights |
 | `mirror` | a hand mirror |
+| `music` | two quavers on a beam |
 | `operators` | plus, minus, times and divide |
 | `output` | a screen with a prompt |
 | `package` | a taped box |
