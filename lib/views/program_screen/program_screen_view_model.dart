@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
@@ -56,8 +60,14 @@ print(f"Hallo, {naam}!")
   @readonly
   String? _runtimeVersion;
 
-  ProgramScreenViewModelBase({required super.contextAccessor, required String subjectSlug})
+  /// The folder this page shares with the console, which every run starts
+  /// with. App-wide, so it outlives the page.
+  final FolderStore folder;
+
+  /// [folder] is for tests; the page finds the app's own.
+  ProgramScreenViewModelBase({required super.contextAccessor, required String subjectSlug, FolderStore? folder})
     : subject = subjectFromSlug(subjectSlug) ?? '',
+      folder = folder ?? GetIt.I<FolderStore>(),
       code = CodeLineEditingController.fromText(
         sample,
         CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
@@ -65,6 +75,9 @@ print(f"Hallo, {naam}!")
 
   /// The page `CodeDraftStore` keeps this page's program under.
   String get draftPage => 'program.$subject';
+
+  /// This subject's files in [folder]. Tracked when an observer reads it.
+  Map<String, Uint8List> get files => folder.filesOf(subject);
 
   /// Whether a program is on its way or running, which is when Run is Stop.
   bool get busy => _status == ProgramStatus.starting || _status == ProgramStatus.running;

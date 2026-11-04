@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/python/python_repl.dart';
@@ -12,8 +14,8 @@ import 'package:i_can_code/services/terminal/line_editor.dart';
 import 'package:i_can_code/views/base/screen_controller_base.dart';
 import 'package:i_can_code/views/program_screen/program_screen_view_model.dart';
 
-/// Starts the interpreter that runs [program].
-typedef ProgramSessionFactory = PythonRepl Function({String? program});
+/// Starts the interpreter that runs [program], with [files] as its folder.
+typedef ProgramSessionFactory = PythonRepl Function({String? program, Map<String, Uint8List> files});
 
 class ProgramScreenController extends ScreenControllerBase<ProgramScreenViewModel> {
 
@@ -96,7 +98,7 @@ class ProgramScreenController extends ScreenControllerBase<ProgramScreenViewMode
     viewModel.terminal.write('\x1b[2J\x1b[3J\x1b[H');
     _prompt = '';
 
-    final session = _createSession(program: viewModel.code.text);
+    final session = _createSession(program: viewModel.code.text, files: viewModel.files);
     _session = session;
     _editor = LineEditor(
       echo: viewModel.terminal.write,
@@ -134,6 +136,8 @@ class ProgramScreenController extends ScreenControllerBase<ProgramScreenViewMode
         viewModel.setStatus(ProgramStatus.running);
       case ReplOutput(:final text):
         _write(text);
+      case ReplFiles(:final changed, :final removed):
+        viewModel.folder.apply(viewModel.subject, changed: changed, removed: removed);
       case ReplExited(:final code):
         _end();
         viewModel.setStatus(ProgramStatus.idle);
@@ -180,6 +184,27 @@ class ProgramScreenController extends ScreenControllerBase<ProgramScreenViewMode
     // two and leave the cursor at the end of a line.
     final endLine = _prompt.isEmpty ? '' : '\n';
     _write('$endLine\n\x1b[90m— $message —\x1b[0m\n');
+  }
+
+  /// Why [name] cannot be given to a file the student types, or null.
+  FolderNameProblem? folderNameProblem(String name, {String? current}) =>
+      viewModel.folder.problemWith(viewModel.subject, name, current: current);
+
+  /// Keeps a file the student typed or changed, in the folder and in the run
+  /// in flight, which works on a copy of it. [replacing] is the name the file
+  /// had, which goes when it differs.
+  void saveFile({required String name, required Uint8List bytes, String? replacing}) {
+    if (_disposed) return;
+    if (replacing != null && replacing != name) deleteFile(replacing);
+    viewModel.folder.put(viewModel.subject, name, bytes);
+    _session?.putFile(name, bytes);
+  }
+
+  /// Takes [path] out of the folder, and out of the run in flight.
+  void deleteFile(String path) {
+    if (_disposed) return;
+    viewModel.folder.remove(viewModel.subject, path);
+    _session?.removeFile(path);
   }
 
   /// The sample is not a draft, so going back to it forgets the one there was.

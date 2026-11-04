@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:i_can_code/routing/app_router.gr.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/python/python_repl.dart';
 import 'package:i_can_code/services/terminal/line_editor.dart';
@@ -13,7 +15,7 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
   /// Not final: stopping a session means throwing the interpreter away and
   /// building another, so every use MUST read the field rather than hold a
   /// tear-off, which would keep calling the dead one.
-  PythonRepl _repl = createPythonRepl();
+  late PythonRepl _repl = _createRepl();
 
   late final LineEditor _editor;
 
@@ -58,6 +60,9 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
     unawaited(_start());
   }
 
+  /// A new interpreter, which starts with the folder as it is now.
+  PythonRepl _createRepl() => createPythonRepl(files: viewModel.files);
+
   Future<void> _start() async {
     if (!_repl.isSupported) {
       viewModel.setStatus(ReplStatus.unavailable);
@@ -75,6 +80,8 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
         viewModel.setStatus(ReplStatus.running);
       case ReplOutput(:final text):
         _write(text);
+      case ReplFiles(:final changed, :final removed):
+        viewModel.folder.apply(viewModel.subject, changed: changed, removed: removed);
       case ReplExited(:final code):
         viewModel.setStatus(ReplStatus.exited);
         _notice(localizations.replScreen_exited(code));
@@ -119,12 +126,33 @@ class ReplScreenController extends ScreenControllerBase<ReplScreenViewModel> {
     await _subscription?.cancel();
     _subscription = null;
     _repl.dispose();
-    _repl = createPythonRepl();
+    _repl = _createRepl();
     _prompt = '';
 
     if (interrupted) _notice(localizations.replScreen_stopped);
     viewModel.setStatus(ReplStatus.starting);
     await _start();
+  }
+
+  /// Why [name] cannot be given to a file the student types, or null.
+  FolderNameProblem? folderNameProblem(String name, {String? current}) =>
+      viewModel.folder.problemWith(viewModel.subject, name, current: current);
+
+  /// Keeps a file the student typed or changed, in the folder and in the
+  /// interpreter, which works on a copy of it. [replacing] is the name the file
+  /// had, which goes when it differs.
+  void saveFile({required String name, required Uint8List bytes, String? replacing}) {
+    if (_disposed) return;
+    if (replacing != null && replacing != name) deleteFile(replacing);
+    viewModel.folder.put(viewModel.subject, name, bytes);
+    _repl.putFile(name, bytes);
+  }
+
+  /// Takes [path] out of the folder, and out of the interpreter.
+  void deleteFile(String path) {
+    if (_disposed) return;
+    viewModel.folder.remove(viewModel.subject, path);
+    _repl.removeFile(path);
   }
 
   /// Back to the subject picker, which is the app's home.

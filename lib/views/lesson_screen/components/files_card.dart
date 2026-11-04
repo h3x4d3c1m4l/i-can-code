@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
-import 'package:i_can_code/theme/app_theme.dart';
-import 'package:i_can_code/theme/shape_metrics.dart';
+import 'package:i_can_code/views/components/files/file_button.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/lesson_screen/components/file_dialog.dart';
 
@@ -38,71 +36,22 @@ class FilesCard extends StatelessWidget {
   Widget build(BuildContext context) => OutputCard.holding(
     label: label,
     note: note,
-    child: Wrap(spacing: 10, runSpacing: 10, children: [for (final file in files) _FileButton(file: file)]),
+    child: Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final file in files)
+          FileButton(
+            label: file.path,
+            note: file.origin == FileOrigin.changed ? context.localizations.lessonScreen_fileChanged : null,
+            semanticsLabel: [
+              context.localizations.lessonScreen_openFile(file.path),
+              if (file.origin == FileOrigin.changed) context.localizations.lessonScreen_fileChanged,
+            ].join(', '),
+            onPress: () => unawaited(showFileDialog(context, file)),
+          ),
+      ],
+    ),
   );
-
-}
-
-/// A file's name, drawn as a control in the outlined button's own ink.
-class _FileButton extends StatelessWidget {
-
-  /// The height the corners are worked out for: a line of the code face at
-  /// 15px and the padding around it.
-  static const double _height = 40;
-
-  final ShownFile file;
-
-  const _FileButton({required this.file});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tokens = context.appTheme;
-    final ink = tokens.colors.neutralButton;
-
-    return FTappable(
-      onPress: () => unawaited(showFileDialog(context, file)),
-      semanticsButton: true,
-      semanticsLabel: [
-        context.localizations.lessonScreen_openFile(file.path),
-        if (file.origin == FileOrigin.changed) context.localizations.lessonScreen_fileChanged,
-      ].join(', '),
-      builder: (context, states, child) => DecoratedBox(
-        decoration: ShapeDecoration(
-          // The outlined button's hover, so the two read as one family.
-          color: states.contains(FTappableVariant.hovered) || states.contains(FTappableVariant.focused)
-              ? ink.withValues(alpha: 0.1)
-              : theme.colors.background,
-          shape: squircleOf(
-            kChipCornerRadius,
-            size: _height,
-            side: BorderSide(color: ink, width: 1.5),
-          ),
-        ),
-        child: child,
-      ),
-      // The label above says all of it, so the name is not read out twice.
-      child: ExcludeSemantics(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(FLucideIcons.fileText, size: 18, color: ink),
-              const SizedBox(width: 8),
-              Text(file.path, style: tokens.text.code.copyWith(fontSize: 15, color: ink)),
-              if (file.origin == FileOrigin.changed) ...[
-                const SizedBox(width: 8),
-                Text(
-                  context.localizations.lessonScreen_fileChanged,
-                  style: tokens.text.bodySmall.copyWith(fontSize: 13, color: theme.colors.mutedForeground),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
 }

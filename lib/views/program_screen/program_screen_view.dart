@@ -7,10 +7,10 @@ import 'package:i_can_code/extensions/build_context_extension.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
-import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/files/folder_strip.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/components/run_button.dart';
@@ -215,19 +215,31 @@ class ProgramScreenView extends ScreenViewBase<ProgramScreenViewModel, ProgramSc
     };
   }
 
+  /// Run, and the folder beside it on the same line. One line however many
+  /// files there are, which is what lets the editor and the terminal keep the
+  /// height they had before the folder was there.
   Widget _buildRunRow() {
-    return Observer(
-      builder: (context) => AppButtonRow(
-        children: [
-          RunButton(
+    return Row(
+      children: [
+        Observer(
+          builder: (context) => RunButton(
             running: viewModel.busy,
             runLabel: context.localizations.programScreen_run,
             stopLabel: context.localizations.programScreen_stop,
             onRun: _run,
             onStop: controller.stop,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: FolderStrip(
+            files: viewModel.files,
+            problemWith: controller.folderNameProblem,
+            onSave: controller.saveFile,
+            onDelete: controller.deleteFile,
+          ),
+        ),
+      ],
     );
   }
 

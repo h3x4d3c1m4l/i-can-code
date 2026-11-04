@@ -1,6 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:i_can_code/services/python/python_repl.dart';
 
-PythonRepl createPythonRepl({String? program}) => UnsupportedPythonRepl();
+PythonRepl createPythonRepl({String? program, Map<String, Uint8List> files = const {}}) => UnsupportedPythonRepl();
 
 /// Stands in where no host for `python.wasm` exists — every platform but the
 /// web, including the Dart VM that `flutter test` runs on.
@@ -23,6 +25,12 @@ class UnsupportedPythonRepl implements PythonRepl {
 
   @override
   void endInput() {}
+
+  @override
+  void putFile(String path, Uint8List bytes) {}
+
+  @override
+  void removeFile(String path) {}
 
   @override
   bool get isWaitingForInput => false;

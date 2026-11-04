@@ -11,6 +11,7 @@ import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
+import 'package:i_can_code/views/components/files/folder_strip.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/components/text_link.dart';
 import 'package:i_can_code/views/repl_screen/components/repl_help_dialog.dart';
@@ -18,6 +19,9 @@ import 'package:i_can_code/views/repl_screen/repl_screen_controller.dart';
 import 'package:i_can_code/views/repl_screen/repl_screen_view_model.dart';
 
 class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenController> {
+
+  /// The most the help link or the starting line takes of the footer.
+  static const double _footerTextWidth = 280;
 
   const ReplScreenView({required super.viewModel, required super.controller, required super.contextAccessor});
 
@@ -79,31 +83,48 @@ class ReplScreenView extends ScreenViewBase<ReplScreenViewModel, ReplScreenContr
     );
   }
 
+  /// The help, the folder and Restart, on one line however many files there
+  /// are, so the terminal keeps the height it had before the folder was there.
   Widget _buildFooter() {
     return Observer(
       builder: (context) {
         final starting = viewModel.status == ReplStatus.starting;
+        final available = viewModel.status != ReplStatus.unavailable;
 
         return Row(
           children: [
-            Expanded(
+            // Bounded, so the folder has the rest of the line and a long
+            // translation cannot push it off the end.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _footerTextWidth),
               child: starting
                   ? Text(
                       context.localizations.replScreen_starting,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: context.appTheme.text.bodySmall.copyWith(color: context.theme.colors.mutedForeground),
                     )
                   // Only worth reading once there is something to type into.
-                  : Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextLink(
-                        label: context.localizations.replScreen_help,
-                        target: TextLinkTarget.help,
-                        onPress: () => unawaited(showReplHelpDialog(context)),
-                      ),
+                  : TextLink(
+                      label: context.localizations.replScreen_help,
+                      target: TextLinkTarget.help,
+                      onPress: () => unawaited(showReplHelpDialog(context)),
                     ),
             ),
             const SizedBox(width: 16),
-            if (viewModel.status != ReplStatus.unavailable)
+            Expanded(
+              child: available
+                  ? FolderStrip(
+                      files: viewModel.files,
+                      problemWith: controller.folderNameProblem,
+                      onSave: controller.saveFile,
+                      onDelete: controller.deleteFile,
+                      alignment: MainAxisAlignment.end,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 16),
+            if (available)
               AppButton(
                 tone: AppButtonTone.neutral,
                 icon: FLucideIcons.rotateCcw,

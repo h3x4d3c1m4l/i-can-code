@@ -19,8 +19,12 @@
 const IDX_WRITE = 0;
 const IDX_READ = 1;
 const IDX_WAITING = 2;
+/** Bumped by every write and every `wake`, and what the reader parks on. Not
+ *  IDX_WRITE, because a wake that brings no bytes leaves that unchanged, and a
+ *  wait on it would sleep through the wake. */
+const IDX_SIGNAL = 3;
 
-const HEADER_SLOTS = 3;
+const HEADER_SLOTS = 4;
 const HEADER_BYTES = HEADER_SLOTS * 4;
 
 /** Ctrl-D, carried in the ring as a tty carries VEOF: in order with the text
@@ -90,8 +94,19 @@ function writeBytes(channel, bytes) {
   if (count > firstRun) data.set(bytes.subarray(firstRun, count), 0);
 
   Atomics.store(header, IDX_WRITE, (w + count) % capacity);
-  Atomics.notify(header, IDX_WRITE);
+  signal(header);
   return count;
+}
+
+/** Wakes a parked reader without handing it any input, so its `idle` runs:
+ *  file_channel.js uses it to deliver a file to an interpreter at a prompt. */
+export function wake(channel) {
+  signal(headerOf(channel));
+}
+
+function signal(header) {
+  Atomics.add(header, IDX_SIGNAL, 1);
+  Atomics.notify(header, IDX_SIGNAL);
 }
 
 /** True while the program is parked on an empty ring — it has asked for input
@@ -109,10 +124,13 @@ export function isWaiting(channel) {
  *  are some. */
 export class BlockingStdin {
 
-  constructor(channel) {
+  /** `idle` runs at the start of every read and after every wake, which are
+   *  the moments the interpreter is doing nothing else. */
+  constructor(channel, { idle } = {}) {
     this.header = headerOf(channel);
     this.data = dataOf(channel);
     this.capacity = this.data.length;
+    this.idle = idle ?? (() => {});
   }
 
   /** Blocks until at least one byte is available. An empty result means end of
@@ -122,16 +140,20 @@ export class BlockingStdin {
    *  does, so the text is answered first and the end on the read after it. */
   read(max) {
     const r = Atomics.load(this.header, IDX_READ);
-    let w = Atomics.load(this.header, IDX_WRITE);
+    let w;
 
-    while (w === r) {
-      Atomics.store(this.header, IDX_WAITING, 1);
-      // Expects `w`, so a write landing between the store above and this call
-      // returns "not-equal" straight away rather than being lost.
-      Atomics.wait(this.header, IDX_WRITE, w);
-      Atomics.store(this.header, IDX_WAITING, 0);
-
+    for (;;) {
+      // Loaded before `idle` and before the ring is looked at, so a write or a
+      // wake that lands after this makes the wait below return at once instead
+      // of sleeping through it.
+      const signalled = Atomics.load(this.header, IDX_SIGNAL);
+      this.idle();
       w = Atomics.load(this.header, IDX_WRITE);
+      if (w !== r) break;
+
+      Atomics.store(this.header, IDX_WAITING, 1);
+      Atomics.wait(this.header, IDX_SIGNAL, signalled);
+      Atomics.store(this.header, IDX_WAITING, 0);
     }
 
     if (this.data[r] === EOF_BYTE) {

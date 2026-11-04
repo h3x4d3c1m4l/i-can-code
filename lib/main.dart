@@ -8,6 +8,7 @@ import 'package:i_can_code/services/color_vision_controller.dart';
 import 'package:i_can_code/services/editor_settings.dart';
 import 'package:i_can_code/services/error_reporting.dart';
 import 'package:i_can_code/services/feature_toggles.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/licenses/bundled_licenses.dart';
 import 'package:i_can_code/services/locale_controller.dart';
 import 'package:i_can_code/services/mobile_browser_warning.dart';
@@ -68,6 +69,7 @@ void setupServices() {
     ..registerSingleton<MobileBrowserWarning>(MobileBrowserWarning())
     ..registerSingleton<StartupProgress>(StartupProgress())
     ..registerSingleton<EditorSettings>(EditorSettings())
+    ..registerSingleton<FolderStore>(FolderStore())
     ..registerSingleton<PythonRuntime>(python)
     ..registerSingleton<PythonAttemptRunner>(PythonAttemptRunner(python));
 }

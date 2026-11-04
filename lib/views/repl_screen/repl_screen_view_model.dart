@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:get_it/get_it.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
 import 'package:mobx/mobx.dart';
@@ -56,8 +60,17 @@ abstract class ReplScreenViewModelBase extends ScreenViewModelBase with Store {
   @readonly
   String? _failure;
 
-  ReplScreenViewModelBase({required super.contextAccessor, required String subjectSlug})
-    : subject = subjectFromSlug(subjectSlug) ?? '';
+  /// The folder this console shares with the program page, which every
+  /// interpreter starts with. App-wide, so it outlives the page.
+  final FolderStore folder;
+
+  /// [folder] is for tests; the page finds the app's own.
+  ReplScreenViewModelBase({required super.contextAccessor, required String subjectSlug, FolderStore? folder})
+    : subject = subjectFromSlug(subjectSlug) ?? '',
+      folder = folder ?? GetIt.I<FolderStore>();
+
+  /// This subject's files in [folder]. Tracked when an observer reads it.
+  Map<String, Uint8List> get files => folder.filesOf(subject);
 
   @action
   void setStatus(ReplStatus status) => _status = status;

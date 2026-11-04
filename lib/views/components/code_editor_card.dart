@@ -43,11 +43,18 @@ class CodeEditorCard extends StatefulWidget {
 
   /// How tall the editing area is. The design's is 276px.
   ///
-  /// MUST be a fixed number: `re_editor` asserts on an unbounded height
+  /// A fixed number, because `re_editor` asserts on an unbounded height
   /// (`_code_field.dart:933`), and sizing it to the code with a
   /// [ValueListenableBuilder] trips `'!_dirty'` because the editor notifies its
   /// controller while building. Longer code scrolls inside.
-  final double height;
+  ///
+  /// Null fills what the card is given, in whole lines, which is how a dialog
+  /// gives way to a short window. The card MUST then be given a bounded height.
+  final double? height;
+
+  /// Whether the code is coloured as Python. Off for a file that is not a
+  /// program, such as a CSV, where Python's colours mark nothing.
+  final bool highlight;
 
   /// Whether the editor takes the keyboard when it is first built. `re_editor`
   /// does by default.
@@ -93,8 +100,16 @@ class CodeEditorCard extends StatefulWidget {
     this.autofocus = true,
     this.starterCode,
     this.fileName = 'main.py',
+    this.highlight = true,
     super.key,
   });
+
+  /// The most whole lines an editing area of [height] holds, and the height
+  /// that holds them. [height] itself where not even one line fits.
+  static double _snappedHeight(double height) {
+    final lines = ((height - codePadding.vertical) / (_fontSize * _lineHeight).ceilToDouble()).floor();
+    return lines >= 1 ? heightForLines(lines) : height;
+  }
 
   @override
   State<CodeEditorCard> createState() => _CodeEditorCardState();
@@ -181,55 +196,75 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
               ],
             ),
           ),
-          SizedBox(
-            height: widget.height,
-            child: CodeEditor(
-              controller: widget.controller,
-              focusNode: focusNode,
-              autofocus: widget.autofocus,
-              wordWrap: false,
-              padding: CodeEditorCard.codePadding,
-              // Line numbers, quieter than the code, so a traceback's "line 3"
-              // can be found. A capped answer is short enough to count by eye,
-              // where a column of numbers beside it is only clutter.
-              indicatorBuilder: widget.maxLines != null
-                  ? null
-                  : (context, editingController, chunkController, notifier) => Padding(
-                      padding: const EdgeInsets.only(right: 14),
-                      child: DefaultCodeLineNumber(
-                        controller: editingController,
-                        notifier: notifier,
-                        textStyle: text.code.copyWith(
-                          fontSize: CodeEditorCard._fontSize,
-                          height: CodeEditorCard._lineHeight,
-                          color: colors.codeMuted,
-                        ),
-                        focusedTextStyle: text.code.copyWith(
-                          fontSize: CodeEditorCard._fontSize,
-                          height: CodeEditorCard._lineHeight,
-                          color: colors.codeForeground,
-                        ),
-                      ),
-                    ),
-              style: CodeEditorStyle(
-                fontSize: CodeEditorCard._fontSize,
-                fontHeight: CodeEditorCard._lineHeight,
-                fontFamily: kCodeFontFamily,
-                textColor: colors.codeForeground,
-                backgroundColor: const Color(0x00000000),
-                // Both MUST come from the *code* palette: `colors.primary` is
-                // near-black in the neutral preset, which on this near-black
-                // surface is an invisible caret.
-                cursorColor: colors.codeForeground,
-                selectionColor: CodeEditorCard.selectionColor(colors),
-                codeTheme: CodeHighlightTheme(
-                  languages: {'python': CodeHighlightThemeMode(mode: langPython)},
-                  theme: atomOneDarkTheme,
+          if (widget.height case final double height)
+            _buildEditor(context, focusNode, height)
+          else
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Align(
+                  alignment: Alignment.topCenter,
+                  child: _buildEditor(context, focusNode, CodeEditorCard._snappedHeight(constraints.maxHeight)),
                 ),
               ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEditor(BuildContext context, FocusNode focusNode, double height) {
+    final colors = context.appTheme.colors;
+    final text = context.appTheme.text;
+
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: CodeEditor(
+        controller: widget.controller,
+        focusNode: focusNode,
+        autofocus: widget.autofocus,
+        wordWrap: false,
+        padding: CodeEditorCard.codePadding,
+        // Line numbers, quieter than the code, so a traceback's "line 3"
+        // can be found. A capped answer is short enough to count by eye,
+        // where a column of numbers beside it is only clutter.
+        indicatorBuilder: widget.maxLines != null
+            ? null
+            : (context, editingController, chunkController, notifier) => Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: DefaultCodeLineNumber(
+                  controller: editingController,
+                  notifier: notifier,
+                  textStyle: text.code.copyWith(
+                    fontSize: CodeEditorCard._fontSize,
+                    height: CodeEditorCard._lineHeight,
+                    color: colors.codeMuted,
+                  ),
+                  focusedTextStyle: text.code.copyWith(
+                    fontSize: CodeEditorCard._fontSize,
+                    height: CodeEditorCard._lineHeight,
+                    color: colors.codeForeground,
+                  ),
+                ),
+              ),
+        style: CodeEditorStyle(
+          fontSize: CodeEditorCard._fontSize,
+          fontHeight: CodeEditorCard._lineHeight,
+          fontFamily: kCodeFontFamily,
+          textColor: colors.codeForeground,
+          backgroundColor: const Color(0x00000000),
+          // Both MUST come from the *code* palette: `colors.primary` is
+          // near-black in the neutral preset, which on this near-black
+          // surface is an invisible caret.
+          cursorColor: colors.codeForeground,
+          selectionColor: CodeEditorCard.selectionColor(colors),
+          codeTheme: widget.highlight
+              ? CodeHighlightTheme(
+                  languages: {'python': CodeHighlightThemeMode(mode: langPython)},
+                  theme: atomOneDarkTheme,
+                )
+              : null,
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/l10n/generated/app_localizations.dart';
+import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/python/python_repl.dart';
@@ -46,6 +47,12 @@ class _FakeSession implements PythonRepl {
   final String? program;
   final bool supported;
 
+  /// The folder it was started with.
+  final Map<String, Uint8List> files;
+
+  /// What the page said about the folder since, in order. Null is a removal.
+  final List<(String, Uint8List?)> said = [];
+
   final StreamController<ReplEvent> _events = StreamController<ReplEvent>.broadcast();
 
   /// Every line the page wrote to standard input.
@@ -54,7 +61,7 @@ class _FakeSession implements PythonRepl {
   bool started = false;
   bool disposed = false;
 
-  _FakeSession({required this.program, required this.supported});
+  _FakeSession({required this.program, required this.supported, this.files = const {}});
 
   void emit(ReplEvent event) {
     if (!_events.isClosed) _events.add(event);
@@ -74,6 +81,12 @@ class _FakeSession implements PythonRepl {
 
   @override
   void endInput() {}
+
+  @override
+  void putFile(String path, Uint8List bytes) => said.add((path, bytes));
+
+  @override
+  void removeFile(String path) => said.add((path, null));
 
   @override
   bool get isWaitingForInput => false;
@@ -111,6 +124,7 @@ class _NamedRuntime implements PythonRuntime {
 void main() {
   late List<_FakeSession> sessions;
   late CodeDraftStore drafts;
+  late FolderStore folder;
   late ProgramScreenViewModel viewModel;
   late ProgramScreenController controller;
 
@@ -129,14 +143,14 @@ void main() {
     addTearDown(tester.view.reset);
 
     final accessor = BuildContextAccessor();
-    viewModel = ProgramScreenViewModel(contextAccessor: accessor, subjectSlug: 'learn-python');
+    viewModel = ProgramScreenViewModel(contextAccessor: accessor, subjectSlug: 'learn-python', folder: folder);
     controller = ProgramScreenController(
       viewModel: viewModel,
       contextAccessor: accessor,
       drafts: drafts,
       runtime: _NamedRuntime(),
-      createSession: ({program}) {
-        final session = _FakeSession(program: program, supported: supported);
+      createSession: ({program, files = const {}}) {
+        final session = _FakeSession(program: program, supported: supported, files: Map.of(files));
         sessions.add(session);
         return session;
       },
@@ -186,6 +200,7 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     sessions = [];
     drafts = CodeDraftStore();
+    folder = FolderStore();
   });
 
   testWidgets('runs what is in the editor, on an empty terminal', (tester) async {
@@ -313,10 +328,85 @@ void main() {
     await leave(tester);
   });
 
+  group('the folder', () {
+    testWidgets('every run starts with it', (tester) async {
+      folder.put('python', 'cijfers.csv', utf8.encode('naam,cijfer\n'));
+      await open(tester);
+
+      controller.run();
+
+      expect(runs().single.files.keys, ['cijfers.csv']);
+      await leave(tester);
+    });
+
+    testWidgets('keeps what the program wrote, and shows it beside Run', (tester) async {
+      folder.put('python', 'weg.csv', utf8.encode(''));
+      await open(tester);
+      controller.run();
+
+      runs().single.emit(ReplFiles(changed: {'uit.csv': utf8.encode('a,b\r\n')}, removed: const ['weg.csv']));
+      await tester.pump();
+
+      expect(folder.filesOf('python').keys, ['uit.csv']);
+      expect(find.text('uit.csv'), findsOneWidget);
+      expect(find.text('weg.csv'), findsNothing);
+      await leave(tester);
+    });
+
+    testWidgets('a run that was thrown away changes nothing in it', (tester) async {
+      await open(tester);
+      controller.run();
+      final first = runs().single;
+      controller.run();
+
+      first.emit(ReplFiles(changed: {'oud.csv': utf8.encode('')}, removed: const []));
+      await tester.pump();
+
+      expect(folder.filesOf('python'), isEmpty);
+      await leave(tester);
+    });
+
+    testWidgets('a file saved during a run reaches the run, and a rename takes the old name away', (tester) async {
+      await open(tester);
+      controller
+        ..run()
+        ..saveFile(name: 'a.csv', bytes: utf8.encode('1'))
+        ..saveFile(name: 'b.csv', bytes: utf8.encode('2'), replacing: 'a.csv')
+        ..deleteFile('b.csv');
+
+      expect(runs().single.said.map((said) => (said.$1, said.$2 == null)), [
+        ('a.csv', false),
+        ('a.csv', true),
+        ('b.csv', false),
+        ('b.csv', true),
+      ]);
+      expect(folder.filesOf('python'), isEmpty);
+      await leave(tester);
+    });
+
+    testWidgets('a file saved between runs waits in the folder for the next one', (tester) async {
+      await open(tester);
+
+      controller
+        ..saveFile(name: 'a.csv', bytes: utf8.encode('1'))
+        ..run();
+
+      expect(runs().single.files.keys, ['a.csv']);
+      expect(runs().single.said, isEmpty);
+      await leave(tester);
+    });
+  });
+
   group('fits the window without scrolling', () {
-    // A 13-inch MacBook Air's browser window, a small laptop's, and a large monitor's.
-    for (final size in const [Size(1470, 830), Size(1280, 650), Size(2560, 1300)]) {
+    // A 13-inch MacBook Air's browser window, a small laptop's, the narrowest
+    // that is still side by side, where the line beside Run has least room,
+    // and a large monitor's.
+    for (final size in const [Size(1470, 830), Size(1280, 650), Size(1024, 700), Size(2560, 1300)]) {
       testWidgets('at ${size.width.round()} × ${size.height.round()}', (tester) async {
+        // A full folder, which has to fit on the line beside Run.
+        for (var i = 1; i <= 12; i++) {
+          folder.put('python', 'cijfers_van_klas_$i.csv', utf8.encode(''));
+        }
         await open(tester, size: size);
 
         // An overflow is reported as an exception, which fails the test by itself.

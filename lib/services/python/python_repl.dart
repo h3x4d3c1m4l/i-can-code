@@ -1,6 +1,8 @@
 // The web host is the only one that exists; everything else — the Dart VM a
 // `flutter test` runs on included — falls through to the stub, which reports
 // `isSupported == false` rather than throwing.
+import 'dart:typed_data';
+
 import 'package:i_can_code/services/python/python_repl_stub.dart'
     if (dart.library.js_interop) 'package:i_can_code/services/python/python_repl_web.dart' as impl;
 
@@ -46,6 +48,21 @@ class ReplExited extends ReplEvent {
 
 }
 
+/// What the interpreter did to its folder since it last said: the files it
+/// wrote or changed, by path relative to its root, and the paths it removed.
+///
+/// Only what the program did. A file handed over with [PythonRepl.putFile] does
+/// not come back, unless it could not be written, and then it comes back as it
+/// really is.
+class ReplFiles extends ReplEvent {
+
+  final Map<String, Uint8List> changed;
+  final List<String> removed;
+
+  const ReplFiles({required this.changed, required this.removed});
+
+}
+
 /// The harness itself failed: no runtime, a worker that would not start, a
 /// missing asset. MUST NOT be phrased as a mistake the student made.
 class ReplFailed extends ReplEvent {
@@ -67,6 +84,10 @@ class ReplFailed extends ReplEvent {
 /// Single-use. Once [ReplExited] arrives, the interpreter is gone — a new
 /// session is a new [PythonRepl].
 abstract class PythonRepl {
+
+  /// The largest file [putFile] takes. `file_channel.js` MUST have room for one
+  /// of these and its path.
+  static const int maxPutBytes = 1024 * 1024;
 
   /// False where this browser cannot host one. The screen stays reachable and
   /// explains itself rather than disappearing.
@@ -94,6 +115,19 @@ abstract class PythonRepl {
   /// raises EOFError, and the session goes on.
   void endInput();
 
+  /// Writes [bytes] to [path] in the interpreter's folder, in place of what is
+  /// there. [path] is relative to its root, the program's working directory.
+  ///
+  /// Lands the next time the interpreter asks for input: at a prompt at once,
+  /// while a program is busy at its next `input()`. Before [start] it is part
+  /// of the folder the interpreter starts with.
+  ///
+  /// [bytes] MUST NOT be longer than [maxPutBytes].
+  void putFile(String path, Uint8List bytes);
+
+  /// Takes the file at [path] away, as [putFile] puts one there.
+  void removeFile(String path);
+
   /// True while the interpreter is parked waiting for a line, and so doing
   /// nothing else.
   ///
@@ -112,4 +146,7 @@ abstract class PythonRepl {
 /// Given a [program], it runs that as `/main.py` instead of starting a prompt,
 /// and exits when the program does. `input()` then waits for a line written
 /// with [PythonRepl.write], as it would in a terminal.
-PythonRepl createPythonRepl({String? program}) => impl.createPythonRepl(program: program);
+///
+/// [files] is the folder it starts with, by path relative to its root.
+PythonRepl createPythonRepl({String? program, Map<String, Uint8List> files = const {}}) =>
+    impl.createPythonRepl(program: program, files: files);

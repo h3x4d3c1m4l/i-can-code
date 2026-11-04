@@ -108,6 +108,9 @@ class Node {
     // capacity doubles, which is what keeps a byte-at-a-time write linear.
     this.buffer = new Uint8Array(0);
     this.size = 0;
+    // Bumped by every change to the contents, which is how the host tells a
+    // file it has already reported from one that changed since.
+    this.version = 0;
     this.children = type === FILETYPE_DIRECTORY ? new Map() : null;
     // Set on the standard library: a program that truncates the zip it is
     // importing from breaks every later import with an unrelated EOFError.
@@ -140,6 +143,8 @@ class Node {
     if (size > this.size) this.buffer.fill(0, this.size, size);
     this.size = size;
     this.mtime = nowNanos();
+    this.version += 1;
+    this.fs.changes += 1;
     return true;
   }
 
@@ -160,11 +165,13 @@ class Node {
   link(name, node) {
     this.children.set(name, node);
     this.mtime = nowNanos();
+    this.fs.changes += 1;
   }
 
   unlink(name) {
     this.children.delete(name);
     this.mtime = nowNanos();
+    this.fs.changes += 1;
   }
 
   setTimes(mtim, flags) {
@@ -226,7 +233,9 @@ export class Wasi {
    *        something that can render them.
    * @param {(kind: 'stdout'|'stderr', bytes: Uint8Array) => void} options.onOutput
    */
-  constructor({ args, env, files, readOnlyPaths, directories, stdin, stdinReader, stdioIsTerminal, onOutput }) {
+  constructor({
+    args, env, files, readOnlyPaths, directories, stdin, stdinReader, stdioIsTerminal, onOutput, onFileClosed,
+  }) {
     this.args = args;
     this.env = env;
     this.stdinReader = stdinReader ?? null;
@@ -234,9 +243,13 @@ export class Wasi {
     this.stdinBytes = stdin ?? new Uint8Array(0);
     this.stdinOffset = 0;
     this.onOutput = onOutput;
+    this.onFileClosed = onFileClosed ?? (() => {});
     this.memory = null;
     this.exitCode = null;
 
+    // Bumped by every change anywhere in the tree, so a host can skip looking
+    // through it when nothing has happened.
+    this.changes = 0;
     this.nextIno = 1;
     this.usedBytes = 0;
     this.limit = Infinity; // what was installed is not charged to the program
@@ -617,6 +630,9 @@ export class Wasi {
             if (entry.node.unlinked && entry.node.openCount === 0) this.release(entry.node.size);
           }
           this.fds.delete(fd);
+          // Closing is when CPython's buffered writer has flushed, so the file
+          // holds what the program meant it to.
+          if (entry?.writable && entry.type === FILETYPE_REGULAR_FILE) this.onFileClosed();
           return ERRNO_SUCCESS;
         },
 
@@ -931,6 +947,66 @@ export class Wasi {
         sock_shutdown: unsupported,
       },
     };
+  }
+
+  // ------------------------------------------------------ for the host
+  //
+  // What the page can do to the tree from outside the program: put a file the
+  // student typed there, take one away, and see what the program left. Each is
+  // a change like any the program makes, so a program that has the file open
+  // goes on with the node it opened, as it would after a rename over it.
+
+  /** Puts `bytes` at `path`, making the way to it, in place of whatever file
+   *  was there. Charged to the program's quota like a write. False, and nothing
+   *  changed, when the quota refuses it or the path cannot hold a file. */
+  writeFile(path, bytes) {
+    const parts = this.normalise(path).split('/').filter((part) => part !== '');
+    for (let depth = 1; depth < parts.length; depth++) this.makeDirectory(`/${parts.slice(0, depth).join('/')}`);
+
+    const spot = this.resolve(path);
+    if (spot.error || !spot.parent) return false;
+    const old = spot.node;
+    if (old && (old.type !== FILETYPE_REGULAR_FILE || old.readOnly || old.pinned)) return false;
+    // What dropping the old file gives back, which an open one does not.
+    const freed = old && old.openCount === 0 ? old.size : 0;
+    if (this.usedBytes - freed + bytes.length > this.limit) return false;
+
+    if (old) this.drop(spot.parent, spot.name, old);
+    const node = new Node(this, FILETYPE_REGULAR_FILE);
+    node.buffer = bytes.slice();
+    node.size = bytes.length;
+    this.claim(bytes.length);
+    spot.parent.link(spot.name, node);
+    return true;
+  }
+
+  /** Takes the file at `path` away. False when there is no file there that a
+   *  program could remove itself. */
+  removeFile(path) {
+    const spot = this.resolve(path);
+    if (spot.error || !spot.node || spot.node.type !== FILETYPE_REGULAR_FILE) return false;
+    if (spot.node.readOnly || spot.node.pinned) return false;
+    this.drop(spot.parent, spot.name, spot.node);
+    return true;
+  }
+
+  /** Every regular file in the tree, by path relative to the root, leaving out
+   *  the top-level names in `skip`. At most `limit`, in the order the
+   *  directories list them. Iterative, because a program can nest directories
+   *  deeper than a JavaScript stack goes. */
+  files(skip, limit) {
+    const found = new Map();
+    const pending = [[this.root, '']];
+    while (pending.length > 0 && found.size < limit) {
+      const [directory, prefix] = pending.pop();
+      for (const [name, node] of directory.children) {
+        if (prefix === '' && skip.has(name)) continue;
+        const path = prefix === '' ? name : `${prefix}/${name}`;
+        if (node.type === FILETYPE_DIRECTORY) pending.push([node, path]);
+        else if (node.type === FILETYPE_REGULAR_FILE && found.size < limit) found.set(path, node);
+      }
+    }
+    return found;
   }
 
   hasInput(fd) {

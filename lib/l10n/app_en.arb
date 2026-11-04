@@ -1083,5 +1083,74 @@
   "editorSettingsScreen_restore": "Restore default",
   "editorSettingsScreen_restoreTitle": "Restore the default?",
   "editorSettingsScreen_restoreBody": "Your own code here is replaced by the default. This cannot be undone.",
-  "editorSettingsScreen_restoreConfirm": "Restore"
+  "editorSettingsScreen_restoreConfirm": "Restore",
+  "folderStrip_new": "New file",
+  "@folderStrip_new": {
+    "description": "Tip and screen reader label on the button that opens a new file to type, on the console and the program page."
+  },
+  "folderStrip_open": "Open {name}",
+  "@folderStrip_open": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderStrip_more": "{count, plural, =1{1 more file} other{{count} more files}}",
+  "@folderStrip_more": {
+    "description": "Screen reader label on the +N button that lists the files that do not fit.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "folderDialog_newTitle": "New file",
+  "@folderDialog_newTitle": {},
+  "folderDialog_about": "Your programs and the console find this file under this name. It stays until you close or reload this tab.",
+  "@folderDialog_about": {},
+  "folderDialog_name": "Name",
+  "@folderDialog_name": {},
+  "folderDialog_nameHint": "for example grades.csv",
+  "@folderDialog_nameHint": {},
+  "folderDialog_nameEmpty": "Give the file a name.",
+  "@folderDialog_nameEmpty": {},
+  "folderDialog_nameSlash": "A name cannot hold a / or a \\.",
+  "@folderDialog_nameSlash": {},
+  "folderDialog_nameReserved": "The app uses that name itself. Pick another one.",
+  "@folderDialog_nameReserved": {},
+  "folderDialog_nameTaken": "There is already a file with this name.",
+  "@folderDialog_nameTaken": {},
+  "folderDialog_nameTooLong": "That name is too long. Keep it under {max} characters.",
+  "@folderDialog_nameTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "folderDialog_tooLarge": "That is too much text for one file here. A file can hold up to {kilobytes} kB.",
+  "@folderDialog_tooLarge": {
+    "placeholders": {
+      "kilobytes": {
+        "type": "int"
+      }
+    }
+  },
+  "folderDialog_readOnly": "This file is too large to edit here. This is the start of it.",
+  "@folderDialog_readOnly": {},
+  "folderDialog_save": "Save",
+  "@folderDialog_save": {},
+  "folderDialog_delete": "Delete",
+  "@folderDialog_delete": {},
+  "folderDialog_deleteTitle": "Delete {name}?",
+  "@folderDialog_deleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderDialog_deleteBody": "The file is gone after this, for your programs and for the console. This cannot be undone.",
+  "@folderDialog_deleteBody": {}
 }

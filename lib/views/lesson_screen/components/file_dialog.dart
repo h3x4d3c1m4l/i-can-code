@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -11,8 +9,7 @@ import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
-import 'package:i_can_code/views/components/lesson/selectable_code.dart';
-import 'package:i_can_code/views/components/scroll_card.dart';
+import 'package:i_can_code/views/components/files/file_contents.dart';
 
 /// Where a file on a step came from, which is what its dialog says about it.
 enum FileOrigin {
@@ -145,7 +142,7 @@ class _FileDialogBodyState extends State<_FileDialogBody> {
               // A long file scrolls inside the card rather than pushing the
               // buttons off the screen.
               constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
-              child: _Contents(text: text),
+              child: FileContents(text: text),
             ),
       actions: [
         if (text != null && text.isNotEmpty)
@@ -169,30 +166,6 @@ class _FileDialogBodyState extends State<_FileDialogBody> {
           child: Text(localizations.fileDialog_close),
         ),
       ],
-    );
-  }
-
-}
-
-/// The file's text on the page's own light card, the one a program's output
-/// is shown on.
-class _Contents extends StatelessWidget {
-
-  final String text;
-
-  const _Contents({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return ScrollCard(
-      child: SelectableCode(
-        child: Text(
-          // `csv.writer` ends its rows in \r\n, which would draw as a blank
-          // line under each. Copied and downloaded, the text is as written.
-          const LineSplitter().convert(text).join('\n'),
-          style: context.appTheme.text.code.copyWith(fontSize: 15, height: 1.7),
-        ),
-      ),
     );
   }
 

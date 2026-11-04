@@ -8,11 +8,21 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 ///
 /// It hangs off the outermost Navigator, `OverlayHost`'s, so the barrier covers
 /// the bar as well as the page. The router's Navigator is below the bar.
-/// [wide] is for a dialog that holds a program or a file.
-Future<T?> showAppDialog<T>(BuildContext context, {required WidgetBuilder builder, bool wide = false}) =>
+/// [wide] is for a dialog that holds a program or a file. A dialog that is not
+/// [dismissible] closes only through its own buttons: neither Escape nor a
+/// press beside it, which would throw away what was typed in it.
+Future<T?> showAppDialog<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  bool wide = false,
+  bool dismissible = true,
+}) =>
     showFDialog<T>(
       context: context,
       useRootNavigator: true,
+      // Escape too: Flutter's DismissIntent on a modal route is enabled only
+      // when its barrier is.
+      barrierDismissible: dismissible,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         constraints: BoxConstraints(maxWidth: wide ? AppDialog.wideWidth : AppDialog.width),
