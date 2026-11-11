@@ -46,11 +46,11 @@ After touching any `@observable` / `@readonly` / `@action`, `@freezed`, `@RouteP
 
 It is what the compiler allows this package's own source — generated code included — to use, and it is why the generator versions are pinned exactly.
 
-It sat at `^3.12.0` for a long time: Dart 3.13 dropped `final` on constructor parameters, which `freezed 3.2.5` still emitted, so declaring 3.12 kept that syntax legal. `freezed 4.0.1` no longer emits it, and both `freezed 4.x` and `theme_tailor 4.x` declare `sdk: >=3.13.0`, so it is now `^3.13.0`.
+It sat at `^3.12.0` for a long time: Dart 3.13 dropped `final` on constructor parameters, which `freezed 3.2.5` still emitted, so declaring 3.12 kept that syntax legal. `freezed 4.0.1` no longer emits it, and both `freezed 4.x` and `theme_tailor 4.x` declare `sdk: >=3.13.0`, so it moved to `^3.13.0`. With Flutter 3.50 it is `^3.14.0`, the Dart that release ships.
 
 Watch the same trap if a generator ever has to be held back again: `dart analyze` accepts code the compiler rejects, so **lint stays green while every build and test fails**. Verify a version bump with `fvm flutter test` and `fvm flutter build web`, never with `dart analyze` alone.
 
-The generators gate the analyzer version for each other, and the narrowest one wins. `mobx_codegen` capped `analyzer <13` until 2.7.8 widened it, which is what unblocked freezed 4.x, and 2.8.0 narrowed it again to `^13.3.0`. With `theme_tailor 4.0.1` (`^13.0.0`) and `auto_route_generator 10.6.0` (`<14`) that holds `freezed` at 4.0.1 and `build_runner` at 2.16.1, which both want analyzer 14 from their next patch on. When a generator refuses to resolve, `fvm flutter pub get` names the package in the way.
+The generators gate the analyzer version for each other, and the narrowest one wins. `mobx_codegen` capped `analyzer <13` until 2.7.8 widened it, which is what unblocked freezed 4.x, and 2.8.0 narrowed it again to `^13.3.0`. `theme_tailor 4.0.2` accepts analyzer 14, but `auto_route_generator 10.6.0` still caps it at `<14`, so the two hold `freezed` at 4.0.1 and `build_runner` at 2.16.1, which both want analyzer 14 from their next patch on. When a generator refuses to resolve, `fvm flutter pub get` names the package in the way.
 
 ## Architecture
 
