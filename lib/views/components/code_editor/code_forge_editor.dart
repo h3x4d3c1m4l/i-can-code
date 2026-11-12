@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:code_forge/code_forge.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:i_can_code/views/components/browser_menu_suppressor.dart';
@@ -29,6 +30,9 @@ typedef CodeEditorLook = ({
 ///   is AltGr, which types `@`, `{` and `\` on many layouts. And it pastes from
 ///   `navigator.clipboard`, which Safari and Firefox answer with a button to
 ///   press on every paste. Both go to the browser, whose text arrives as input.
+/// - **Cmd and an arrow move the caret the Mac's way**: to the start or end of
+///   the line, or of the code. It reads Cmd as Ctrl, and its Ctrl bindings ask
+///   for Ctrl itself, so Cmd+Left moved one character.
 /// - **Its text input is closed while it is not focused.** It attaches one as
 ///   it is built, focused or not, which takes the input from whatever field
 ///   had it, and it never closes it. Left open, the web engine keeps the DOM
@@ -115,9 +119,7 @@ class _CodeForgeEditorState extends State<CodeForgeEditor> {
   @override
   void initState() {
     super.initState();
-    widget.focusNode
-      ..addPreempting(_passToBrowser)
-      ..addListener(_closeInputUnlessFocused);
+    _attachTo(widget.focusNode);
     _closeInputAfterMount();
   }
 
@@ -125,12 +127,8 @@ class _CodeForgeEditorState extends State<CodeForgeEditor> {
   void didUpdateWidget(CodeForgeEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.focusNode != widget.focusNode) {
-      oldWidget.focusNode
-        ..removePreempting(_passToBrowser)
-        ..removeListener(_closeInputUnlessFocused);
-      widget.focusNode
-        ..addPreempting(_passToBrowser)
-        ..addListener(_closeInputUnlessFocused);
+      _detachFrom(oldWidget.focusNode);
+      _attachTo(widget.focusNode);
     }
     if (oldWidget.look != widget.look) {
       _styles = _Styles(widget.look);
@@ -141,11 +139,19 @@ class _CodeForgeEditorState extends State<CodeForgeEditor> {
 
   @override
   void dispose() {
-    widget.focusNode
-      ..removePreempting(_passToBrowser)
-      ..removeListener(_closeInputUnlessFocused);
+    _detachFrom(widget.focusNode);
     super.dispose();
   }
+
+  void _attachTo(PreemptingFocusNode node) => node
+    ..addPreempting(_passToBrowser)
+    ..addPreempting(_macCaretKeys)
+    ..addListener(_closeInputUnlessFocused);
+
+  void _detachFrom(PreemptingFocusNode node) => node
+    ..removePreempting(_passToBrowser)
+    ..removePreempting(_macCaretKeys)
+    ..removeListener(_closeInputUnlessFocused);
 
   void _closeInputUnlessFocused() {
     if (!widget.focusNode.hasFocus) widget.controller.connection?.close();
@@ -174,6 +180,29 @@ class _CodeForgeEditorState extends State<CodeForgeEditor> {
     final paste = event.logicalKey == LogicalKeyboardKey.keyV;
     // Not handled, so the engine leaves the key to the browser.
     return altGr || paste ? KeyEventResult.skipRemainingHandlers : KeyEventResult.ignored;
+  }
+
+  KeyEventResult _macCaretKeys(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent || defaultTargetPlatform != TargetPlatform.macOS) return KeyEventResult.ignored;
+
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isMetaPressed || keyboard.isControlPressed || keyboard.isAltPressed) return KeyEventResult.ignored;
+
+    final select = keyboard.isShiftPressed;
+    final code = widget.controller;
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        code.pressHomeKey(isShiftPressed: select);
+      case LogicalKeyboardKey.arrowRight:
+        code.pressEndKey(isShiftPressed: select);
+      case LogicalKeyboardKey.arrowUp:
+        code.pressDocumentHomeKey(isShiftPressed: select);
+      case LogicalKeyboardKey.arrowDown:
+        code.pressDocumentEndKey(isShiftPressed: select);
+      default:
+        return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
   }
 
   @override
