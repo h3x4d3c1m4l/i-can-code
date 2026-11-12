@@ -45,7 +45,7 @@ build *flags:
   else
     echo "No web/vm/image/manifest.json: building without the Tkinter page."
   fi
-  fvm flutter build web --no-web-resources-cdn $define {{flags}}
+  fvm flutter build web --wasm --no-web-resources-cdn $define {{flags}}
   fvm dart run tool/finish_web_build.dart build/web
 
 # Serves build/web on http://localhost:8080, with the two cross-origin isolation

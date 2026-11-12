@@ -35,6 +35,12 @@ const List<String> unlistedFontFamilies = [
   'packages/code_forge/Field',
 ];
 
+/// The renderers the loader picks between for the WebAssembly build: the
+/// heavy one where the browser lacks Chromium's image codecs or break
+/// iterators. `wimp` is left out, because the loader takes it only when the
+/// page asks for it.
+const List<String> skwasmVariants = ['canvaskit/skwasm.wasm', 'canvaskit/skwasm_heavy.wasm'];
+
 /// Where the build puts the course bundle. MUST stay `assets/` followed by
 /// `Course.bundleAsset`; this tool cannot import it, because `course.dart`
 /// reaches Flutter and the Dart VM has no `dart:ui`.
@@ -71,7 +77,10 @@ void main(List<String> args) {
     stdout
       ..writeln('Removed ${removed.length} unused font files ($unusedFontFamily).')
       ..writeln('Took ${unlistedFontFamilies.length} font families out of the font manifest.')
-      ..writeln('Wrote the sizes of ${sizes.files.length} startup files into index.html.');
+      ..writeln(
+        'Wrote the sizes of ${sizes.files.length} startup files and of the ${sizes.builds.keys.join(' and ')} '
+        'builds into index.html.',
+      );
   } on BuildCheckFailure catch (failure) {
     stderr.writeln('ERROR: ${failure.message}');
     exitCode = 1;
@@ -95,6 +104,15 @@ void checkAssumptions(Directory web) {
     throw const BuildCheckFailure(
       'main.dart.js no longer calls window.fetch, which is where web/index.html counts downloaded bytes. '
       'Read how the engine fetches assets now and update the wrapper there.',
+    );
+  }
+
+  // The WebAssembly build reaches `fetch` through its JavaScript glue, as
+  // `globalThis.fetch(...)` or on the window it is handed, `x0.fetch(...)`.
+  if (_hasWasmBuild(web) && !_existing(web, 'main.dart.mjs').readAsStringSync().contains('.fetch(')) {
+    throw const BuildCheckFailure(
+      'main.dart.mjs no longer calls fetch, which is where web/index.html counts downloaded bytes. '
+      'Read how the WebAssembly engine fetches assets now and update the wrapper there.',
     );
   }
 }
@@ -147,16 +165,21 @@ void unlistFonts(Directory web) {
   );
 }
 
+/// What one build adds to a cold start: all of [files], and one of
+/// [renderers], which the loader picks for the browser.
+typedef BuildSizes = ({Map<String, List<int>> files, Map<String, List<int>> renderers});
+
 /// The size of each file a cold start downloads: `[bytes, bytes gzipped]` by
 /// path relative to [web].
 ///
-/// Only one of [canvasKit] is downloaded, and which one is the browser's
-/// choice, so they are kept apart from [files].
-typedef StartupSizes = ({Map<String, List<int>> files, Map<String, List<int>> canvasKit});
+/// Every start downloads [files]. The loader takes one of [builds], which are
+/// keyed by the `compileTarget` it names them by in `_flutter.buildConfig`.
+typedef StartupSizes = ({Map<String, List<int>> files, Map<String, BuildSizes> builds});
 
 /// Measures everything the page fetches before the first screen.
 ///
-/// Throws [BuildCheckFailure] when a file the font manifest names is missing.
+/// Throws [BuildCheckFailure] when a file the font manifest names, or a
+/// renderer, is missing.
 StartupSizes startupSizes(Directory web) {
   final manifest = (jsonDecode(_existing(web, 'assets/FontManifest.json').readAsStringSync()) as List<dynamic>)
       .cast<Map<String, dynamic>>();
@@ -164,7 +187,6 @@ StartupSizes startupSizes(Directory web) {
   // A set: one file may be bundled under two families, and is fetched once per
   // family but only weighs once.
   final paths = <String>{
-    'main.dart.js',
     'assets/FontManifest.json',
     for (final family in manifest) ..._assetsOf(family).map((asset) => 'assets/$asset'),
     courseBundlePath,
@@ -184,7 +206,17 @@ StartupSizes startupSizes(Directory web) {
 
   return (
     files: {for (final path in paths) path: _sizeOf(_existing(web, path))},
-    canvasKit: {for (final path in variants) path: _sizeOf(_existing(web, path))},
+    builds: {
+      'dart2js': (
+        files: {'main.dart.js': _sizeOf(_existing(web, 'main.dart.js'))},
+        renderers: {for (final path in variants) path: _sizeOf(_existing(web, path))},
+      ),
+      if (_hasWasmBuild(web))
+        'dart2wasm': (
+          files: {'main.dart.wasm': _sizeOf(_existing(web, 'main.dart.wasm'))},
+          renderers: {for (final path in skwasmVariants) path: _sizeOf(_existing(web, path))},
+        ),
+    },
   );
 }
 
@@ -201,10 +233,18 @@ void writeStartupSizes(Directory web, StartupSizes sizes) {
     );
   }
 
-  file.writeAsStringSync(
-    index.replaceFirst(sizesPlaceholder, jsonEncode({'files': sizes.files, 'canvasKit': sizes.canvasKit})),
-  );
+  final table = {
+    'files': sizes.files,
+    'builds': {
+      for (final MapEntry(key: target, value: build) in sizes.builds.entries)
+        target: {'files': build.files, 'renderers': build.renderers},
+    },
+  };
+  file.writeAsStringSync(index.replaceFirst(sizesPlaceholder, jsonEncode(table)));
 }
+
+/// Whether [web] was built with `--wasm`, which builds both.
+bool _hasWasmBuild(Directory web) => File('${web.path}/main.dart.wasm').existsSync();
 
 Iterable<String> _assetsOf(Map<String, dynamic> family) =>
     (family['fonts'] as List<dynamic>).cast<Map<String, dynamic>>().map((font) => font['asset'] as String);

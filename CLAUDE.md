@@ -24,7 +24,7 @@ fvm dart analyze                        # lint
 fvm flutter test                        # tests
 fvm flutter build web                   # compile only; `just build` is the build that ships
 
-just build                              # build with CanvasKit bundled, then tool/finish_web_build.dart
+just build                              # build with --wasm and the renderers bundled, then tool/finish_web_build.dart
 just serve-build                        # serve build/web on :8080, to watch a release build load
 
 fvm dart run tool/try_lesson.dart <lesson.md>                       # list its sections
@@ -525,21 +525,24 @@ Check a change to it in a browser: the tests draw on the CPU and say nothing abo
 
 ### What a cold start downloads
 
-A cold start is about twenty requests, all to the app's own origin: the entrypoint, CanvasKit, eight fonts and the course. Four things keep it there, and each undoes something Flutter does by default. A build that reports errors makes one more, to Sentry's CDN (see *Error reporting*).
+A cold start is about twenty requests, all to the app's own origin: the entrypoint, the renderer, eight fonts and the course. Four things keep it there, and each undoes something Flutter does by default. A build that reports errors makes one more, to Sentry's CDN (see *Error reporting*).
 
 - **The course is one file.** `assets/course.json` holds every lesson file's text by path, with every `{{#include}}` already resolved. It is written during the build by `bin/bundle_lessons.dart`, an asset transformer declared on that asset in `pubspec.yaml`; the committed file is a placeholder holding `{}`. A transformer takes one asset and gives one back, so this one ignores its input and reads `assets/lessons/` instead. It writes a depfile beside its output naming every file it read, the included ones too, which is what makes Flutter run it again when one of them changes. That depfile is read by `asset_transformer.dart` in flutter_tools and is in no documentation. It runs under `flutter build`, `flutter run` and `flutter test` alike.
 - **forui's Inter is taken out of the build.** forui bundles it, `buildAppTheme()` replaces both of forui's typefaces, and the engine downloads every font in the manifest whether anything draws with it or not. Flutter has no switch for a package's font, so `tool/finish_web_build.dart` removes it from `FontManifest.json` after the build. `flutter run` still loads it.
 - **code_forge's eight icon fonts are taken out of the manifest, and stay in the build.** They draw the icons of LSP suggestions, which the app has none of. `code_forge` loads each one itself through `rootBundle` whenever an editor is built, and does not catch the error a missing file would be, so the files MUST stay: the first editor fetches them, eight files of about 1 KB, instead of the cold start.
-- **CanvasKit is bundled**, by `--no-web-resources-cdn`.
+- **The renderers are bundled**, CanvasKit and skwasm alike, by `--no-web-resources-cdn`.
 - **Roboto is an alias.** See *Theming*.
 
-`tool/finish_web_build.dart` is the step after `flutter build web`, and `just build` and both workflows run it. Besides the fonts it writes the size of every file above into `index.html`, and it **fails the build** when its assumptions no longer hold: no Inter or code_forge font in the manifest, CanvasKit on the CDN, or a `main.dart.js` that no longer calls `window.fetch`.
+`tool/finish_web_build.dart` is the step after `flutter build web`, and `just build` and both workflows run it. Besides the fonts it writes the size of every file above into `index.html`, and it **fails the build** when its assumptions no longer hold: no Inter or code_forge font in the manifest, CanvasKit on the CDN, or a `main.dart.js` or `main.dart.mjs` that no longer calls `fetch`.
+
+**Every deploy builds with `--wasm`, which builds two apps**: a WebAssembly one on the skwasm renderer and a JavaScript one on CanvasKit. Flutter's loader picks one per browser, and `wasmAllowList` in `web/index.html` lets it take WebAssembly in Chromium, Firefox and Safari. It still takes JavaScript below Firefox 147, below Safari 26.2 and without WebGL. The finish step writes the sizes per build, under the `compileTarget` the loader names it by.
 
 **The ring on the splash and on the initialization screen is the download, counted.** Flutter reports nothing about what it downloads. A script in `web/index.html` wraps `window.fetch`, reads a copy of each response it has a size for, and shows the share that has arrived. The caller gets the original response. Things to know before touching it:
 
 - **It leans on the loader and the engine fetching through `window.fetch`.** That is not a promise Flutter makes, which is what the check in the finish step is for.
 - **`Content-Length` is no use.** GitHub Pages compresses, so the header is the compressed length while the body arrives decompressed. Hence the sizes from the build. A file weighs its gzipped size in the total, so the ring follows the transfer.
-- **`main.dart.js` is fetched before the loader is started**, because the loader adds it as a script tag and a script tag reports nothing. The tag is then answered from the HTTP cache. Not a blob URL, which the loader would take: a blob has a new address every visit, so the browser could not reuse the code it compiled last time. CanvasKit therefore starts after the entrypoint and not beside it.
+- **`main.dart.js` is fetched before the loader is started, when the page expects the JavaScript build**, because the loader adds it as a script tag and a script tag reports nothing. The tag is then answered from the HTTP cache. Not a blob URL, which the loader would take: a blob has a new address every visit, so the browser could not reuse the code it compiled last time. CanvasKit therefore starts after the entrypoint and not beside it. The WebAssembly build needs none of it: the loader fetches `main.dart.wasm`.
+- **The page guesses the loader's build before it starts**, because the loader adds the script tag in the same call that picks the build. `expectedBuild()` is the loader's own test, restated: its engine test and Firefox floor, the same `wasmAllowList`, and the feature test the build config leaves in `_flutter.supportsDart2Wasm`. Only WebGL is left out. The ring then follows the renderer the loader actually asks for, so a wrong guess costs pacing and not the count: a `main.dart.js` that came in by script tag counts as in at the tag's `load` event. A Flutter upgrade that changes the loader's test MUST be carried over to `expectedBuild()`.
 - **A second request for a file still on its way waits for the first.** The Lexend file is fetched once for each family it is bundled under, at the same moment, and the browser downloads it twice unless the second request is held until the first is in the cache.
 - **`flutter run` has no sizes**, so nothing is wrapped there and the ring turns as a spinner.
 - **After a hard reload the ring crawls and then jumps.** The browser skips its cache for what the page asks for while it loads, which includes the entrypoint, and not for what the engine asks for afterwards. The ring is showing what arrived.
@@ -873,7 +876,7 @@ Things that are easy to get wrong:
 - **Python in the browser** is `PythonRuntime.version`, and the screen **loads the interpreter** to ask, the way a step that runs code does on arrival.
 - **Python with Tkinter** is the `interpreter` the VM image's `manifest.json` names (`loadVmManifest`), which the saved machine reported when it was built. Reading it downloads nothing of the machine. The row is there in a build that ships the image.
 - **MicroPython** is `kMicrobitFirmwareVersion`, which names the asset as well and MUST match `just fetch-microbit-firmware`.
-- **Runs as** is `kIsWasm`. No build passes `--wasm` yet (see the workflows), so it says JavaScript.
+- **Runs as** is `kIsWasm`: WebAssembly wherever the loader takes that build (see *What a cold start downloads*), JavaScript elsewhere.
 
 ### The Tkinter page and the VM
 

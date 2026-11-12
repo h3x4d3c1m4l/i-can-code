@@ -235,9 +235,8 @@ jobs:
           just check-vm-image-pin || echo "::warning title=Stale VM image::vm/image.lock was built from other sources than this commit. Rebuild and publish it (docs/vm-build.md, \"Publishing the image\")."
 
       # Same flags as the deploy, so a PR builds exactly what main will.
-      # No `--wasm`: dart2wasm rejects `dart:html`, which reaches this app
-      # through re_editor -> isolate_manager -> isolate_contactor. Add it back
-      # once that chain is off `dart:html`.
+      # `--wasm` builds a WebAssembly app beside the JavaScript one. The loader
+      # picks it in Chromium, Firefox and Safari (`wasmAllowList` in web/index.html).
       #
       # `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise
       # points at www.gstatic.com.

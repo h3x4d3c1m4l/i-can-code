@@ -497,13 +497,16 @@
 
       What it leans on, and what happens without each:
 
-       * The loader and the engine download CanvasKit, the fonts and the assets
-         through `window.fetch`. tool/finish_web_build.dart fails the build when
-         main.dart.js stops doing so.
+       * The loader and the engine download the renderer, the fonts and the
+         assets through `window.fetch`, and main.dart.wasm too where the loader
+         takes the WebAssembly build. tool/finish_web_build.dart fails the build
+         when main.dart.js or main.dart.mjs stops doing so.
        * The sizes are written over the `null` below by that same tool. Without
          them, which is every `flutter run`, nothing is wrapped and the ring
          turns as a spinner.
        * A script tag is not a fetch. See where main.dart.js is loaded, below.
+       * The loader takes one of two builds, and the page has to guess which
+         before it starts (`expect`). See there, too.
 
       `Content-Length` cannot stand in for the sizes: a host that compresses
       reports the compressed length, while a body arrives decompressed.
@@ -517,13 +520,21 @@
       if (!sizes) return;
 
       const files = sizes.files;
-      const canvasKit = sizes.canvasKit;
+      const builds = sizes.builds;
       const base = new URL(document.baseURI);
 
-      // Only one CanvasKit is downloaded, and the loader picks it. This is a
-      // guess at its pick, replaced by the one that is actually asked for.
-      let variant = 'v8BreakIterator' in Intl ? 'canvaskit/chromium/canvaskit.wasm' : 'canvaskit/canvaskit.wasm';
-      if (!canvasKit[variant]) variant = Object.keys(canvasKit)[0];
+      // The loader takes one build, named by its `compileTarget`, and downloads
+      // one renderer for it. Both start as the page's guess and are replaced by
+      // the renderer that is actually asked for, which names its build too.
+      let build = null;
+      let renderer = null;
+
+      // The loader's pick where Intl has Chromium's break iterator.
+      const chromium = 'v8BreakIterator' in Intl;
+      const likelyRenderer = {
+        dart2js: chromium ? 'canvaskit/chromium/canvaskit.wasm' : 'canvaskit/canvaskit.wasm',
+        dart2wasm: chromium ? 'canvaskit/skwasm.wasm' : 'canvaskit/skwasm_heavy.wasm',
+      };
 
       const arrived = new Map();
       const underway = new Map();
@@ -531,18 +542,25 @@
       let scheduled = false;
 
       function sizeOf(path) {
-        return files[path] || canvasKit[path];
+        if (files[path]) return files[path];
+        for (const name of Object.keys(builds)) {
+          const size = builds[name].files[path] || builds[name].renderers[path];
+          if (size) return size;
+        }
+        return undefined;
       }
 
       function fraction() {
         let total = 0;
         let done = 0;
-        for (const path of Object.keys(files).concat(variant)) {
+        const paths = Object.keys(files);
+        if (build) paths.push(...Object.keys(builds[build].files), renderer);
+        for (const path of paths) {
           const [bytes, gzipped] = sizeOf(path);
           total += gzipped;
           done += gzipped * (bytes ? Math.min(1, (arrived.get(path) || 0) / bytes) : 1);
         }
-        // Never backwards: a different CanvasKit than guessed changes the total.
+        // Never backwards: a different build or renderer than guessed changes the total.
         shown = Math.max(shown, total ? done / total : 0);
         return shown;
       }
@@ -618,7 +636,12 @@
         if (arrived.has(path)) return fetchUncounted.apply(window, request);
 
         arrived.set(path, 0);
-        if (canvasKit[path]) variant = path;
+        for (const name of Object.keys(builds)) {
+          if (builds[name].renderers[path]) {
+            build = name;
+            renderer = path;
+          }
+        }
         const response = fetchUncounted.apply(window, request);
         // Attached before the caller can attach anything, so the copy is taken
         // before the caller starts reading the body.
@@ -629,10 +652,27 @@
         return response;
       };
 
-      // The initialization screen reads this, and listens for the event `draw`
-      // sends, to carry the same ring on once the splash is gone.
+      // A script tag reports nothing while it downloads, but does say when it
+      // is in. That is how main.dart.js arrives when it was not fetched ahead.
+      document.addEventListener('load', function (event) {
+        if (!(event.target instanceof HTMLScriptElement)) return;
+        const path = pathOf(event.target.src);
+        if (path === null || !sizeOf(path)) return;
+        arrived.set(path, sizeOf(path)[0]);
+        changed();
+      }, true);
+
+      // The initialization screen reads `fraction`, and listens for the event
+      // `draw` sends, to carry the same ring on once the splash is gone.
       window.iccStartup = {
         get fraction() { return fraction(); },
+        // The build the page expects the loader to take, by `compileTarget`.
+        expect: function (name) {
+          build = builds[name] ? name : 'dart2js';
+          const renderers = builds[build].renderers;
+          renderer = renderers[likelyRenderer[build]] ? likelyRenderer[build] : Object.keys(renderers)[0];
+          changed();
+        },
       };
 
       draw();
@@ -651,8 +691,15 @@
       errorContainer.style.display = 'flex';
     }
 
+    // Firefox and Safari take the WebAssembly build too, which Flutter leaves
+    // off by default. The loader still picks JavaScript below Firefox 147
+    // (flutter/flutter#186619) and below Safari 26.2, by its feature test.
+    // See https://docs.flutter.dev/platform-integration/web/wasm.
+    const wasmAllowList = { blink: true, gecko: true, webkit: true, unknown: false };
+
     function start() {
       _flutter.loader.load({
+        config: { wasmAllowList: wasmAllowList },
         onEntrypointLoaded: async function (engineInitializer) {
           try {
             const appRunner = await engineInitializer.initializeEngine();
@@ -674,10 +721,41 @@
     }
 
     /*
+      Which build the loader will take, guessed ahead of it, because only the
+      JavaScript build wants main.dart.js fetched first (below). The loader
+      still decides, and the progress ring follows what it actually asks for.
+
+      The guess is the loader's own test: its engine test and Firefox floor,
+      from flutter_js/src/browser_environment.js, against the same allowlist,
+      and the feature test the build config leaves in
+      `_flutter.supportsDart2Wasm`. Only its WebGL test is left out, so a
+      browser without WebGL is guessed wrong and its ring stalls while
+      main.dart.js comes in by script tag.
+    */
+    function expectedBuild() {
+      const wasm = _flutter.buildConfig.builds.some(function (build) { return build.compileTarget === 'dart2wasm'; });
+      if (!wasm || _flutter.supportsDart2Wasm === false) return 'dart2js';
+
+      const agent = navigator.userAgent;
+      let engine = 'unknown';
+      if (navigator.vendor === 'Google Inc.' || agent.includes('Edg/')) {
+        engine = 'blink';
+      } else if (navigator.vendor === 'Apple Computer, Inc.') {
+        engine = 'webkit';
+      } else if (navigator.vendor === '' && agent.includes('Firefox')) {
+        engine = 'gecko';
+        const version = agent.match(/firefox\/(\d+)/i);
+        if (!version || Number(version[1]) < 147) return 'dart2js';
+      }
+      return wasmAllowList[engine] ? 'dart2wasm' : 'dart2js';
+    }
+
+    /*
       The loader adds main.dart.js as a script tag, and a script tag reports
-      nothing while it downloads. So where progress is counted, the file is
-      fetched here first and the loader's tag is then answered from the HTTP
-      cache.
+      nothing while it downloads. So where progress is counted and the
+      JavaScript build is expected, the file is fetched here first and the
+      loader's tag is then answered from the HTTP cache. The WebAssembly build
+      needs none of this: the loader fetches main.dart.wasm.
 
       Not a blob URL, which the loader would also take: a blob has a new URL on
       every visit, so the browser could never reuse the code it compiled for
@@ -687,7 +765,9 @@
       CanvasKit starts downloading in `load()`, so it now follows main.dart.js
       instead of running beside it.
     */
-    if (window.iccStartup) {
+    const expected = window.iccStartup ? expectedBuild() : null;
+    if (expected) window.iccStartup.expect(expected);
+    if (expected === 'dart2js') {
       fetch('main.dart.js')
         .then(function (response) { return response.arrayBuffer(); })
         .catch(function () { /* The loader's own attempt reports the failure. */ })

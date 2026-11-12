@@ -61,8 +61,16 @@ void main() {
     write(courseBundlePath, '{}');
     write('canvaskit/canvaskit.wasm', 'full');
     write('canvaskit/chromium/canvaskit.wasm', 'chromium');
-    write('canvaskit/skwasm.wasm', 'another renderer');
+    write('canvaskit/skwasm.wasm', 'skwasm');
+    write('canvaskit/skwasm_heavy.wasm', 'skwasm heavy');
+    write('canvaskit/wimp.wasm', 'another renderer');
   });
+
+  // What `--wasm` adds to the build above.
+  void buildWasm() {
+    write('main.dart.wasm', 'wasm' * 100);
+    write('main.dart.mjs', 'YJ: (x0,x1) => x0.fetch(x1),');
+  }
 
   tearDown(() => web.deleteSync(recursive: true));
 
@@ -113,7 +121,6 @@ void main() {
 
     // The file bundled under two families weighs once.
     expect(sizes.files.keys, [
-      'main.dart.js',
       'assets/FontManifest.json',
       'assets/assets/fonts/Lexend-Variable.ttf',
       courseBundlePath,
@@ -122,8 +129,31 @@ void main() {
     expect(plain, 600);
     expect(gzipped, lessThan(plain));
 
-    // Only CanvasKit's own variants: the build ships other renderers beside them.
-    expect(sizes.canvasKit.keys, ['canvaskit/canvaskit.wasm', 'canvaskit/chromium/canvaskit.wasm']);
+    // Only the JavaScript build, with only CanvasKit's own variants: the build
+    // ships other renderers beside them.
+    expect(sizes.builds.keys, ['dart2js']);
+    expect(sizes.builds['dart2js']!.files.keys, ['main.dart.js']);
+    expect(sizes.builds['dart2js']!.renderers.keys, ['canvaskit/canvaskit.wasm', 'canvaskit/chromium/canvaskit.wasm']);
+  });
+
+  test('a build with --wasm is measured as two builds, each with its own entrypoint and renderers', () {
+    buildWasm();
+    stripUnusedFont(web);
+    unlistFonts(web);
+    final sizes = startupSizes(web);
+
+    expect(sizes.files.keys, isNot(contains('main.dart.wasm')));
+    expect(sizes.builds.keys, ['dart2js', 'dart2wasm']);
+    expect(sizes.builds['dart2js']!.files.keys, ['main.dart.js']);
+    expect(sizes.builds['dart2wasm']!.files.keys, ['main.dart.wasm']);
+    expect(sizes.builds['dart2wasm']!.renderers.keys, skwasmVariants);
+  });
+
+  test('a build with --wasm and no skwasm stops the build', () {
+    buildWasm();
+    File('${web.path}/canvaskit/skwasm_heavy.wasm').deleteSync();
+
+    expect(() => startupSizes(web), throwsA(isA<BuildCheckFailure>()));
   });
 
   test('the sizes take the placeholder\'s place in index.html', () {
@@ -135,8 +165,10 @@ void main() {
 
     final table = index.substring(index.indexOf('= ') + 2, index.indexOf(';</script>'));
     final decoded = jsonDecode(table) as Map<String, dynamic>;
-    expect((decoded['files'] as Map).keys, contains('main.dart.js'));
-    expect((decoded['canvasKit'] as Map).keys, contains('canvaskit/chromium/canvaskit.wasm'));
+    expect((decoded['files'] as Map).keys, contains(courseBundlePath));
+    final js = (decoded['builds'] as Map)['dart2js'] as Map;
+    expect((js['files'] as Map).keys, ['main.dart.js']);
+    expect((js['renderers'] as Map).keys, contains('canvaskit/chromium/canvaskit.wasm'));
   });
 
   test('an index.html without the placeholder stops the build', () {
@@ -157,7 +189,20 @@ void main() {
     expect(() => checkAssumptions(web), throwsA(isA<BuildCheckFailure>()));
   });
 
+  test('a WebAssembly engine that no longer calls fetch is refused', () {
+    buildWasm();
+    write('main.dart.mjs', 'YJ: (x0,x1) => x0.somethingElse(x1),');
+
+    expect(() => checkAssumptions(web), throwsA(isA<BuildCheckFailure>()));
+  });
+
   test('the build this was written for passes its checks', () {
+    expect(() => checkAssumptions(web), returnsNormally);
+  });
+
+  test('the same build with --wasm passes its checks', () {
+    buildWasm();
+
     expect(() => checkAssumptions(web), returnsNormally);
   });
 }
