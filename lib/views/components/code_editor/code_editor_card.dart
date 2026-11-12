@@ -65,7 +65,12 @@ class CodeEditorCard extends StatefulWidget {
   final String? starterCode;
 
   static const double _fontSize = 16;
-  static const double _lineHeight = 1.6;
+
+  /// The code face's own line height, its ascent and descent together. MUST
+  /// stay that: `code_forge` draws a line number at the top of its row with no
+  /// line height of its own, so any other value sets the code above or below
+  /// its number.
+  static const double _lineHeight = 1.32;
 
   /// `code_forge` centres a line number in a gutter one font size wider than
   /// it, so 8px of that gutter lies on either side of the number. These put
@@ -86,10 +91,9 @@ class CodeEditorCard extends StatefulWidget {
   /// The height that fits [lines] of code exactly. Stated in lines so it does
   /// not have to be re-derived when the code font changes.
   ///
-  /// A line is rounded **up** to whole pixels before it is multiplied, because
-  /// that is what a [Text] lays it out at, and so what `CodeSample` is drawn
-  /// to: `16 × 1.6` is 25.6, drawn as 26. The editor keeps the fraction, so
-  /// [lines] of code fit with room to spare and do not scroll.
+  /// A line is rounded **up** to whole pixels before it is multiplied: `16 ×
+  /// 1.32` is 21.12, counted as 22. The editor keeps the fraction, so [lines]
+  /// of code fit with room to spare and do not scroll.
   static double heightForLines(int lines) =>
       lines * (_fontSize * _lineHeight).ceilToDouble() + codePadding.vertical;
 

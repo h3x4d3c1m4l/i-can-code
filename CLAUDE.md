@@ -586,6 +586,7 @@ The warning was written for the editor before it, which on that path lost the sp
 **The editor is `code_forge`, and `CodeForgeEditor` (`lib/views/components/code_editor/`) is the workaround widget around it**, with `CodeEditorCard` as its one user. Its class comment lists what it undoes of `code_forge` 11.7.1, each read in its source:
 
 - **Ctrl+Alt with a character and the paste shortcut go to the browser.** `code_forge` swallows every key held with Ctrl and Alt, which on Windows is AltGr and so `@`, `{` and `\` on many layouts, and it pastes from `navigator.clipboard`, which Safari and Firefox answer with a button to press on every paste. The browser's own paste arrives as one insertion, which `code_forge` takes as it is.
+- **Cmd and an arrow move the caret the Mac's way**, to the start or end of the line or of the code, on macOS only. `code_forge` reads Cmd as Ctrl, and its Ctrl bindings ask for Ctrl itself, so Cmd+Left moved one character. Cmd+Backspace is still `code_forge`'s, and deletes one character.
 - **No ticker runs while it is unfocused.** Its caret blinks from a repeating `AnimationController` that starts at mount and repaints every frame. `TickerMode` mutes it, which keeps the VM pages still while a program runs.
 - **A `MediaQuery` of its own size**, less its bottom and right padding: `code_forge` lays its code out at least as large as the window, so a box of six lines scrolled a screen down and sideways.
 - **A `FocusTraversalGroup`**, because its `Focus` is built inside the scrolled code: the node's rect is the whole program, and over a box it overflows it put the controls below before the editor in reading order.
@@ -593,7 +594,9 @@ The warning was written for the editor before it, which on that path lost the sp
 
 `CodeEditingController` is the controller every screen holds. **A quote is typed as it is**: `code_forge` pairs `'` and `"` like brackets, inside a word too, which turned `zo'n` into `zo'n'`. It goes in through `replaceRange` at the editor's own caret. Brackets are still closed for the student. **Setting `text` clears the undo history**, which `code_forge` neither records nor forgets. It carries `indentSize`, which `CodeEditorCard` hands on as the Tab width.
 
-What it does not undo, left for the reader to judge: the right-click menu is `code_forge`'s own and in English, line numbers sit at the top of their row rather than on the code's baseline, Ctrl+F is swallowed, and `fontFamilyFallback` is not passed on, so an emoji in the code is not drawn in the bundled Noto.
+**The editor's line height is the code face's own, 1.32** (`CodeEditorCard._lineHeight`), its ascent and descent together. `code_forge` draws a line number at the top of its row with no line height, so at the 1.6 the editor had before, the code sat 3.5px below its number. That makes the editor's lines tighter than a worked example's in the prose, which keeps `text.code`'s 1.8.
+
+What it does not undo, left for the reader to judge: the right-click menu is `code_forge`'s own and in English, Ctrl+F is swallowed, and `fontFamilyFallback` is not passed on, so an emoji in the code is not drawn in the bundled Noto.
 
 Three things for tests:
 
@@ -694,7 +697,7 @@ Two things keep that true:
 
 The content test makes its bundle with the bundler's own `bundleLessons` and its lessons with `Course.entriesFrom`, so it checks the files the app would pick up, with their includes resolved, and no others.
 
-**`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**, because that is what the text is laid out at: `16 × 1.6` is 25.6, drawn as 26. Keeping the fraction left two lines 0.8px taller than the box asked for — invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student typed a second line. The six-line micro:bit editor was 2.4px short the same way.
+**`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**: `16 × 1.32` is 21.12, counted as 22. The editor keeps the fraction, so a box of that height has room to spare. A box a fraction too short is invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student types a second line.
 
 **A quick exercise is capped at one line past its starter**, and the editor enforces it: `CodeEditorCard.maxLines` joins anything past the limit onto the last line it allows, because a plain Enter arrives through the text-input connection rather than as a key, so no key handler sees it. It removes the extra line breaks through `replaceRange`, which keeps the caret where it was; setting `text` would move it to the end. An empty starter counts as one line, so the least is two: storing a value and then showing it is the smallest exercise worth setting and it does not fit in one line. A step that needs more says `lines:` in its metadata. `Lesson.parse` resolves both into `LessonSection.maxLines`, and the view reads the cap and `heightForLines` from that one number, so the editor cannot allow a line it is too short to show.
 

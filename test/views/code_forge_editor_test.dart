@@ -109,6 +109,33 @@ void main() {
     await tester.pump(codeForgeTimers);
   });
 
+  testWidgets('takes Cmd and an arrow to the ends of the line and of the code', variant: TargetPlatformVariant.only(TargetPlatform.macOS), (tester) async {
+    code.text = 'print(1)\nprint(2)';
+    await focus(tester);
+
+    Future<void> press(LogicalKeyboardKey arrow, {bool shift = false}) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(arrow);
+      if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    }
+
+    code.selection = const TextSelection.collapsed(offset: 12);
+    await press(LogicalKeyboardKey.arrowLeft);
+    expect(code.selection, const TextSelection.collapsed(offset: 9), reason: 'the start of the second line');
+
+    await press(LogicalKeyboardKey.arrowRight, shift: true);
+    expect(code.selection, const TextSelection(baseOffset: 9, extentOffset: 17), reason: 'selected to its end');
+
+    await press(LogicalKeyboardKey.arrowUp);
+    expect(code.selection, const TextSelection.collapsed(offset: 0));
+
+    await press(LogicalKeyboardKey.arrowDown);
+    expect(code.selection, const TextSelection.collapsed(offset: 17));
+    await tester.pump(codeForgeTimers);
+  });
+
   testWidgets('closes a bracket that is typed, and not a quote', (tester) async {
     code.text = '';
     await focus(tester);
