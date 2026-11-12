@@ -10,11 +10,13 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:i_can_code/views/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
-import 'package:re_editor/re_editor.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../support/code_editor.dart';
 
 /// A runtime nothing in these tests runs anything on.
 class _IdleRuntime implements PythonRuntime {
@@ -73,10 +75,10 @@ Widget _app(Widget child) => FTheme(
   ),
 );
 
-Future<CodeLineEditingController> _openLesson(WidgetTester tester) async {
+Future<CodeEditingController> _openLesson(WidgetTester tester) async {
   await tester.pumpWidget(_app(const LessonScreen(subjectSlug: 'learn-python', lessonId: 'loops', sectionId: 'first')));
   await tester.pumpAndSettle();
-  return tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+  return editorIn(tester);
 }
 
 /// What a fresh store over the same storage reads back, which is what a reload
@@ -89,17 +91,16 @@ Future<String?> _stored() async {
 
 /// Types into the editor the way the keyboard does: by changing its text, which
 /// the lesson screen hears as a change like any other.
-Future<void> _type(WidgetTester tester, CodeLineEditingController editor, String code) async {
+Future<void> _type(WidgetTester tester, CodeEditingController editor, String code) async {
   editor.text = code;
   await tester.pump();
 }
 
-/// A test that settles re_editor's caret blink before it ends, which leaves a
-/// timer pending after every edit.
+/// A test that lets code_forge's timers run out before it ends.
 void _testDrafts(String description, Future<void> Function(WidgetTester tester) body) {
   testWidgets(description, (tester) async {
     await body(tester);
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(codeForgeTimers);
   });
 }
 
@@ -154,9 +155,9 @@ void main() {
   _testDrafts('leaving the lesson writes it out at once', (tester) async {
     final editor = await _openLesson(tester);
     await _type(tester, editor, 'print(1)');
-    // re_editor's caret timer outlives its editor, so it runs out first. Still
-    // well inside the write delay.
-    await tester.pump(const Duration(milliseconds: 150));
+    // code_forge's timers outlive its editor, so they run out first. Still
+    // inside the write delay.
+    await tester.pump(codeForgeTimers);
 
     await tester.pumpWidget(const SizedBox());
 

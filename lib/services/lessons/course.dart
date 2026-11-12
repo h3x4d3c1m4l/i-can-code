@@ -385,7 +385,8 @@ bool subjectHasMicrobit(String subject) => subject == 'python';
 ///
 /// Four for Python, as its style guide asks:
 /// https://peps.python.org/pep-0008/#indentation. A subject this table does
-/// not name gets two, which is what `re_editor` uses when it is told nothing.
+/// not name gets two, which is what `CodeEditingController` uses when it is
+/// told nothing.
 int subjectIndentSize(String subject) => switch (subject) {
   'python' => 4,
   _ => 2,

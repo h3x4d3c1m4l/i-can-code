@@ -14,13 +14,15 @@ import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';
 import 'package:i_can_code/views/program_screen/program_screen_controller.dart';
 import 'package:i_can_code/views/program_screen/program_screen_view.dart';
 import 'package:i_can_code/views/program_screen/program_screen_view_model.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../support/code_editor.dart';
 
 /// Loads the app's own fonts, which `flutter test` otherwise draws every glyph
 /// of as a square a whole em wide. The page has to fit the window without a
@@ -180,16 +182,15 @@ void main() {
         ),
       ),
     );
-    // re_editor starts its caret from a timer nothing cancels.
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(codeForgeTimers);
   }
 
-  /// Leaves the page, so neither the draft's timer nor the editor's caret is
-  /// left pending.
+  /// Leaves the page, so neither the draft's timer nor the editor's are left
+  /// pending.
   Future<void> leave(WidgetTester tester) async {
-    // A change to the code restarts the caret's timer, which then has to fire
+    // A change to the code starts the editor's timers, which then have to fire
     // while the editor is still there.
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(codeForgeTimers);
     controller.dispose();
     await tester.pumpWidget(const SizedBox());
   }

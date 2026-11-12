@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Whether the app runs in a browser on a phone or a tablet, where the code
-/// editor is known to misbehave.
+/// editor is not known to work.
 ///
-/// `re_editor` reads [defaultTargetPlatform] and takes a path written for a
-/// native app. In a browser that path loses the space bar of a hardware
-/// keyboard and deletes a character on a tap:
-/// https://github.com/reqable/re-editor/issues/58
+/// `code_forge` reads [defaultTargetPlatform] and takes a path written for a
+/// native app, with its own selection handles and Material's toolbar. That
+/// path has not been tried in a browser on a phone or a tablet, and the
+/// warning stays until it has.
 ///
 /// [isWeb] is half of the test on purpose. A native build reports the same
 /// platform and has none of the trouble.

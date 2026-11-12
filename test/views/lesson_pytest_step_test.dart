@@ -12,11 +12,13 @@ import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/services/python/python_attempt_runner.dart';
 import 'package:i_can_code/services/python/python_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../support/code_editor.dart';
 
 /// Keeps the program it was asked to run, and answers with a passing verdict.
 class _RecordingRuntime implements PythonRuntime {
@@ -123,7 +125,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(runtime.programs.single, contains('make_run_tests'));
-    // Lets re_editor's caret timer finish before the test ends.
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(codeForgeTimers);
   });
 }

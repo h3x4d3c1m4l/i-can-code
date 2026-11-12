@@ -16,7 +16,7 @@ import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
 import 'package:i_can_code/views/components/app_scrollbar.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/duotone_icon.dart';
 import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';

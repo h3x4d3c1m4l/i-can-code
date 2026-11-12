@@ -2665,8 +2665,8 @@ Two traps in driving it. A click at 4× from Flutter UI straight onto the displa
 the pointer moved and pressed in one go, reaches Tk: traced, the capture-phase
 `pointermove` still sees v86's mouse off, the route has turned it on by the
 bubble phase, and v86's `mousemove` and `mousedown` come after that. And
-re_editor pairs brackets and quotes typed one key at a time, so the check puts a
-program in the editor a line at a time through `insertText`, as an IME does.
+code_forge pairs a bracket typed on its own, so the check puts a program in the
+editor a line at a time through `insertText`, as an IME does.
 
 ### Found on the way
 

@@ -13,9 +13,9 @@ import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/theme/squircle_input_border.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_dialog.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/files/file_contents.dart';
-import 'package:re_editor/re_editor.dart';
 
 /// Writes what the dialog was given, under [name], in place of [replacing],
 /// which is the file it was opened on and null for a new one.
@@ -128,7 +128,7 @@ class _EditDialogState extends State<_EditDialog> {
   late final String _initial = widget.text.replaceAll('\r\n', '\n');
 
   late final TextEditingController _name = TextEditingController(text: widget.path ?? '')..addListener(_onName);
-  late final CodeLineEditingController _code = CodeLineEditingController.fromText(_initial);
+  late final CodeEditingController _code = CodeEditingController(text: _initial);
 
   /// What stops the file being saved, once Save was pressed. Rechecked as the
   /// name changes, so the message goes as soon as it no longer holds.

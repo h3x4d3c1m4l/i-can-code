@@ -9,7 +9,7 @@ import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/shape_metrics.dart';
 import 'package:i_can_code/views/components/app_scrollbar.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/code_strip_button.dart';
 import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/selectable_code.dart';

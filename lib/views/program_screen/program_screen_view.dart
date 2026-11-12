@@ -9,7 +9,7 @@ import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/views/base/screen_view_base.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/files/folder_strip.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
 import 'package:i_can_code/views/components/repl_terminal.dart';

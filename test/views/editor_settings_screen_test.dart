@@ -80,7 +80,7 @@ void main() {
   testWidgets('indents the setup the way Python does', (tester) async {
     await open(tester);
 
-    expect(viewModel.tkinterSetup.options.indentSize, subjectIndentSize('python'));
+    expect(viewModel.tkinterSetup.indentSize, subjectIndentSize('python'));
   });
 
   testWidgets('opens on what was set before', (tester) async {

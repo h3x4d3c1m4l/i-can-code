@@ -12,7 +12,7 @@ import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/notice_card.dart';
 import 'package:i_can_code/views/components/output_card.dart';
 import 'package:i_can_code/views/components/vm/no_window_panel.dart';
@@ -30,6 +30,7 @@ import 'package:i_can_code/views/tkinter_screen/tkinter_screen_view_model.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../support/code_editor.dart';
 import '../support/fake_vm_runtime.dart';
 
 /// What the VmDisplay tests show: the top left of the screen, the size of the
@@ -101,9 +102,9 @@ Future<void> _deliver(WidgetTester tester) async {
   await tester.pump();
 }
 
-/// re_editor starts its caret from a 100 ms timer that nothing cancels, and a
-/// test that ends before it fails.
-Future<void> _settleEditor(WidgetTester tester) => tester.pump(const Duration(milliseconds: 150));
+/// The editor leaves timers behind, and a test that ends before they run out
+/// fails.
+Future<void> _settleEditor(WidgetTester tester) => tester.pump(codeForgeTimers);
 
 void _useWindow(WidgetTester tester, Size size) {
   tester.view

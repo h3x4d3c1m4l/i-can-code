@@ -47,6 +47,12 @@ class _ICanCodeAppState extends State<ICanCodeApp> {
           GlobalWidgetsLocalizations.delegate,
           // forui's own strings, for its date and time widgets.
           FLocalizations.delegate,
+          // For code_forge, whose touch-screen menu is Material's
+          // `TextSelectionToolbar` and asserts on these strings. Not the one
+          // material_ui offers instead: its `MaterialLocalizations` is another
+          // type, and code_forge's toolbar looks up flutter/material's.
+          // ignore: deprecated_member_use
+          GlobalMaterialLocalizations.delegate,
         ],
         supportedLocales: LocaleControllerBase.supported,
         builder: (context, child) => _ThemedBody(child: child),

@@ -1,8 +1,8 @@
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/microbit/microbit_link.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:mobx/mobx.dart';
-import 'package:re_editor/re_editor.dart';
 import 'package:xterm/xterm.dart';
 
 part 'microbit_session_view_model.g.dart';
@@ -51,7 +51,7 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// What [code] opens with.
   final String _program;
 
-  CodeLineEditingController? _code;
+  CodeEditingController? _code;
 
   /// What the reader is about to flash. Made on first read, so the REPL screen,
   /// which has no editor, never makes one. Owned here, and disposed with the
@@ -60,8 +60,8 @@ abstract class MicrobitSessionViewModelBase extends ScreenViewModelBase with Sto
   /// Not observable, like the terminal: it keeps its own state and notifies its
   /// own listeners, and a MobX observable over every keystroke would rebuild the
   /// screen on each one.
-  CodeLineEditingController get code =>
-      _code ??= CodeLineEditingController.fromText(_program, CodeLineOptions(indentSize: subjectIndentSize(subject)));
+  CodeEditingController get code =>
+      _code ??= CodeEditingController(text: _program, indentSize: subjectIndentSize(subject));
 
   /// The emulator the view hands to a `TerminalView`.
   ///

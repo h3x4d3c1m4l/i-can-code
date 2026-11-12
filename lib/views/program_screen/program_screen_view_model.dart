@@ -4,8 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:mobx/mobx.dart';
-import 'package:re_editor/re_editor.dart';
 import 'package:xterm/xterm.dart';
 
 part 'program_screen_view_model.g.dart';
@@ -47,7 +47,7 @@ print(f"Hallo, {naam}!")
 
   /// The editor's text. Not observable, for the reason the Tkinter page gives:
   /// it notifies its own listeners. Owned here, and disposed with the page.
-  final CodeLineEditingController code;
+  final CodeEditingController code;
 
   /// The emulator the program writes to and reads from. Not observable, for
   /// the reason the console gives.
@@ -68,9 +68,9 @@ print(f"Hallo, {naam}!")
   ProgramScreenViewModelBase({required super.contextAccessor, required String subjectSlug, FolderStore? folder})
     : subject = subjectFromSlug(subjectSlug) ?? '',
       folder = folder ?? GetIt.I<FolderStore>(),
-      code = CodeLineEditingController.fromText(
-        sample,
-        CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
+      code = CodeEditingController(
+        text: sample,
+        indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? ''),
       );
 
   /// The page `CodeDraftStore` keeps this page's program under.

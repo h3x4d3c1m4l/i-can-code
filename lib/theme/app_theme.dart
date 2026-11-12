@@ -22,7 +22,7 @@ const String kBodyFontFamily = 'Lexend';
 ///
 /// MUST stay the NL build, which has no ligatures: a student who typed `!=`
 /// has to see `!=`, not a `≠` that is on no keyboard. The font is the only
-/// place to turn them off, because `re_editor` passes no `fontFeatures` on.
+/// place to turn them off, because `code_forge` passes no `fontFeatures` on.
 const String kCodeFontFamily = 'JetBrains Mono NL';
 
 /// The emoji face, bundled like the other three.

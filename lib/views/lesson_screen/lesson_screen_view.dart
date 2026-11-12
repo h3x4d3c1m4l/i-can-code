@@ -12,7 +12,8 @@ import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
 import 'package:i_can_code/views/components/app_header.dart';
 import 'package:i_can_code/views/components/app_header_publisher.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/guttered_scroll_view.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
@@ -38,7 +39,6 @@ import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.d
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_controller.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen_view_model.dart';
-import 'package:re_editor/re_editor.dart';
 
 class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScreenController> {
 
@@ -111,9 +111,9 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
   static const double _taskProseSize = 19;
 
   /// One editor controller per step, so moving back and forth keeps what was
-  /// typed. Held by the view because a [CodeLineEditingController] is a Flutter
+  /// typed. Held by the view because a [CodeEditingController] is a Flutter
   /// object with a lifecycle, not observable state.
-  final Map<int, CodeLineEditingController> _editors = {};
+  final Map<int, CodeEditingController> _editors = {};
 
   /// One prediction field per step, for the reason [_editors] is one per step: a
   /// [TextEditingController] carries a selection and a composing region, which
@@ -754,12 +754,12 @@ class LessonScreenView extends ScreenViewBase<LessonScreenViewModel, LessonScree
 
   /// The editor for [step], opened on what the student last typed there or on
   /// the section's starter block, and kept afterwards.
-  CodeLineEditingController _editorFor(int step, LessonSection section) => _editors[step] ??= _openEditor(step, section);
+  CodeEditingController _editorFor(int step, LessonSection section) => _editors[step] ??= _openEditor(step, section);
 
-  CodeLineEditingController _openEditor(int step, LessonSection section) {
-    final editor = CodeLineEditingController.fromText(
-      controller.savedCode(step) ?? section.starter ?? '',
-      CodeLineOptions(indentSize: subjectIndentSize(viewModel.lesson.entry.subject)),
+  CodeEditingController _openEditor(int step, LessonSection section) {
+    final editor = CodeEditingController(
+      text: controller.savedCode(step) ?? section.starter ?? '',
+      indentSize: subjectIndentSize(viewModel.lesson.entry.subject),
     );
     editor.addListener(() => controller.keepCode(step, editor.text));
     return editor;
