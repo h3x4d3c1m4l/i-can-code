@@ -1,9 +1,9 @@
 {
-  "imageId": "857c4d5ce8166f74",
-  "url": "https://github.com/h3x4d3c1m4l/i-can-code/releases/download/vm-image-857c4d5ce8166f74/vm-image-857c4d5ce8166f74.tar.zst",
-  "sha256": "4b846c6657385341c5237d6412ba818dc9de89dbbd8d53a036c38ece101379af",
-  "bytes": 44458839,
-  "sourceHash": "sha256:528303b2ddf58e76c16210c4fec6d3c06acd9e633eb09051380904abc2b306f9",
+  "imageId": "43a772284dff75a1",
+  "url": "https://github.com/h3x4d3c1m4l/i-can-code/releases/download/vm-image-43a772284dff75a1/vm-image-43a772284dff75a1.tar.zst",
+  "sha256": "83fb3fa7400359682418f5d18d9adfd85505c42d6091bdcf2d07b6f2afdf7d2b",
+  "bytes": 44524140,
+  "sourceHash": "sha256:2b697ffd56e3b98a4f337a182ebfc524195811a69e30dffd7e3c8f192c286edf",
   "agentProto": 1,
-  "builtAt": "2026-10-19T05:15:03.258Z"
+  "builtAt": "2026-11-12T17:52:14.112Z"
 }
