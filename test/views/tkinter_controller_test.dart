@@ -599,7 +599,7 @@ void main() {
   testPage('the editor indents the way the subject does', (tester) async {
     open();
 
-    expect(session.code.options.indentSize, subjectIndentSize('python'));
+    expect(session.code.indentSize, subjectIndentSize('python'));
   });
 
   // What a project on the machine waits for before "Het werkt!". The page

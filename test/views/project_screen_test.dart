@@ -15,7 +15,7 @@ import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/app_button.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/lesson/confetti_burst.dart';
 import 'package:i_can_code/views/components/lesson/lesson_complete_panel.dart';
 import 'package:i_can_code/views/components/lesson/requirements_row.dart';
@@ -184,7 +184,7 @@ void main() {
       final (controller, viewModel, _) = open();
       addTearDown(controller.dispose);
 
-      expect(viewModel.code.options.indentSize, 4);
+      expect(viewModel.code.indentSize, 4);
     });
 
     test('moves on once read, and the next one opens', () async {
@@ -337,7 +337,7 @@ void main() {
       addTearDown(controller.dispose);
 
       expect(viewModel.code.text, _windowStarter);
-      expect(viewModel.code.options.indentSize, 4);
+      expect(viewModel.code.indentSize, 4);
 
       viewModel.code.text = 'import tkinter\n';
       expect(GetIt.I<CodeDraftStore>().workFor(_windowProject), 'import tkinter\n');

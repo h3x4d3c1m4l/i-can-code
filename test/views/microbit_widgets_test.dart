@@ -279,15 +279,19 @@ void main() {
       final viewModel = MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python');
       addTearDown(viewModel.dispose);
 
-      expect(viewModel.code.options.indentSize, subjectIndentSize('python'));
+      expect(viewModel.code.indentSize, subjectIndentSize('python'));
     });
 
     test('disposes the editor it made, and has none to dispose when it made none', () {
       final read = MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python');
       final code = read.code;
+      var heard = false;
+      code.addListener(() => heard = true);
       read.dispose();
 
-      expect(() => code.addListener(() {}), throwsFlutterError);
+      // A disposed code_forge controller has let go of its listeners.
+      code.text = 'print(1)';
+      expect(heard, isFalse);
 
       // The REPL screen's case: nothing ever reads the editor.
       MicrobitSessionViewModel(contextAccessor: BuildContextAccessor(), subjectSlug: 'learn-python').dispose();

@@ -1,35 +1,31 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:i_can_code/views/components/code_editor/preempting_focus_node.dart';
 
 /// Builds the editor with [focusNode] as its own, and [focused] while it holds
 /// the keyboard.
-typedef EscapeThenTabBuilder = Widget Function(BuildContext context, FocusNode focusNode, bool focused);
+typedef EscapeThenTabBuilder = Widget Function(BuildContext context, PreemptingFocusNode focusNode, bool focused);
 
-/// Gives a `re_editor` `CodeEditor` the way out the Tkinter page's display has:
+/// Gives a `code_forge` editor the way out the Tkinter page's display has:
 /// Escape, then Tab or Shift+Tab, moves focus to the next or previous control.
 /// Tab alone still indents.
 ///
-/// Without it the editor is a keyboard trap (WCAG 2.1.2): `re_editor` binds Tab
-/// and Shift+Tab to indent and outdent, so the app's focus traversal never sees
-/// either. The caller MUST state the way out while `focused` is true.
+/// Without it the editor is a keyboard trap (WCAG 2.1.2): `code_forge` indents
+/// on Tab and outdents on Shift+Tab, on every platform, so the app's focus
+/// traversal never sees either. The caller MUST state the way out while
+/// `focused` is true.
 ///
-/// What it leans on, read in re_editor 0.10.0 and Flutter 3.47.4:
+/// What it leans on, read in code_forge 11.7.1 and Flutter 3.50.0:
 ///
-/// - **`CodeEditor.focusNode` is the node its own `Focus` attaches.** That
-///   `Focus` passes no `onKeyEvent`, and `FocusNode.attach` keeps the handler a
-///   node already has when it is given none, so the handler here survives.
-/// - **The focused node's handler runs before any ancestor's.** The editor's
-///   `Shortcuts`, which turn Tab into `CodeShortcutIndentIntent` and report it
-///   handled, sit above its `Focus`. Returning ignored hands a key on to them,
-///   which is how Tab alone still indents.
+/// - **The editor's own `Focus` is built on [focusNode]**, and its key handler
+///   answers Tab, Shift+Tab and Escape as handled. The node is a
+///   [PreemptingFocusNode], so the handler here runs before that one.
 /// - **So leaving happens here**, through [FocusNode.nextFocus] and
 ///   [FocusNode.previousFocus], which is what the app's `NextFocusAction` and
 ///   `PreviousFocusAction` call, answered the way they answer. Ignoring the Tab
-///   would reach the editor's `Shortcuts` first, and they would indent.
-/// - **Escape is only noted.** The editor's own Escape, which clears a
-///   selection, still runs after it.
-/// - **Only the desktop editor binds Tab.** On Android and iOS `re_editor` builds
-///   no `Shortcuts`, and Tab reaches the app's traversal by itself.
+///   hands it on to the editor, which indents.
+/// - **Escape is only noted.** The editor's own Escape, which closes its
+///   popups and its extra cursors, still runs after it.
 class EscapeThenTabExit extends StatefulWidget {
 
   final EscapeThenTabBuilder builder;
@@ -55,7 +51,7 @@ class _EscapeThenTabExitState extends State<EscapeThenTabExit> {
     LogicalKeyboardKey.metaRight,
   };
 
-  late final FocusNode _node = FocusNode(debugLabel: 'CodeEditor', onKeyEvent: _onKey);
+  late final PreemptingFocusNode _node = PreemptingFocusNode(debugLabel: 'CodeEditor', preempt: [_onKey]);
 
   /// Escape was the last key pressed, so a Tab now leaves.
   bool _escapeArmed = false;

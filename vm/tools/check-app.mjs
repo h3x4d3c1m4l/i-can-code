@@ -489,8 +489,8 @@ async function typeLikeAPerson(page, text) {
 
 /**
  * Replaces what the code editor holds, one line at a time through insertText, as an IME delivers
- * text: re_editor pairs brackets and quotes typed key by key, and edits through a one-line input.
- * The editor keeps the previous line's indent, so the programs below are flat.
+ * text: code_forge pairs a bracket typed on its own, and a line inserted whole is taken as it is.
+ * The editor keeps the previous line's indent after an Enter, so the programs below are flat.
  */
 async function setEditor(page, point, source) {
   await page.mouse.click(point.x, point.y);

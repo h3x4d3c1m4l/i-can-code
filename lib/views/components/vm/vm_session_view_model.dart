@@ -3,8 +3,8 @@ import 'dart:ui' show Offset, Rect, Size;
 import 'package:i_can_code/services/lessons/course.dart';
 import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:mobx/mobx.dart';
-import 'package:re_editor/re_editor.dart';
 
 part 'vm_session_view_model.g.dart';
 
@@ -115,7 +115,7 @@ abstract class VmSessionViewModelBase extends ScreenViewModelBase with Store {
   /// controller: it notifies its own listeners, and a MobX observable over
   /// every keystroke would rebuild the screen on each one. Owned here, and
   /// disposed with the session.
-  final CodeLineEditingController code;
+  final CodeEditingController code;
 
   @readonly
   TkinterMachine _machine = TkinterMachine.loading;
@@ -168,9 +168,9 @@ abstract class VmSessionViewModelBase extends ScreenViewModelBase with Store {
   /// [program] is what the editor opens with.
   VmSessionViewModelBase({required super.contextAccessor, required String subjectSlug, required String program})
     : subject = subjectFromSlug(subjectSlug) ?? '',
-      code = CodeLineEditingController.fromText(
-        program,
-        CodeLineOptions(indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? '')),
+      code = CodeEditingController(
+        text: program,
+        indentSize: subjectIndentSize(subjectFromSlug(subjectSlug) ?? ''),
       );
 
   /// Whether Run does anything now. A machine still loading takes the run and

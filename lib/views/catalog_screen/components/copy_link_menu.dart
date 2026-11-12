@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:i_can_code/extensions/build_context_extension.dart';
-import 'package:i_can_code/views/catalog_screen/components/browser_menu_suppressor.dart';
+import 'package:i_can_code/views/components/browser_menu_suppressor.dart';
 
 /// Gives [child] a menu with "Link kopiëren", that puts an address on the
 /// clipboard, and on a lesson's card also "Les opnieuw beginnen". It opens

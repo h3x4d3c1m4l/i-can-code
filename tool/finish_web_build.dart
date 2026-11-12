@@ -5,9 +5,10 @@
 // `just build` and both workflows run it straight after the build. `flutter run`
 // serves a build this never sees, so the page keeps its spinner there.
 //
-// It does what the build has no switch for: it takes a font nothing draws with
-// out of the font manifest, and writes the sizes of everything a cold start
-// downloads into `index.html`, which is what the progress ring measures against.
+// It does what the build has no switch for: it takes the fonts a cold start
+// does not need out of the font manifest, and writes the sizes of everything a
+// cold start downloads into `index.html`, which is what the progress ring
+// measures against.
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,21 @@ const String sizesPlaceholder = '/*STARTUP_SIZES*/null';
 /// replaces both of forui's typefaces. The web engine downloads every font in
 /// the manifest before the first frame, used or not.
 const String unusedFontFamily = 'packages/forui/Inter';
+
+/// The families code_forge bundles for the icons of its LSP suggestions, which
+/// this app has none of. Out of the manifest, so a cold start does not wait for
+/// them. Their files stay: code_forge loads each one itself when an editor is
+/// built, and does not catch the error a missing file would be.
+const List<String> unlistedFontFamilies = [
+  'packages/code_forge/Method',
+  'packages/code_forge/Variable',
+  'packages/code_forge/Class',
+  'packages/code_forge/Struct',
+  'packages/code_forge/Event',
+  'packages/code_forge/Operator',
+  'packages/code_forge/Interface',
+  'packages/code_forge/Field',
+];
 
 /// Where the build puts the course bundle. MUST stay `assets/` followed by
 /// `Course.bundleAsset`; this tool cannot import it, because `course.dart`
@@ -48,11 +64,13 @@ void main(List<String> args) {
   try {
     checkAssumptions(web);
     final removed = stripUnusedFont(web);
+    unlistFonts(web);
     final sizes = startupSizes(web);
     writeStartupSizes(web, sizes);
 
     stdout
       ..writeln('Removed ${removed.length} unused font files ($unusedFontFamily).')
+      ..writeln('Took ${unlistedFontFamilies.length} font families out of the font manifest.')
       ..writeln('Wrote the sizes of ${sizes.files.length} startup files into index.html.');
   } on BuildCheckFailure catch (failure) {
     stderr.writeln('ERROR: ${failure.message}');
@@ -105,6 +123,28 @@ List<String> stripUnusedFont(Directory web) {
   file.writeAsStringSync(jsonEncode(manifest.where((family) => family['family'] != unusedFontFamily).toList()));
 
   return removed;
+}
+
+/// Takes [unlistedFontFamilies] out of the font manifest and leaves their files.
+///
+/// Throws [BuildCheckFailure] when one is not there: code_forge changed what
+/// it bundles or how it loads it, and that has to be looked at again.
+void unlistFonts(Directory web) {
+  final file = _existing(web, 'assets/FontManifest.json');
+  final manifest = (jsonDecode(file.readAsStringSync()) as List<dynamic>).cast<Map<String, dynamic>>();
+
+  final listed = {for (final family in manifest) family['family']};
+  final missing = unlistedFontFamilies.where((family) => !listed.contains(family)).toList();
+  if (missing.isNotEmpty) {
+    throw BuildCheckFailure(
+      'The font manifest has no ${missing.join(', ')}. Either this build was finished already, or code_forge '
+      'changed the fonts it bundles: check what it bundles now and how it loads them.',
+    );
+  }
+
+  file.writeAsStringSync(
+    jsonEncode(manifest.where((family) => !unlistedFontFamilies.contains(family['family'])).toList()),
+  );
 }
 
 /// The size of each file a cold start downloads: `[bytes, bytes gzipped]` by

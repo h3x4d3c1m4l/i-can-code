@@ -43,11 +43,21 @@ void main() {
             {'style': 'italic', 'asset': 'packages/forui/assets/fonts/inter/Inter-Italic.ttf'},
           ],
         },
+        for (final family in unlistedFontFamilies)
+          {
+            'family': family,
+            'fonts': [
+              {'asset': '$family.ttf'},
+            ],
+          },
       ]),
     );
     write('assets/assets/fonts/Lexend-Variable.ttf', 'lexend' * 100);
     write('assets/packages/forui/assets/fonts/inter/Inter.ttf', 'inter');
     write('assets/packages/forui/assets/fonts/inter/Inter-Italic.ttf', 'inter italic');
+    for (final family in unlistedFontFamilies) {
+      write('assets/$family.ttf', 'icon');
+    }
     write(courseBundlePath, '{}');
     write('canvaskit/canvaskit.wasm', 'full');
     write('canvaskit/chromium/canvaskit.wasm', 'chromium');
@@ -71,7 +81,23 @@ void main() {
     expect(File('${web.path}/assets/assets/fonts/Lexend-Variable.ttf').existsSync(), isTrue);
 
     final families = (jsonDecode(read('assets/FontManifest.json')) as List<dynamic>).map((f) => (f as Map)['family']);
-    expect(families, ['Lexend', 'Roboto']);
+    expect(families, ['Lexend', 'Roboto', ...unlistedFontFamilies]);
+  });
+
+  test("code_forge's fonts leave the manifest and stay in the build", () {
+    unlistFonts(web);
+
+    final families = (jsonDecode(read('assets/FontManifest.json')) as List<dynamic>).map((f) => (f as Map)['family']);
+    expect(families, ['Lexend', 'Roboto', unusedFontFamily]);
+    for (final family in unlistedFontFamilies) {
+      expect(File('${web.path}/assets/$family.ttf').existsSync(), isTrue, reason: family);
+    }
+  });
+
+  test("a manifest without code_forge's fonts stops the build, since code_forge changed", () {
+    unlistFonts(web);
+
+    expect(() => unlistFonts(web), throwsA(isA<BuildCheckFailure>()));
   });
 
   test('a manifest without the unused font stops the build, since forui changed', () {
@@ -82,6 +108,7 @@ void main() {
 
   test('every startup file is measured once, plain and gzipped', () {
     stripUnusedFont(web);
+    unlistFonts(web);
     final sizes = startupSizes(web);
 
     // The file bundled under two families weighs once.

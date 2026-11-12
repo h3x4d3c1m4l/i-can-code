@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:code_forge/code_forge.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -20,7 +21,8 @@ import 'package:i_can_code/theme/squircle_input_border.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/components/app_button.dart';
 import 'package:i_can_code/views/components/app_button_row.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/duotone_icon.dart';
 import 'package:i_can_code/views/components/lesson/code_sample.dart';
 import 'package:i_can_code/views/components/lesson/collapsible_prose_group.dart';
@@ -43,8 +45,8 @@ import 'package:i_can_code/views/lesson_screen/components/scroll_to_on_arrival.d
 import 'package:i_can_code/views/lesson_screen/components/step_transition.dart';
 import 'package:i_can_code/views/subjects_screen/components/subject_card.dart';
 import 'package:material_ui/material_ui.dart' show InputBorder, InputDecorator;
-import 'package:re_editor/re_editor.dart';
 
+import '../support/code_editor.dart';
 import '../support/recording_url_launcher.dart';
 
 /// Wraps [child] in what the lesson widgets need: the app theme, the
@@ -966,10 +968,10 @@ void main() {
   });
 
   group('CodeEditorCard', () {
-    // re_editor asserts on an unbounded height, and the card always sits inside
+    // code_forge asserts on an unbounded height, and the card always sits inside
     // a scroll view, which is exactly the constraint the app hands it.
     testWidgets('a capped editor takes the Enter key up to its limit', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
@@ -984,23 +986,47 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(CodeEditor));
-      await tester.pumpAndSettle();
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CodeForge));
+      await tester.pump();
+      typeInto(controller, '\n');
+      await tester.pump();
 
       expect(controller.text, 'print(1)\n', reason: 'the second line is inside the limit');
 
       // The card is sized to the limit, so a third line could only scroll out
       // of sight.
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+      typeInto(controller, '\n');
+      await tester.pump(codeForgeTimers);
 
       expect(controller.text, 'print(1)\n', reason: 'and the split line is rejoined exactly as it was');
     });
 
+    testWidgets('a capped editor leaves the caret where Enter found it', (tester) async {
+      final controller = CodeEditingController(text: 'print(1)\nprint(2)');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _host(
+          CodeEditorCard(
+            controller: controller,
+            status: 'python',
+            maxLines: 2,
+            height: CodeEditorCard.heightForLines(2),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      controller.selection = const TextSelection.collapsed(offset: 12);
+      typeInto(controller, '\n');
+      await tester.pump(codeForgeTimers);
+
+      expect(controller.text, 'print(1)\nprint(2)', reason: 'an Enter mid-word past the limit does nothing');
+      expect(controller.selection, const TextSelection.collapsed(offset: 12));
+    });
+
     testWidgets('a capped editor flattens what a paste adds past the limit', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
@@ -1025,33 +1051,33 @@ void main() {
     });
 
     testWidgets('a normal editor still accepts the Enter key', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(CodeEditor));
-      await tester.pumpAndSettle();
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CodeForge));
+      await tester.pump();
+      typeInto(controller, '\n');
+      await tester.pump(codeForgeTimers);
 
       expect(controller.text, contains('\n'));
     });
 
     testWidgets('shows line numbers', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)\nprint(2)\nprint(3)');
+      final controller = CodeEditingController(text: 'print(1)\nprint(2)\nprint(3)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
       await tester.pumpAndSettle();
 
       // A traceback says "line 3", which needs line 3 labelled.
-      expect(find.byType(DefaultCodeLineNumber), findsOneWidget);
+      expect(tester.widget<CodeForge>(find.byType(CodeForge)).enableGutter, isTrue);
     });
 
     testWidgets('a capped editor has no gutter', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
@@ -1068,17 +1094,16 @@ void main() {
 
       // Short enough to count by eye, so a column of numbers beside it is only
       // clutter.
-      expect(find.byType(DefaultCodeLineNumber), findsNothing);
+      expect(tester.widget<CodeForge>(find.byType(CodeForge)).enableGutter, isFalse);
     });
 
     testWidgets('an editor sized to its lines has nothing to scroll', (tester) async {
-      // A line is drawn at whole pixels — 16 x 1.6 is 25.6, laid out as 26 — so
-      // arithmetic that kept the fraction left two lines 0.8px taller than their
-      // box. Invisible, and still enough for a scrollbar to appear over the code
-      // the moment a student typed a second line.
+      // code_forge lays its code out at least as large as the window, which
+      // let a box of six lines scroll a screen down, and sideways in a box
+      // narrower than the window.
       for (final lines in [1, 2, 6]) {
-        final controller = CodeLineEditingController.fromText(
-          List.generate(lines, (index) => 'print($index)').join('\n'),
+        final controller = CodeEditingController(
+          text: List.generate(lines, (index) => 'print($index)').join('\n'),
         );
         addTearDown(controller.dispose);
 
@@ -1093,18 +1118,20 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final vertical = tester
-            .stateList<ScrollableState>(
-              find.descendant(of: find.byType(CodeEditor), matching: find.byType(Scrollable)),
-            )
-            .firstWhere((state) => state.axisDirection == AxisDirection.down);
+        // Its two-dimensional view builds subclasses of Scrollable, one per axis.
+        final scrollables = tester.stateList<ScrollableState>(
+          find.descendant(of: find.byType(CodeForge), matching: find.byWidgetPredicate((widget) => widget is Scrollable)),
+        );
+        final vertical = scrollables.firstWhere((state) => state.axisDirection == AxisDirection.down);
+        final horizontal = scrollables.firstWhere((state) => state.axisDirection == AxisDirection.right);
 
-        expect(vertical.position.maxScrollExtent, 0, reason: '$lines line(s) must fit exactly');
+        expect(vertical.position.maxScrollExtent, 0, reason: '$lines line(s) must fit');
+        expect(horizontal.position.maxScrollExtent, 0, reason: 'short lines must not scroll sideways');
       }
     });
 
     testWidgets('lays out inside a scroll view', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(42)\nprint(3.14)');
+      final controller = CodeEditingController(text: 'print(42)\nprint(3.14)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
@@ -1116,7 +1143,7 @@ void main() {
     });
 
     testWidgets('takes the height it is given, however long the code is', (tester) async {
-      final long = CodeLineEditingController.fromText(List.filled(80, 'print(1)').join('\n'));
+      final long = CodeEditingController(text: List.filled(80, 'print(1)').join('\n'));
       addTearDown(long.dispose);
 
       final height = CodeEditorCard.heightForLines(2);
@@ -1125,14 +1152,14 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(
-        tester.getSize(find.byType(CodeEditor)).height,
+        tester.getSize(find.byType(CodeForge)).height,
         height,
         reason: '80 lines must scroll inside the editor, not stretch the page',
       );
     });
 
     testWidgets('no reset button when there is no starter code to reset to', (tester) async {
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
@@ -1142,7 +1169,7 @@ void main() {
     });
 
     testWidgets('a reset button restores the starter code, after asking', (tester) async {
-      final controller = CodeLineEditingController.fromText('print("gewijzigd")');
+      final controller = CodeEditingController(text: 'print("gewijzigd")');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
@@ -1271,14 +1298,14 @@ void main() {
     testWidgets('draws its caret against the editor, not the page', (tester) async {
       // `colors.primary` is near-black in the neutral preset, and so is the
       // editor's surface, which would make the caret invisible.
-      final controller = CodeLineEditingController.fromText('print(1)');
+      final controller = CodeEditingController(text: 'print(1)');
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(_host(CodeEditorCard(controller: controller, status: 'python')));
       await tester.pumpAndSettle();
 
       final tokens = buildAppTheme().extensions.whereType<AppTheme>().first;
-      final style = tester.widget<CodeEditor>(find.byType(CodeEditor)).style!;
+      final style = tester.widget<CodeForge>(find.byType(CodeForge)).selectionStyle!;
 
       expect(style.cursorColor, tokens.colors.codeForeground);
       expect(style.cursorColor, isNot(tokens.colors.codeBackground));

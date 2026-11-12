@@ -5,10 +5,10 @@ import 'package:i_can_code/services/lessons/lesson.dart';
 import 'package:i_can_code/services/progress/code_draft_store.dart';
 import 'package:i_can_code/services/progress/progress_store.dart';
 import 'package:i_can_code/views/base/screen_view_model_base.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:i_can_code/views/components/microbit/microbit_session_view_model.dart';
 import 'package:i_can_code/views/components/vm/vm_session_view_model.dart';
 import 'package:mobx/mobx.dart';
-import 'package:re_editor/re_editor.dart';
 
 part 'project_screen_view_model.g.dart';
 
@@ -101,7 +101,7 @@ abstract class ProjectScreenViewModelBase extends ScreenViewModelBase with Store
 
   /// The one program every task of the project shares, in the editor of
   /// whichever of [board] and [machine] there is.
-  CodeLineEditingController get code => board?.code ?? machine!.code;
+  CodeEditingController get code => board?.code ?? machine!.code;
 
   /// Read off any translation: `lesson_test.dart` holds every locale to the
   /// same sections.

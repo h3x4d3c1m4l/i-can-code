@@ -1,3 +1,4 @@
+import 'package:code_forge/code_forge.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,22 +16,21 @@ import 'package:i_can_code/services/vm/vm_runtime.dart';
 import 'package:i_can_code/theme/theme.dart';
 import 'package:i_can_code/views/base/build_context_accessor.dart';
 import 'package:i_can_code/views/components/app_button.dart';
-import 'package:i_can_code/views/components/code_editor_card.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
+import 'package:i_can_code/views/components/code_editor/code_editor_card.dart';
 import 'package:i_can_code/views/components/run_button.dart';
 import 'package:i_can_code/views/lesson_screen/lesson_screen.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_controller.dart';
 import 'package:i_can_code/views/tkinter_screen/tkinter_screen_view_model.dart';
-import 'package:re_editor/re_editor.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import '../support/fake_vm_runtime.dart';
 
-// Every test here runs as a desktop, and none of this file may build an editor
-// under the default Android. re_editor reads the platform into a top-level
-// final (`kIsAndroid`) on first use, so the first editor an isolate builds
-// decides for all the others, and only the desktop editor binds Tab.
+// Every test here runs as a desktop, which is where a keyboard user is.
+// code_forge reads the platform per editor, and on Android or iOS shows the
+// keyboard on a tap rather than on focus.
 final TargetPlatformVariant _desktop = TargetPlatformVariant.desktop();
 
 const String _leaveHint = 'Esc, dan Tab: verlaten';
@@ -77,7 +77,7 @@ bool _focusIn(Finder finder) {
   return inside;
 }
 
-bool _inEditor() => _focusIn(find.byType(CodeEditor));
+bool _inEditor() => _focusIn(find.byType(CodeForge));
 
 Future<void> _press(WidgetTester tester, LogicalKeyboardKey key, {bool shift = false}) async {
   if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
@@ -149,12 +149,13 @@ class _TestTkinterScreen extends TkinterScreen {
 
 }
 
-/// A test run as each desktop. re_editor starts its caret from 100 ms timers
-/// that nothing cancels, which the body is given time for at its end.
+/// A test run as each desktop. code_forge leaves one-shot timers behind an edit
+/// or a hover, the longest of them 600 ms, which the body is given time for at
+/// its end.
 void _testKeys(String description, Future<void> Function(WidgetTester tester) body) {
   testWidgets(description, variant: _desktop, (tester) async {
     await body(tester);
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 650));
   });
 }
 
@@ -166,12 +167,12 @@ void main() {
   group('CodeEditorCard', () {
     late FocusNode before;
     late FocusNode after;
-    late CodeLineEditingController code;
+    late CodeEditingController code;
 
     setUp(() {
       before = FocusNode(debugLabel: 'before');
       after = FocusNode(debugLabel: 'after');
-      code = CodeLineEditingController.fromText('print(1)');
+      code = CodeEditingController(text: 'print(1)');
     });
 
     tearDown(() {
@@ -195,7 +196,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byType(CodeEditor));
+      await tester.tap(find.byType(CodeForge));
       await tester.pump();
       expect(_inEditor(), isTrue);
     }
@@ -247,7 +248,7 @@ void main() {
       await tester.pump();
       expect(find.text(_leaveHint), findsNothing);
 
-      await tester.tap(find.byType(CodeEditor));
+      await tester.tap(find.byType(CodeForge));
       await tester.pump();
       expect(find.text(_leaveHint), findsOneWidget);
       expect(find.text('main.py'), findsOneWidget, reason: 'beside the file name, not in place of it');
@@ -301,13 +302,13 @@ void main() {
       expect(_inEditor(), isTrue, reason: 'writing the code is what the step is for');
       expect(find.text(_leaveHint), findsOneWidget);
 
-      final editor = tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+      final editor = tester.widget<CodeForge>(find.byType(CodeForge)).controller!;
       await _press(tester, LogicalKeyboardKey.tab);
       expect(_inEditor(), isTrue);
       expect(editor.text, isNot(''), reason: 'a Tab alone indents');
 
       final visited = await _walk(tester, {
-        'editor': find.byType(CodeEditor),
+        'editor': find.byType(CodeForge),
         'back': find.byWidgetPredicate((widget) => widget is AppButton && widget.semanticsLabel == 'Terug naar Python'),
         'run': find.byType(RunButton),
         'reset': find.bySemanticsLabel('Code herstellen'),
@@ -327,7 +328,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final editor = tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+      final editor = tester.widget<CodeForge>(find.byType(CodeForge)).controller!;
       await _press(tester, LogicalKeyboardKey.tab);
 
       expect(editor.text, '    ');
@@ -352,7 +353,7 @@ void main() {
     Future<void> leave(WidgetTester tester) => tester.pumpWidget(const SizedBox());
 
     Map<String, Finder> controls() => {
-      'editor': find.byType(CodeEditor),
+      'editor': find.byType(CodeForge),
       'run': find.byType(RunButton),
       'retry': find.widgetWithText(AppButton, 'Opnieuw proberen'),
       'details': find.ancestor(
@@ -371,7 +372,7 @@ void main() {
       expect(_inEditor(), isTrue, reason: 'the first control on the page');
       expect(find.text(_leaveHint), findsOneWidget);
 
-      final code = tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+      final code = tester.widget<CodeForge>(find.byType(CodeForge)).controller!;
       await _press(tester, LogicalKeyboardKey.tab);
       expect(_inEditor(), isTrue);
       expect(code.text, isNot(TkinterScreenViewModelBase.sample), reason: 'a Tab alone indents');

@@ -31,6 +31,8 @@ import 'package:i_can_code/views/subjects_screen/subjects_screen.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../support/test_assets.dart';
+
 const String _root = 'assets/lessons/python';
 
 /// A lesson of one reading step and a project of one task, one of each screen.
@@ -82,9 +84,14 @@ void main() {
     rootBundle.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
       'flutter/assets',
-      (message) async => utf8.decode(message!.buffer.asUint8List()) == Course.bundleAsset
-          ? ByteData.sublistView(utf8.encode(jsonEncode(_course)))
-          : null,
+      (message) {
+        final key = utf8.decode(message!.buffer.asUint8List());
+        if (key == Course.bundleAsset) return Future.value(ByteData.sublistView(utf8.encode(jsonEncode(_course))));
+
+        // Everything else as the suite serves it: the project screen builds an
+        // editor, and code_forge loads its fonts through here.
+        return testAsset(key);
+      },
     );
 
     final python = createPythonRuntime();

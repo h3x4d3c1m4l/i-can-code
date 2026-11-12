@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:code_forge/code_forge.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,9 +9,11 @@ import 'package:i_can_code/l10n/generated/app_localizations.dart';
 import 'package:i_can_code/services/folder_store.dart';
 import 'package:i_can_code/theme/app_theme.dart';
 import 'package:i_can_code/theme/theme.dart';
+import 'package:i_can_code/views/components/code_editor/code_editing_controller.dart';
 import 'package:i_can_code/views/components/files/file_button.dart';
 import 'package:i_can_code/views/components/files/folder_strip.dart';
-import 'package:re_editor/re_editor.dart';
+
+import '../support/code_editor.dart';
 
 /// Loads the app's own fonts: the strip measures its buttons, and the test
 /// font's square glyphs a whole em wide would measure something else.
@@ -85,14 +88,14 @@ Widget _host(_Page page, {double width = 700}) => FTheme(
   ),
 );
 
-/// The editor in the open dialog. Its text is set through its controller: in
-/// `flutter test` it is re_editor's mobile editor, which takes no typing.
-CodeLineEditingController _editor(WidgetTester tester) => tester.widget<CodeEditor>(find.byType(CodeEditor)).controller!;
+/// The editor in the open dialog. Its text is set through its controller,
+/// because a key event types nothing into it.
+CodeEditingController _editor(WidgetTester tester) => editorIn(tester);
 
-/// Lets re_editor's caret timer run out, which nothing cancels.
+/// Lets the editor's timers run out before the test ends.
 Future<void> _settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
-  await tester.pump(const Duration(milliseconds: 150));
+  await tester.pump(codeForgeTimers);
 }
 
 void main() {
@@ -321,7 +324,7 @@ void main() {
       expect(find.textContaining('geen tekst'), findsOneWidget);
       expect(find.text('Opslaan'), findsNothing);
       expect(find.text('Verwijderen'), findsOneWidget);
-      expect(find.byType(CodeEditor), findsNothing);
+      expect(find.byType(CodeForge), findsNothing);
 
       await tester.tap(find.text('Sluiten'));
       await tester.pumpAndSettle();
@@ -336,7 +339,7 @@ void main() {
 
       expect(find.textContaining('te groot om hier te bewerken'), findsOneWidget);
       expect(find.textContaining('eerste regel'), findsOneWidget);
-      expect(find.byType(CodeEditor), findsNothing);
+      expect(find.byType(CodeForge), findsNothing);
       await tester.tap(find.text('Sluiten'));
       await tester.pumpAndSettle();
     });
