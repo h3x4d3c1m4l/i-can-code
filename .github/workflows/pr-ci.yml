@@ -242,7 +242,7 @@ jobs:
       # `--no-web-resources-cdn` bundles CanvasKit, which the build otherwise
       # points at www.gstatic.com.
       - name: Build web
-        run: flutter build web --release --no-web-resources-cdn --base-href '/i-can-code/' ${{ steps.vm-image.outputs.define }}
+        run: flutter build web --release --wasm --no-web-resources-cdn --base-href '/i-can-code/' ${{ steps.vm-image.outputs.define }}
 
       # Takes the font forui bundles and nothing draws with out of the build,
       # and writes the sizes the page's progress ring measures against into
