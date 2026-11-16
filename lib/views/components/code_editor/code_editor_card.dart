@@ -66,11 +66,9 @@ class CodeEditorCard extends StatefulWidget {
 
   static const double _fontSize = 16;
 
-  /// The code face's own line height, its ascent and descent together. MUST
-  /// stay that: `code_forge` draws a line number at the top of its row with no
-  /// line height of its own, so any other value sets the code above or below
-  /// its number.
-  static const double _lineHeight = 1.32;
+  /// The code's and the line numbers' alike: `code_forge` lays a number out at
+  /// its own style's height, so two heights set the code beside its number.
+  static const double _lineHeight = 1.6;
 
   /// `code_forge` centres a line number in a gutter one font size wider than
   /// it, so 8px of that gutter lies on either side of the number. These put
@@ -92,7 +90,7 @@ class CodeEditorCard extends StatefulWidget {
   /// not have to be re-derived when the code font changes.
   ///
   /// A line is rounded **up** to whole pixels before it is multiplied: `16 ×
-  /// 1.32` is 21.12, counted as 22. The editor keeps the fraction, so [lines]
+  /// 1.6` is 25.6, counted as 26. The editor keeps the fraction, so [lines]
   /// of code fit with room to spare and do not scroll.
   static double heightForLines(int lines) =>
       lines * (_fontSize * _lineHeight).ceilToDouble() + codePadding.vertical;
@@ -276,7 +274,11 @@ class _CodeEditorCardState extends State<CodeEditorCard> {
               height: CodeEditorCard._lineHeight,
               color: colors.codeForeground,
             ),
-            lineNumbers: text.code.copyWith(fontSize: CodeEditorCard._fontSize, color: colors.codeMuted),
+            lineNumbers: text.code.copyWith(
+              fontSize: CodeEditorCard._fontSize,
+              height: CodeEditorCard._lineHeight,
+              color: colors.codeMuted,
+            ),
             activeLineNumber: colors.codeForeground,
             background: colors.codeBackground,
             // Both MUST come from the *code* palette: `colors.primary` is

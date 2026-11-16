@@ -29,10 +29,10 @@ packages:
     dependency: transitive
     description:
       name: android_file_picker
-      sha256: "04c1306eda42c23ecbf449c909f4fa05c5e66fc48cf5f994d8d08b9d45e5396b"
+      sha256: ec3cf2a2c7a9b2bd56747e85f80efdd994e563049dfb0981a23903acfdd58cb5
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.5"
+    version: "2.2.0"
   ansicolor:
     dependency: transitive
     description:
@@ -189,10 +189,10 @@ packages:
     dependency: "direct main"
     description:
       name: code_forge
-      sha256: "5f35ce2f9d703b49303086ec64d04a7217963494126f97d840f84139283a545a"
+      sha256: "8288608929e5628c155268402f0507409cec85d8d784df8b8e64ee9b27a209b7"
       url: "https://pub.dev"
     source: hosted
-    version: "11.7.1"
+    version: "11.8.0"
   collection:
     dependency: transitive
     description:
@@ -237,10 +237,10 @@ packages:
     dependency: transitive
     description:
       name: cupertino_ui
-      sha256: "369e39a1c5c030a6212589c3da1809920b1c2cfade7b02aade7695bfa4b88c3a"
+      sha256: c3eaf7f5bdfee36deb0b14a4cbf7602f1b6b8d8b8576b81f38fc08c25881c94c
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.6"
+    version: "1.1.7"
   dart_style:
     dependency: transitive
     description:
@@ -301,10 +301,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: "079dc46b753abbddb7f77cd87e6ed9ecc62902580707514568321bdf8e050a86"
+      sha256: c3780977700b8962c3b9b6a9aa4e2c988956893d70d4a4fa2d7adf4ec9b9eaee
       url: "https://pub.dev"
     source: hosted
-    version: "13.3.3"
+    version: "13.4.0"
   file_picker_darwin:
     dependency: transitive
     description:
@@ -325,10 +325,10 @@ packages:
     dependency: transitive
     description:
       name: file_picker_platform_interface
-      sha256: "336e7168306834a2b68e6168ed768e00d3fabeac23154d5793e277ca9f97cf20"
+      sha256: a2ef71c4628f92a4471d424576e3bf7042b40a2683c9f9a0e3033a7fc7f7763c
       url: "https://pub.dev"
     source: hosted
-    version: "4.2.0"
+    version: "4.3.0"
   file_picker_web:
     dependency: transitive
     description:
@@ -425,18 +425,18 @@ packages:
     dependency: "direct main"
     description:
       name: forui
-      sha256: af6dcb2f57467c39bc808b6576d6dfdad19be7caf788bdd89d8b2fe3b6a521a2
+      sha256: de5e4b3a2f6601c76dfaf49a49e1c1dc854867ce1399df992ce5657e251799de
       url: "https://pub.dev"
     source: hosted
-    version: "0.27.7"
+    version: "0.28.0"
   forui_lucide:
     dependency: transitive
     description:
       name: forui_lucide
-      sha256: "63c660e4213309d9558cfc1c10ec52c13dab88cc2794dc41b8be769a7c86206c"
+      sha256: c7876b1007161b4a6f5d8d830bfdd3f1a0e6f4ccd810a472a936a6caa9102ffb
       url: "https://pub.dev"
     source: hosted
-    version: "0.27.0"
+    version: "0.28.0"
   freezed:
     dependency: "direct dev"
     description:
@@ -689,10 +689,10 @@ packages:
     dependency: "direct main"
     description:
       name: material_ui
-      sha256: "474c135fd46b56ff1d35ca982155e8863d28fbc6464d1192acf4ee53a738680e"
+      sha256: a6b19012df437a356cbc01f8ea22a105e07194c47c9a6009da0032a0ce35c4ab
       url: "https://pub.dev"
     source: hosted
-    version: "1.11.0"
+    version: "1.11.1"
   meta:
     dependency: "direct main"
     description:
@@ -913,26 +913,26 @@ packages:
     dependency: transitive
     description:
       name: sentry
-      sha256: de233eb7a4d30e8fc18dafffde344b1846f92ffd079f454c56872e064145e396
+      sha256: "6549d5e63700434b76a21d4ee6a273fb7e1735307409777d043621f50d7ff9e2"
       url: "https://pub.dev"
     source: hosted
-    version: "10.3.0"
+    version: "10.4.0"
   sentry_dart_plugin:
     dependency: "direct dev"
     description:
       name: sentry_dart_plugin
-      sha256: da9c1d0b3c87a251bfc36301f16af090a88c2d59128fe9a6f908f5ac20340c97
+      sha256: "0a1fdd7941f9811bd4a57862f4650b2deb1ac8d060f4c31cbd081fca26348672"
       url: "https://pub.dev"
     source: hosted
-    version: "3.4.0"
+    version: "3.5.0"
   sentry_flutter:
     dependency: "direct main"
     description:
       name: sentry_flutter
-      sha256: "798acb5d181869403828a0c0ac54989c9b1f7189efd13cc2a55102d18454bf23"
+      sha256: cd123c354b7189bae98b9e9d23ba915d2ecdc3ab98675b6cb85a84baad86199c
       url: "https://pub.dev"
     source: hosted
-    version: "10.3.0"
+    version: "10.4.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -1348,4 +1348,4 @@ packages:
     version: "0.0.6"
 sdks:
   dart: ">=3.14.0 <4.0.0"
-  flutter: ">=3.47.0"
+  flutter: ">=3.50.0"

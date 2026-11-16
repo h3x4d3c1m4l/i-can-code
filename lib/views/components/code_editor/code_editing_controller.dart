@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 /// The program in a [CodeEditorCard]: its text, its undo history and how far
 /// a Tab indents it.
 ///
-/// Changes two things about `code_forge`'s controller, read in 11.7.1:
+/// Changes two things about `code_forge`'s controller, read in 11.8.0:
 ///
 /// - **A typed quote is not paired.** `_handleInsertion` pairs `'` and `"` the
 ///   way it pairs brackets, inside a word too, so `zo'n` came out as `zo'n'`.

@@ -15,7 +15,7 @@ typedef EscapeThenTabBuilder = Widget Function(BuildContext context, PreemptingF
 /// traversal never sees either. The caller MUST state the way out while
 /// `focused` is true.
 ///
-/// What it leans on, read in code_forge 11.7.1 and Flutter 3.50.0:
+/// What it leans on, read in code_forge 11.8.0 and Flutter 3.50.0:
 ///
 /// - **The editor's own `Focus` is built on [focusNode]**, and its key handler
 ///   answers Tab, Shift+Tab and Escape as handled. The node is a

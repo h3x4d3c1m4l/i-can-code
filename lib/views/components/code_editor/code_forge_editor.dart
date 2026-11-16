@@ -23,7 +23,7 @@ typedef CodeEditorLook = ({
 
 /// `code_forge`'s editor, with what it does by itself in a browser undone.
 ///
-/// Every trick below is about `code_forge` 11.7.1, read in its source:
+/// Every trick below is about `code_forge` 11.8.0, read in its source:
 ///
 /// - **Two shortcuts reach the browser instead.** Its key handler answers every
 ///   key held with Ctrl (or Cmd) and Alt, for inlay hints, and on Windows that

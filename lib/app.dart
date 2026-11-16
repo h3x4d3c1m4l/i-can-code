@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' show GlobalWidgetsLocalizations;
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -14,6 +14,7 @@ import 'package:i_can_code/views/components/app_header_host.dart';
 import 'package:i_can_code/views/components/app_scrollbar.dart';
 import 'package:i_can_code/views/components/color_vision_filter.dart';
 import 'package:i_can_code/views/components/startup_curtain.dart';
+import 'package:material_ui/material_ui.dart' show GlobalMaterialLocalizations;
 
 /// The app shell.
 ///
@@ -48,10 +49,9 @@ class _ICanCodeAppState extends State<ICanCodeApp> {
           // forui's own strings, for its date and time widgets.
           FLocalizations.delegate,
           // For code_forge, whose touch-screen menu is Material's
-          // `TextSelectionToolbar` and asserts on these strings. Not the one
-          // material_ui offers instead: its `MaterialLocalizations` is another
-          // type, and code_forge's toolbar looks up flutter/material's.
-          // ignore: deprecated_member_use
+          // `TextSelectionToolbar` and asserts on these strings. material_ui's
+          // and not flutter_localizations': the two `MaterialLocalizations` are
+          // different types, and code_forge's toolbar looks up material_ui's.
           GlobalMaterialLocalizations.delegate,
         ],
         supportedLocales: LocaleControllerBase.supported,

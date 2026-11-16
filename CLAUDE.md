@@ -251,9 +251,9 @@ Generated files are excluded from linting (`analysis_options.yaml`) and must nev
 
 **Every rounded corner is a squircle, and a text field is the one control that cannot be given one.** forui types a field's border as Material's `InputBorder`, whose concrete forms draw a plain rounded rectangle, so `squircle()` cannot reach it. `SquircleInputBorder` (`lib/theme/`) is an `InputBorder` subclass that hands every question to the real squircle; `PredictionField` restates all five of forui's border states with it, because the border carries its own colour and replacing one replaces the colour with it.
 
-**The code editor brings Material of its own.** `code_forge` is built on `package:flutter/material.dart`: its right-click menu is a `Card` of `InkWell`s, its touch-screen menu Material's `TextSelectionToolbar`, and both draw `Icons`. That is a dependency's import and not the app's, and none of it is drawn outside the editor. See *The code editor*.
+**The code editor brings Material of its own.** `code_forge` is built on `package:material_ui/material_ui.dart`: its right-click menu is a `Card` of `InkWell`s, its touch-screen menu Material's `TextSelectionToolbar`, and both draw `Icons`. That is a dependency's import and not the app's, and none of it is drawn outside the editor. See *The code editor*.
 
-The one Material import in the codebase is `package:material_ui/material_ui.dart show ThemeExtension` in `lib/theme/app_theme.dart` — forui types its extension map against that class, and Flutter 3.47's `package:flutter/material.dart` declares a *different* one. Importing the wrong `ThemeExtension` fails with a type error that does not mention either package.
+The codebase imports Material twice, both times from `package:material_ui/material_ui.dart` and for one name. `show ThemeExtension` in `lib/theme/app_theme.dart`: forui types its extension map against that class, and Flutter 3.47's `package:flutter/material.dart` declares a *different* one. Importing the wrong `ThemeExtension` fails with a type error that does not mention either package. `show GlobalMaterialLocalizations` in `lib/app.dart`, for the same trap (see *Mobile browsers*).
 
 ### Theming
 
@@ -578,7 +578,7 @@ To see it, `just build`, `just serve-build`, and throttle the network in the bro
 
 `isMobileBrowser()` is `kIsWeb` **and** iOS or Android. The web half is there on purpose: a native build reports the same platform and has none of the trouble. An iPad counts although it asks for the desktop site, because Flutter's web engine calls a "Mac" with more than two touch points iOS.
 
-The trouble is the code editor. `code_forge` reads that same `defaultTargetPlatform` and takes a path written for a native app: selection handles and a magnifier drawn on its own canvas, the keyboard shown on a tap rather than on focus, and Material's `TextSelectionToolbar` as its menu. That toolbar asserts on `MaterialLocalizations`, which is why `app.dart` registers `GlobalMaterialLocalizations.delegate` in an app with no Material. It is the one from `flutter_localizations`, deprecated since Flutter 3.47, and not the one the deprecation points to in `material_ui`: that package declares a `MaterialLocalizations` of its own, the `ThemeExtension` trap again, and code_forge's toolbar looks up `package:flutter/material.dart`'s.
+The trouble is the code editor. `code_forge` reads that same `defaultTargetPlatform` and takes a path written for a native app: selection handles and a magnifier drawn on its own canvas, the keyboard shown on a tap rather than on focus, and Material's `TextSelectionToolbar` as its menu. That toolbar asserts on `MaterialLocalizations`, which is why `app.dart` registers `GlobalMaterialLocalizations.delegate` in an app with no Material. It is the one from `material_ui` and not the deprecated one in `flutter_localizations`: each declares a `MaterialLocalizations` of its own, the `ThemeExtension` trap again, and code_forge's toolbar looks up `material_ui`'s. A dependency that moves between the two moves this delegate with it.
 
 The warning was written for the editor before it, which on that path lost the space bar of a hardware keyboard and deleted a character on a tap ([reqable/re-editor#58](https://github.com/reqable/re-editor/issues/58)). `code_forge` has not been tried in a mobile browser, and the warning stays until it has.
 
@@ -586,7 +586,7 @@ The warning was written for the editor before it, which on that path lost the sp
 
 ### The code editor
 
-**The editor is `code_forge`, and `CodeForgeEditor` (`lib/views/components/code_editor/`) is the workaround widget around it**, with `CodeEditorCard` as its one user. Its class comment lists what it undoes of `code_forge` 11.7.1, each read in its source:
+**The editor is `code_forge`, and `CodeForgeEditor` (`lib/views/components/code_editor/`) is the workaround widget around it**, with `CodeEditorCard` as its one user. Its class comment lists what it undoes of `code_forge` 11.8.0, each read in its source:
 
 - **Ctrl+Alt with a character and the paste shortcut go to the browser.** `code_forge` swallows every key held with Ctrl and Alt, which on Windows is AltGr and so `@`, `{` and `\` on many layouts, and it pastes from `navigator.clipboard`, which Safari and Firefox answer with a button to press on every paste. The browser's own paste arrives as one insertion, which `code_forge` takes as it is.
 - **Cmd and an arrow move the caret the Mac's way**, to the start or end of the line or of the code, on macOS only. `code_forge` reads Cmd as Ctrl, and its Ctrl bindings ask for Ctrl itself, so Cmd+Left moved one character. Cmd+Backspace is still `code_forge`'s, and deletes one character.
@@ -597,7 +597,7 @@ The warning was written for the editor before it, which on that path lost the sp
 
 `CodeEditingController` is the controller every screen holds. **A quote is typed as it is**: `code_forge` pairs `'` and `"` like brackets, inside a word too, which turned `zo'n` into `zo'n'`. It goes in through `replaceRange` at the editor's own caret. Brackets are still closed for the student. **Setting `text` clears the undo history**, which `code_forge` neither records nor forgets. It carries `indentSize`, which `CodeEditorCard` hands on as the Tab width.
 
-**The editor's line height is the code face's own, 1.32** (`CodeEditorCard._lineHeight`), its ascent and descent together. `code_forge` draws a line number at the top of its row with no line height, so at the 1.6 the editor had before, the code sat 3.5px below its number. That makes the editor's lines tighter than a worked example's in the prose, which keeps `text.code`'s 1.8.
+**The editor's line height is 1.6, the code's and the line numbers' alike** (`CodeEditorCard._lineHeight`). `code_forge` lays a line number out at its own style's height, so the gutter MUST be given the code's: left at `text.code`'s 1.8, every number sits below its line. That makes the editor's lines tighter than a worked example's in the prose, which keeps `text.code`'s 1.8.
 
 What it does not undo, left for the reader to judge: the right-click menu is `code_forge`'s own and in English, Ctrl+F is swallowed, and `fontFamilyFallback` is not passed on, so an emoji in the code is not drawn in the bundled Noto.
 
@@ -700,7 +700,7 @@ Two things keep that true:
 
 The content test makes its bundle with the bundler's own `bundleLessons` and its lessons with `Course.entriesFrom`, so it checks the files the app would pick up, with their includes resolved, and no others.
 
-**`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**: `16 × 1.32` is 21.12, counted as 22. The editor keeps the fraction, so a box of that height has room to spare. A box a fraction too short is invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student types a second line.
+**`CodeEditorCard.heightForLines` rounds a line up to whole pixels before multiplying**: `16 × 1.6` is 25.6, counted as 26. The editor keeps the fraction, so a box of that height has room to spare. A box a fraction too short is invisible, and still enough for the editor to decide it can scroll and draw a scrollbar over the code the moment a student types a second line.
 
 **A quick exercise is capped at one line past its starter**, and the editor enforces it: `CodeEditorCard.maxLines` joins anything past the limit onto the last line it allows, because a plain Enter arrives through the text-input connection rather than as a key, so no key handler sees it. It removes the extra line breaks through `replaceRange`, which keeps the caret where it was; setting `text` would move it to the end. An empty starter counts as one line, so the least is two: storing a value and then showing it is the smallest exercise worth setting and it does not fit in one line. A step that needs more says `lines:` in its metadata. `Lesson.parse` resolves both into `LessonSection.maxLines`, and the view reads the cap and `heightForLines` from that one number, so the editor cannot allow a line it is too short to show.
 
